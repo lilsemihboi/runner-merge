@@ -1,0 +1,12 @@
+{
+  "name": "runner-merge",
+  "version": "0.1.0-rc-1",
+  "scripts": {
+    "build:rojo": "node scripts/genRojoTree.js",
+    "watch:rojo": "chokidar \"src/**/*\" -c \"npm run build:rojo\"",
+    "wally-install": "wally install && rojo sourcemap -o sourcemap.json && wally-package-types -s sourcemap.json Packages"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0"
+  }
+}

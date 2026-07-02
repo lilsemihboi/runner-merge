@@ -1,0 +1,11 @@
+/Packages
+/DevPackages
+default.project.json
+sourcemap.json
+*.rbxl
+*.rbxlx
+*.lock
+package-lock.json
+*.lock.*
+.DS_Store
+node_modules/

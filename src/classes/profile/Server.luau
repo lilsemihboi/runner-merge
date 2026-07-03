@@ -60,9 +60,9 @@ end
 	Retrieves the list of runner IDs owned by the player.
 	Runners are entities/characters that the player controls.
 	
-	@return { string? } -- Array of runner IDs (may contain nil values)
+	@return { number? } -- Array of runner numbers (may contain nil values)
 ]=]
-function Profile.getRunners(self: Profile): { string? }
+function Profile.getRunners(self: Profile): { number? }
 	return DataService:get(self.player, "runners")
 end
 
@@ -138,11 +138,18 @@ end
 	Adds a runner to the player's collection.
 	Assigns a new runner ID to the player's runners array.
 	
-	@param runnerId string -- The unique identifier of the runner to add
+	@param runnerLevel number -- Runner Level
+	@param amount number -- Amount of runners
 	@return () -- No return value
 ]=]
-function Profile.giveRunner(self: Profile, runnerId: string): ()
-	DataService:arrayInsert(self.player, "runners", runnerId)
+function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?): ()
+	if amount then
+		for _ = 1, amount, 1 do
+			DataService:arrayInsert(self.player, "runners", runnerLevel)
+		end
+		return
+	end
+	DataService:arrayInsert(self.player, "runners", runnerLevel)
 end
 
 --[=[

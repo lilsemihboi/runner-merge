@@ -6,7 +6,7 @@ local trustedPeople = {
 return function(player: Player)
 	local icons = ""
 
-	if player.HasVerifiedBadge or table.find(trustedPeople,player.UserId) then
+	if player.HasVerifiedBadge or table.find(trustedPeople, player.UserId) then
 		icons ..= utf8.char(57344) .. " "
 	end
 

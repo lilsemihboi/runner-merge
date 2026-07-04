@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local Signal = require(ReplicatedStorage.Packages.Signal)
@@ -25,14 +26,43 @@ local profileCreationSignal = Signal.new() -- Fired when a player's profile is c
 	
 	@return () -- No return value
 ]=]
-function ProfileService.init(_self: ProfileService)
+function ProfileService.init(self: ProfileService)
 	-- Create profiles for players already in the server (e.g., during hot reload)
 	for _, player in Players:GetPlayers() do
-		ProfileService._create(player)
+		self:_create(player)
 	end
 
 	-- Listen for new players joining
-	Players.PlayerAdded:Connect(ProfileService._create)
+	Players.PlayerAdded:Connect(function(player: Player)
+		self:_create(player)
+	end)
+end
+
+function ProfileService.initLeaderstats(self: ProfileService, player: Player)
+	DataService:waitForData(player)
+
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+
+	local cash = Instance.new("StringValue")
+	cash.Name = "Cash"
+	cash.Value = "$" .. Abbreviate(self.getProfile(player):getCash())
+	cash.Parent = leaderstats
+
+	local rebirths = Instance.new("StringValue")
+	rebirths.Name = "Rebirths"
+	rebirths.Value = Abbreviate(self.getProfile(player):getRebirths())
+	rebirths.Parent = leaderstats
+
+	DataService:getChangedSignal(player, "cash"):Connect(function(current: number)
+		cash.Value = "$" .. Abbreviate(current)
+	end)
+
+	DataService:getChangedSignal(player, "rebirths"):Connect(function(current: number)
+		rebirths.Value = Abbreviate(current)
+	end)
+
+	leaderstats.Parent = player
 end
 
 --[=[
@@ -42,7 +72,7 @@ end
 	@param player Player -- The player to create a profile for
 	@return () -- No return value
 ]=]
-function ProfileService._create(player: Player)
+function ProfileService._create(self: ProfileService, player: Player)
 	-- Guard against duplicate profile creation
 	if profiles[player] then
 		return
@@ -62,6 +92,7 @@ function ProfileService._create(player: Player)
 	--TODO: Create leaderstats
 	-- Fire signal to notify listeners that this player's profile is ready
 	profileCreationSignal:Fire(player)
+	self:initLeaderstats(player)
 end
 
 --[=[

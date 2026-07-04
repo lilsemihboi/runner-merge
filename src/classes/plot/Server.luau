@@ -24,7 +24,6 @@ function Plot.new(player: Player, plotId: number): Plot
 		plotId = plotId,
 		plotModel = plot,
 		janitor = Janitor.new(),
-		merge = Plot.merge,
 	}, Plot) :: Plot
 
 	local networker = Networker.server.new(`plot_{player.Name}`, self, {

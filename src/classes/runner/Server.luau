@@ -19,6 +19,9 @@ function Runner.new(runnerLevel: number, plotId: number): Runner
 		runnerIncomePerLap = RunnerUtils.getRunnerIncomePerLap(runnerLevel),
 		janitor = Janitor.new(),
 		plotId = plotId,
+		movementProgress = 0,
+		path = {},
+		pathDistance = 0,
 	}, Runner) :: Runner
 
 	self:_createRunnerModel()
@@ -113,17 +116,19 @@ function Runner._startMoving(self: Runner): ()
 		return
 	end
 
+	self.path = path
 	local totalDistance = 0
 	for index = 2, #path do
 		totalDistance += (path[index] - path[index - 1]).Magnitude
 	end
 
+	self.pathDistance = totalDistance
 	if totalDistance <= 0 then
 		return
 	end
 
 	local travelTime = totalDistance / math.max(1, self.runnerSpeed)
-	local startTime = os.clock()
+	local startTime = os.clock() - (self.movementProgress * travelTime)
 	local connection: RBXScriptConnection?
 	connection = RunService.Heartbeat:Connect(function()
 		if not self.runnerModel or not self.runnerModel.Parent then
@@ -135,6 +140,7 @@ function Runner._startMoving(self: Runner): ()
 
 		local elapsed = os.clock() - startTime
 		local progress = (elapsed / travelTime) % 1
+		self.movementProgress = progress
 		local distanceTraveled = progress * totalDistance
 		local traveledDistance = 0
 		local currentPoint = path[1]
@@ -225,6 +231,9 @@ export type Runner = typeof(setmetatable(
 		runnerModel: Instance?,
 		janitor: Janitor.Janitor,
 		plotId: number,
+		movementProgress: number,
+		path: { Vector3 },
+		pathDistance: number,
 	},
 	Runner
 ))

@@ -13,6 +13,7 @@ local Networker = require(ReplicatedStorage.Packages.Networker)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
+local RunnerServer = require(ServerScriptService.Classes.Runner.RunnerServer)
 
 function Plot.new(player: Player, plotId: number): Plot
 	local plot = workspace._PLOTS:FindFirstChild(tostring(plotId))
@@ -24,19 +25,27 @@ function Plot.new(player: Player, plotId: number): Plot
 		plotId = plotId,
 		plotModel = plot,
 		janitor = Janitor.new(),
+		runners = {},
+		_isApplyingRunnerMerge = false,
 	}, Plot) :: Plot
 
 	local networker = Networker.server.new(`plot_{player.Name}`, self, {
 		self.merge,
+		self.addRunner,
 	})
-
 	self.networker = networker
+	self.networker:addRecipient(player)
+
 	self.profile = ProfileServiceServer.getProfile(player)
+
+	local tempFolder = Instance.new("Folder")
+	tempFolder.Name = "_TEMP"
+	tempFolder.Parent = self.plotModel
+	self.janitor:Add(tempFolder, "Destroy")
 
 	self:onCharacterAdded()
 	self:setupSign()
-
-	self:watchForAutoMerge()
+	self:_createRunners()
 
 	return self :: Plot
 end
@@ -76,6 +85,76 @@ end
 
 function Plot.merge(self: Plot, player: Player)
 	assert(player == self.player, "You dont own the base!")
+
+	local runnerLevels = self.profile:getRunners()
+	local sortedLevels: { number } = {}
+
+	for _, runnerLevel in ipairs(runnerLevels) do
+		if typeof(runnerLevel) == "number" then
+			sortedLevels[#sortedLevels + 1] = runnerLevel
+		end
+	end
+
+	if #sortedLevels < 2 then
+		return
+	end
+
+	table.sort(sortedLevels)
+
+	local mergedLevels: { number } = {}
+	local changed = true
+	while changed do
+		changed = false
+		local index = 1
+		mergedLevels = {}
+
+		while index <= #sortedLevels do
+			local currentLevel = sortedLevels[index]
+			local nextLevel = sortedLevels[index + 1]
+
+			if nextLevel == currentLevel then
+				mergedLevels[#mergedLevels + 1] = currentLevel + 1
+				index += 2
+				changed = true
+			else
+				mergedLevels[#mergedLevels + 1] = currentLevel
+				index += 1
+			end
+		end
+
+		sortedLevels = mergedLevels
+	end
+
+	local mergedRunnerLevels = {}
+	for _, runnerLevel in ipairs(sortedLevels) do
+		mergedRunnerLevels[#mergedRunnerLevels + 1] = runnerLevel
+	end
+
+	self._isApplyingRunnerMerge = true
+
+	for index = #runnerLevels, 1, -1 do
+		DataService:arrayRemove(self.player, { "runners" }, index)
+	end
+
+	for index, runnerLevel in ipairs(mergedRunnerLevels) do
+		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
+	end
+
+	for index = 1, math.max(#mergedRunnerLevels, #self.runners) do
+		local existingRunner = self.runners[index]
+		local newLevel = mergedRunnerLevels[index]
+
+		if existingRunner and newLevel then
+			existingRunner:updateLevel(newLevel)
+		elseif newLevel then
+			self.runners[index] = RunnerServer.new(newLevel, self.plotId)
+		elseif existingRunner then
+			existingRunner:destroy()
+			self.runners[index] = nil
+		end
+	end
+
+	self._isApplyingRunnerMerge = false
 end
 
 function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
@@ -93,20 +172,38 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 	assert(player == self.player, "You dont own the base!")
 	--TODO: Calculate cost
 
-	self.profile:addRunner()
+	self.profile:giveRunner(1, runnerAmount)
 end
 
-function Plot.watchForAutoMerge(self: Plot)
-	local function checkCount()
-		local runnersAmount = #self.profile:getRunners()
-
-		if runnersAmount >= 20 then
-			self:merge(self.player)
-		end
+function Plot._createRunners(self: Plot)
+	for index, runnerLevel in self.profile:getRunners() do
+		local newRunner = RunnerServer.new(runnerLevel, self.plotId)
+		self.runners[index] = newRunner
 	end
 
-	DataService:getArrayInsertedSignal(self.player, { "runners" }):Connect(checkCount)
-	DataService:getArrayRemovedSignal(self.player, { "runners" }):Connect(checkCount)
+	DataService:getArrayInsertedSignal(self.player, { "runners" }):Connect(function(index, runnerLevel)
+		if self._isApplyingRunnerMerge then
+			return
+		end
+
+		local newRunner = RunnerServer.new(runnerLevel, self.plotId)
+		self.runners[index] = newRunner
+
+		if #self.profile:getRunners() >= 20 then
+			self:merge(self.player)
+		end
+	end)
+
+	DataService:getArrayRemovedSignal(self.player, { "runners" }):Connect(function(index)
+		if self._isApplyingRunnerMerge then
+			return
+		end
+
+		if self.runners[index] then
+			self.runners[index]:destroy()
+			self.runners[index] = nil
+		end
+	end)
 end
 
 export type Plot = typeof(setmetatable(
@@ -117,6 +214,8 @@ export type Plot = typeof(setmetatable(
 		janitor: Janitor.Janitor,
 		networker: Networker.Server,
 		profile: ProfileServer.Profile,
+		runners: { [number]: RunnerServer.Runner },
+		_isApplyingRunnerMerge: boolean,
 	},
 	Plot
 ))

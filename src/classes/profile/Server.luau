@@ -13,6 +13,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 
+function Profile._waitForData(self: Profile)
+	DataService:waitForData(self.player)
+end
+
 --[=[
 	Creates a new profile instance for a player.
 	Initializes a new Profile object that serves as an interface to the player's persistent data.
@@ -25,6 +29,8 @@ function Profile.new(player: Player): Profile
 	local self: Profile = setmetatable({
 		player = player, -- Store reference to the player
 	}, Profile)
+
+	self:_waitForData()
 
 	return self
 end

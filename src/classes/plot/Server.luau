@@ -14,6 +14,7 @@ local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.P
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServer = require(ServerScriptService.Classes.Runner.RunnerServer)
+local _GateServer = require(ServerScriptService.Classes.Gate.GateServer)
 
 function Plot.new(player: Player, plotId: number): Plot
 	local plot = workspace._PLOTS:FindFirstChild(tostring(plotId))
@@ -123,6 +124,7 @@ function Plot.merge(self: Plot, player: Player)
 		end
 
 		sortedLevels = mergedLevels
+		table.sort(sortedLevels)
 	end
 
 	local mergedRunnerLevels = {}

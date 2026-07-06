@@ -5,11 +5,15 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Charm = require(ReplicatedStorage.Packages.Charm)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
+local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
+local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 
 function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	local self = setmetatable({
@@ -23,6 +27,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self.networker = Networker.client.new(`plot_{self.player.Name}`, self)
 
 	self:setupButtons()
+	self:setupUpgradeBoard()
 	self:_updateMergeButtonState()
 
 	self.janitor:Add(
@@ -54,6 +59,70 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	)
 
 	return self
+end
+
+function Plot.setupUpgradeBoard(self: Plot)
+	local upgradeBoardUI =
+		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
+
+	local function setupUpgradeFrame(
+		upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates),
+		upgradeId: string
+	)
+		if upgradeId ~= "gates" and upgradeId ~= "runnerSpeed" and upgradeId ~= "cashBonus" then
+			return
+		end
+
+		local levelAtomForUpgrade = GetDataSource({ "upgrades", upgradeId })
+
+		local function changeLevelStatus(newLevel: number)
+			upgradeFrame.level.Text = `Level {newLevel}/{UpgradeUtils.levelCaps[upgradeId]}`
+			local nextLevel = newLevel + 1
+			if newLevel == UpgradeUtils.levelCaps[upgradeId] then
+				upgradeFrame.nextLevel.Text = "MAX LEVEL"
+				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
+			else
+				upgradeFrame.nextLevel.Text = `{newLevel} → {nextLevel}`
+				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextLevel)
+				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
+			end
+		end
+
+		changeLevelStatus(levelAtomForUpgrade())
+
+		self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
+			changeLevelStatus(newLevel)
+		end))
+
+		self.janitor:Add(
+			upgradeFrame.UpgradeButton.Activated:Connect(function()
+				local result = self.networker:fetch("upgrade", upgradeId)
+
+				if result == "SUCCESS" then
+					return
+				elseif result == "WRONG_UPGRADE_ID" then
+					print("Wrong upgrade id")
+					--TODO: Alert
+				elseif result == "MAX_LEVEL" then
+					--TODO: Alert
+					print("Max level")
+				elseif result == "NOT_ENOUGH_CASH" then
+					--TODO: Alert
+					print("Not enough cahs")
+				end
+			end),
+			"Disconnect"
+		)
+	end
+
+	for _, upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates) in upgradeBoardUI:GetChildren() do
+		if not upgradeFrame:IsA("Frame") then
+			continue
+		end
+		local upgradeId = upgradeFrame.Name
+
+		setupUpgradeFrame(upgradeFrame, upgradeId)
+	end
 end
 
 function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "Runner" | "Merge", runnerAmount: number?)

@@ -21,10 +21,10 @@ local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 }
 
 UpgradeUtils.levelCaps = {
-	gates = 10,
+	gates = 2,
 	runnerSpeed = 10,
 	cashBonus = 10,
-}
+} :: { [UpgradeId]: number }
 
 function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: number): number
 	local level = math.max(0, math.floor(upgradeLevel))

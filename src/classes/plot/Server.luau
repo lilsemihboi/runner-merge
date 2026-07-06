@@ -7,6 +7,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNameWithIcons)
+local GateServer = require(ServerScriptService.Classes.Gate.GateServer)
 local GetPlayerPortaitImage = require(ReplicatedStorage.Shared.Modules.Ui.GetPlayerPortaitImage)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
@@ -14,7 +15,8 @@ local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.P
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServer = require(ServerScriptService.Classes.Runner.RunnerServer)
-local _GateServer = require(ServerScriptService.Classes.Gate.GateServer)
+local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
+local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 
 function Plot.new(player: Player, plotId: number): Plot
 	local plot = workspace._PLOTS:FindFirstChild(tostring(plotId))
@@ -27,11 +29,13 @@ function Plot.new(player: Player, plotId: number): Plot
 		plotModel = plot,
 		janitor = Janitor.new(),
 		runners = {},
+		gates = {},
 		_isApplyingRunnerMerge = false,
 	}, Plot) :: Plot
 
 	local networker = Networker.server.new(`plot_{player.Name}`, self, {
 		self.merge,
+		self.upgrade,
 		self.addRunner,
 	})
 	self.networker = networker
@@ -47,8 +51,47 @@ function Plot.new(player: Player, plotId: number): Plot
 	self:onCharacterAdded()
 	self:setupSign()
 	self:_createRunners()
+	self:_checkForGates()
 
 	return self :: Plot
+end
+
+function Plot._checkForGates(self: Plot)
+	local function buildGates(_count: number) end
+
+	buildGates(self.profile:getUpgradeLevel("gates"))
+
+	self.janitor:Add(
+		DataService:getChangedSignal(self.player, { "upgrades", "gates" }):Connect(function(newValue)
+			buildGates(newValue)
+		end),
+		"Disconnect"
+	)
+end
+
+function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataTemplate.upgrades)>): string
+	assert(player == self.player, "You dont own the base!")
+
+	if upgradeId ~= "cashBonus" and upgradeId ~= "gates" and upgradeId ~= "runnerSpeed" then
+		return "WRONG_UPGRADE_ID"
+	end
+
+	local nextUpgradeId: number = self.profile:getUpgradeLevel(upgradeId) + 1
+
+	if nextUpgradeId > UpgradeUtils.levelCaps[upgradeId] then
+		return "MAX_LEVEL"
+	end
+
+	local nextUpgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeId)
+
+	if self.profile:getCash() < nextUpgradeCost then
+		return "NOT_ENOUGH_CASH"
+	end
+
+	self.profile:giveCash(-nextUpgradeCost)
+	self.profile:giveUpgrade(upgradeId)
+
+	return "SUCCESS"
 end
 
 function Plot.setupSign(self: Plot)
@@ -217,6 +260,7 @@ export type Plot = typeof(setmetatable(
 		networker: Networker.Server,
 		profile: ProfileServer.Profile,
 		runners: { [number]: RunnerServer.Runner },
+		gates: { [number]: GateServer.Gate },
 		_isApplyingRunnerMerge: boolean,
 	},
 	Plot

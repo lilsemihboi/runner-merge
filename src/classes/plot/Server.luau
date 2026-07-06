@@ -57,13 +57,28 @@ function Plot.new(player: Player, plotId: number): Plot
 end
 
 function Plot._checkForGates(self: Plot)
-	local function buildGates(_count: number) end
+	local function buildGates(count: number)
+		for gateId, gate in self.gates do
+			if gateId > count then
+				gate:destroy()
+				self.gates[gateId] = nil
+			end
+		end
+
+		for gateId = 1, count do
+			if not self.gates[gateId] then
+				self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId)
+			end
+		end
+	end
 
 	buildGates(self.profile:getUpgradeLevel("gates"))
 
 	self.janitor:Add(
 		DataService:getChangedSignal(self.player, { "upgrades", "gates" }):Connect(function(newValue)
-			buildGates(newValue)
+			if typeof(newValue) == "number" then
+				buildGates(newValue)
+			end
 		end),
 		"Disconnect"
 	)
@@ -122,6 +137,11 @@ end
 function Plot.destroy(self: Plot)
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerImage.Image = ""
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = "Empty"
+
+	for gateId, gate in self.gates do
+		gate:destroy()
+		self.gates[gateId] = nil
+	end
 
 	self.janitor:Destroy()
 	self.networker:destroy()

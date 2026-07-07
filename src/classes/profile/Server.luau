@@ -149,13 +149,17 @@ end
 	@return () -- No return value
 ]=]
 function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?): ()
-	if amount then
-		for _ = 1, amount, 1 do
-			DataService:arrayInsert(self.player, "runners", runnerLevel)
-		end
-		return
+	if not amount then
+		amount = 1
 	end
-	DataService:arrayInsert(self.player, "runners", runnerLevel)
+
+	DataService:update(self.player, "runnerPurchases", function(current)
+		return current + amount
+	end)
+
+	for _ = 1, amount :: number, 1 do
+		DataService:arrayInsert(self.player, "runners", runnerLevel)
+	end
 end
 
 --[=[

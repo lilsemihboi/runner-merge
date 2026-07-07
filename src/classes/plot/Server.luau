@@ -15,6 +15,7 @@ local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.P
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
+local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 
@@ -226,9 +227,16 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 		})
 	end
 	assert(player == self.player, "You dont own the base!")
-	--TODO: Calculate cost
 
+	local cost = Runners.calculateRunnerPrice(DataService:get(self.player, "runnerPurchases") + runnerAmount)
+	if self.profile:getCash() < cost then
+		return "CASH_NOT_ENOUGH"
+	end
+
+	self.profile:giveCash(-cost)
 	self.profile:giveRunner(1, runnerAmount)
+
+	return "SUCCESS"
 end
 
 -- Runner objects no longer exist on the server (simulation is client-side);

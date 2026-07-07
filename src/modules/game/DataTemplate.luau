@@ -5,6 +5,7 @@
 export type DataSchema = {
 	cash: number,
 	rebirths: number,
+	runnerPurchases: number,
 
 	runners: { number },
 
@@ -29,7 +30,7 @@ export type DataSchema = {
 return {
 	cash = 0,
 	rebirths = 0,
-
+	runnerPurchases = 0,
 	runners = {},
 
 	upgrades = {

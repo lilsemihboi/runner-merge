@@ -17,6 +17,10 @@ function Runners.calculateRunnerPrice(runnerAmount: number): number
 		return 0
 	end
 
+	if amount == 2 then
+		return 2
+	end
+
 	return roundToTens(RUNNER_BASE_COST * (RUNNER_GROWTH ^ (amount - 2)))
 end
 

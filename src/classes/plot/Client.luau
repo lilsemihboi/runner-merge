@@ -16,7 +16,11 @@ local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 
+local RUNNER_ENABLED_COLOR = Color3.fromRGB(11, 138, 20)
+local BUTTON_DISABLED_COLOR = Color3.fromRGB(136, 136, 136)
+
 type RunnerButton = {
+	buttonTop: BasePart,
 	runnerAmount: number,
 	moneyText: TextLabel,
 }
@@ -40,6 +44,11 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 
 	local runnersBought = GetDataSource("runnerPurchases")
 	self.janitor:Add(Charm.subscribe(runnersBought, function()
+		self:_updateRunnerButtonPrices()
+	end))
+
+	local cashAtom = GetDataSource("cash")
+	self.janitor:Add(Charm.subscribe(cashAtom, function()
 		self:_updateRunnerButtonPrices()
 	end))
 
@@ -177,7 +186,6 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 				self.networker:fire("merge")
 			end
 
-			local originalColor = buttonTop.Color
 			local flashTween = TweenService:Create(buttonTop, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 				Color = Color3.new(1, 1, 1),
 			})
@@ -190,10 +198,7 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 						return
 					end
 
-					local resetTween = TweenService:Create(buttonTop, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Color = originalColor,
-					})
-					resetTween:Play()
+					self:_updateRunnerButtonPrices()
 				end
 			end)
 
@@ -202,7 +207,7 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 					if buttonType == "Merge" then
 						self:_updateMergeButtonState()
 					else
-						buttonTop.Color = originalColor
+						self:_updateRunnerButtonPrices()
 					end
 				end
 			end)
@@ -217,7 +222,7 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 	)
 end
 
-function Plot._registerRunnerButton(self: Plot, buttonModel: Instance, runnerAmount: number)
+function Plot._registerRunnerButton(self: Plot, buttonTop: BasePart, buttonModel: Instance, runnerAmount: number)
 	local attachment = buttonModel:FindFirstChild("Attachment")
 	if not attachment then
 		return
@@ -234,6 +239,7 @@ function Plot._registerRunnerButton(self: Plot, buttonModel: Instance, runnerAmo
 	end
 
 	self.runnerButtons[#self.runnerButtons + 1] = {
+		buttonTop = buttonTop,
 		runnerAmount = runnerAmount,
 		moneyText = moneyText,
 	}
@@ -243,11 +249,16 @@ end
 
 function Plot._updateRunnerButtonPrices(self: Plot)
 	local runnerPurchases = DataService:get("runnerPurchases")
-	if typeof(runnerPurchases) ~= "number" then
+	local cash = DataService:get("cash")
+	if typeof(runnerPurchases) ~= "number" or typeof(cash) ~= "number" then
 		return
 	end
 
 	for _, runnerButton in self.runnerButtons do
+		if not runnerButton.buttonTop.Parent then
+			continue
+		end
+
 		if not runnerButton.moneyText.Parent then
 			continue
 		end
@@ -255,6 +266,7 @@ function Plot._updateRunnerButtonPrices(self: Plot)
 		local buttonAmount = runnerPurchases + runnerButton.runnerAmount
 		local cost = Runners.calculateRunnerPrice(buttonAmount)
 		runnerButton.moneyText.Text = if cost == 0 then "Free" else FormatCurrency(cost, true)
+		runnerButton.buttonTop.Color = if cash >= cost then RUNNER_ENABLED_COLOR else BUTTON_DISABLED_COLOR
 	end
 end
 
@@ -293,7 +305,7 @@ function Plot._tryRegisterButton(self: Plot, button: Instance): ()
 
 		self.registeredButtons[button] = true
 		self:_registerTypeButton(button, "Runner", runnerAmount)
-		self:_registerRunnerButton(buttonModel, runnerAmount)
+		self:_registerRunnerButton(button, buttonModel, runnerAmount)
 	elseif buttonType == "Merge" then
 		self.registeredButtons[button] = true
 		self:_registerTypeButton(button, "Merge")

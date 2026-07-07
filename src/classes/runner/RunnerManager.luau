@@ -21,11 +21,14 @@
 local RunnerManager = {}
 RunnerManager.__index = RunnerManager
 
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
+local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
@@ -33,6 +36,7 @@ local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerServi
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
+local INCOME_INDICATOR_TWEEN_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
 
 function RunnerManager.new(): RunnerManager
 	local self = setmetatable({
@@ -209,6 +213,87 @@ function RunnerManager._isWithinPlotBounds(self: RunnerManager, state: PlotState
 	return math.abs(relativePos.X) <= boundsSize.X / 2 + padding and math.abs(relativePos.Z) <= boundsSize.Z / 2 + padding
 end
 
+function RunnerManager._getGateAttachment(_self: RunnerManager, plotId: number, gateId: number): Attachment?
+	local plotsFolder = workspace:FindFirstChild("_PLOTS")
+	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(plotId)) else nil
+	local runwayModel = if plotModel then plotModel:FindFirstChild("Runway") else nil
+	local gateAttachments = if runwayModel then runwayModel:FindFirstChild("gateAttachments") else nil
+	local attachment = if gateAttachments then gateAttachments:FindFirstChild(tostring(gateId)) else nil
+
+	if attachment and attachment:IsA("Attachment") then
+		return attachment
+	end
+
+	return nil
+end
+
+function RunnerManager._getIncomeIndicatorGui(self: RunnerManager, plotId: number, gateId: number): BillboardGui?
+	local attachment = self:_getGateAttachment(plotId, gateId)
+	if not attachment then
+		return nil
+	end
+
+	local billboardGui = attachment:FindFirstChild("IncomeIndicator")
+	if billboardGui and billboardGui:IsA("BillboardGui") then
+		return billboardGui
+	end
+
+	billboardGui = Instance.new("BillboardGui")
+	billboardGui.Name = "IncomeIndicator"
+	billboardGui.Adornee = attachment
+	billboardGui.AlwaysOnTop = true
+	billboardGui.LightInfluence = 0
+	billboardGui.Size = UDim2.fromScale(2, 2)
+	billboardGui.Parent = attachment
+
+	return billboardGui
+end
+
+function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number, gateId: number, incomePerLap: number): ()
+	local billboardGui = self:_getIncomeIndicatorGui(plotId, gateId)
+	if not billboardGui then
+		return
+	end
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Font = Enum.Font.GothamBlack
+	textLabel.Position = UDim2.fromScale(0.5, 0.5)
+	textLabel.Size = UDim2.new(0, 0, 0, 0)
+	textLabel.Text = `+${FormatCurrency(incomePerLap, false)}`
+	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
+	textLabel.TextScaled = false
+	textLabel.TextSize = 36 --TODO: We can use auto text scaling later
+	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 80, 30)
+	textLabel.TextStrokeTransparency = 0.2
+	textLabel.Parent = billboardGui
+
+	local offsetX = math.random(-10, 20) / 10
+	local offsetY = math.random(-10, 20) / 10
+	local offsetZ = math.random(-10, 20) / 10
+	billboardGui.StudsOffset = Vector3.new(offsetX, offsetY, offsetZ)
+
+	textLabel:TweenSize(UDim2.fromScale(2, 2), Enum.EasingDirection.InOut, Enum.EasingStyle.Quint, 0.3)
+
+	task.delay(0.3, function()
+		if not billboardGui.Parent or not textLabel.Parent then
+			return
+		end
+
+		TweenService:Create(billboardGui, INCOME_INDICATOR_TWEEN_INFO, {
+			StudsOffset = billboardGui.StudsOffset + Vector3.new(0, 1, 0),
+		}):Play()
+
+		TweenService:Create(textLabel, INCOME_INDICATOR_TWEEN_INFO, {
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+		}):Play()
+	end)
+
+	Debris:AddItem(textLabel, 0.6)
+end
+
 -- Task 2: replication culling. Own plot is always active; other players'
 -- plots are only simulated while the local character is inside their bounds.
 function RunnerManager.updateReplication(self: RunnerManager): ()
@@ -256,6 +341,7 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			end
 
 			for _, gateId in crossedGates do
+				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap)
 				self.networker:fire("reportGate", plotId, index, gateId)
 			end
 		end

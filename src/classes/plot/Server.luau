@@ -14,7 +14,7 @@ local Networker = require(ReplicatedStorage.Packages.Networker)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
-local RunnerServer = require(ServerScriptService.Classes.Runner.RunnerServer)
+local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 
@@ -28,7 +28,6 @@ function Plot.new(player: Player, plotId: number): Plot
 		plotId = plotId,
 		plotModel = plot,
 		janitor = Janitor.new(),
-		runners = {},
 		gates = {},
 		_isApplyingRunnerMerge = false,
 	}, Plot) :: Plot
@@ -50,8 +49,12 @@ function Plot.new(player: Player, plotId: number): Plot
 
 	self:onCharacterAdded()
 	self:setupSign()
-	self:_createRunners()
+	self:_watchRunners()
 	self:_checkForGates()
+
+	-- runner simulation is fully client-side; RunnerService only broadcasts
+	-- the roster + start signal and validates gate income
+	RunnerServiceServer:registerPlot(player, plotId)
 
 	return self :: Plot
 end
@@ -138,6 +141,8 @@ function Plot.destroy(self: Plot)
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerImage.Image = ""
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = "Empty"
 
+	RunnerServiceServer:unregisterPlot(self.player)
+
 	for gateId, gate in self.gates do
 		gate:destroy()
 		self.gates[gateId] = nil
@@ -205,20 +210,6 @@ function Plot.merge(self: Plot, player: Player)
 		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
 	end
 
-	for index = 1, math.max(#mergedRunnerLevels, #self.runners) do
-		local existingRunner = self.runners[index]
-		local newLevel = mergedRunnerLevels[index]
-
-		if existingRunner and newLevel then
-			existingRunner:updateLevel(newLevel)
-		elseif newLevel then
-			self.runners[index] = RunnerServer.new(newLevel, self.plotId)
-		elseif existingRunner then
-			existingRunner:destroy()
-			self.runners[index] = nil
-		end
-	end
-
 	self._isApplyingRunnerMerge = false
 end
 
@@ -240,35 +231,21 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 	self.profile:giveRunner(1, runnerAmount)
 end
 
-function Plot._createRunners(self: Plot)
-	for index, runnerLevel in self.profile:getRunners() do
-		local newRunner = RunnerServer.new(runnerLevel, self.plotId)
-		self.runners[index] = newRunner
-	end
+-- Runner objects no longer exist on the server (simulation is client-side);
+-- this only watches the data array to trigger the auto-merge at 20 runners.
+function Plot._watchRunners(self: Plot)
+	self.janitor:Add(
+		DataService:getArrayInsertedSignal(self.player, { "runners" }):Connect(function()
+			if self._isApplyingRunnerMerge then
+				return
+			end
 
-	DataService:getArrayInsertedSignal(self.player, { "runners" }):Connect(function(index, runnerLevel)
-		if self._isApplyingRunnerMerge then
-			return
-		end
-
-		local newRunner = RunnerServer.new(runnerLevel, self.plotId)
-		self.runners[index] = newRunner
-
-		if #self.profile:getRunners() >= 20 then
-			self:merge(self.player)
-		end
-	end)
-
-	DataService:getArrayRemovedSignal(self.player, { "runners" }):Connect(function(index)
-		if self._isApplyingRunnerMerge then
-			return
-		end
-
-		if self.runners[index] then
-			self.runners[index]:destroy()
-			self.runners[index] = nil
-		end
-	end)
+			if #self.profile:getRunners() >= 20 then
+				self:merge(self.player)
+			end
+		end),
+		"Disconnect"
+	)
 end
 
 export type Plot = typeof(setmetatable(
@@ -279,7 +256,6 @@ export type Plot = typeof(setmetatable(
 		janitor: Janitor.Janitor,
 		networker: Networker.Server,
 		profile: ProfileServer.Profile,
-		runners: { [number]: RunnerServer.Runner },
 		gates: { [number]: GateServer.Gate },
 		_isApplyingRunnerMerge: boolean,
 	},

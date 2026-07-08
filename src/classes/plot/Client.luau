@@ -263,8 +263,7 @@ function Plot._updateRunnerButtonPrices(self: Plot)
 			continue
 		end
 
-		local buttonAmount = runnerPurchases + runnerButton.runnerAmount
-		local cost = Runners.calculateRunnerPrice(buttonAmount)
+		local cost = Runners.calculateRunnerBatchPrice(runnerPurchases, runnerButton.runnerAmount)
 		runnerButton.moneyText.Text = if cost == 0 then "Free" else FormatCurrency(cost, true)
 		runnerButton.buttonTop.Color = if cash >= cost then RUNNER_ENABLED_COLOR else BUTTON_DISABLED_COLOR
 	end

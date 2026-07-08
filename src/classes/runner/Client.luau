@@ -26,7 +26,8 @@ function Runner.new(config: RunnerConfig): Runner
 		plotId = config.plotId,
 		index = config.index,
 		level = config.level,
-		speed = RunnerUtils.getRunnerSpeed(config.level),
+		runnerSpeedLevel = config.runnerSpeedLevel,
+		speed = RunnerUtils.getRunnerSpeed(config.level, config.runnerSpeedLevel),
 		incomePerLap = RunnerUtils.getRunnerIncomePerLap(config.level),
 		path = config.path,
 		startClock = config.startClock,
@@ -178,13 +179,19 @@ function Runner.setActive(self: Runner, active: boolean): ()
 	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
 end
 
--- Re-syncs the deterministic parameters after a roster change (car added,
--- merge, gate upgrade). Resets prevDistance so phase shifts never produce
--- phantom gate crossings.
-function Runner.configure(self: Runner, startClock: number, phase: number, gateCount: number): ()
+-- Re-syncs the deterministic parameters after a roster/upgrade change.
+-- Resets prevDistance so phase/speed shifts never produce phantom gate crossings.
+function Runner._refreshSpeed(self: Runner): ()
+	self.speed = RunnerUtils.getRunnerSpeed(self.level, self.runnerSpeedLevel)
+	self:_refreshTravelTime()
+end
+
+function Runner.configure(self: Runner, startClock: number, phase: number, gateCount: number, runnerSpeedLevel: number): ()
 	self.startClock = startClock
 	self.phase = phase
 	self.gateCount = gateCount
+	self.runnerSpeedLevel = runnerSpeedLevel
+	self:_refreshSpeed()
 	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
 end
 
@@ -194,10 +201,9 @@ function Runner.updateLevel(self: Runner, newRunnerLevel: number): ()
 	end
 
 	self.level = newRunnerLevel
-	self.speed = RunnerUtils.getRunnerSpeed(newRunnerLevel)
+	self:_refreshSpeed()
 	self.incomePerLap = RunnerUtils.getRunnerIncomePerLap(newRunnerLevel)
 
-	self:_refreshTravelTime()
 	self:_createModel()
 	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
 end
@@ -215,6 +221,7 @@ export type RunnerConfig = {
 	startClock: number,
 	phase: number,
 	gateCount: number,
+	runnerSpeedLevel: number,
 	isOwner: boolean,
 	active: boolean,
 }
@@ -224,6 +231,7 @@ export type Runner = typeof(setmetatable(
 		plotId: number,
 		index: number,
 		level: number,
+		runnerSpeedLevel: number,
 		speed: number,
 		incomePerLap: number,
 		path: PathData.Path,

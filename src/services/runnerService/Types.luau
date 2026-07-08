@@ -4,6 +4,7 @@ export type RunnerPlotSnapshot = {
 	levels: { number },
 	startClock: number,
 	gateCount: number,
+	runnerSpeedLevel: number,
 }
 
 return nil

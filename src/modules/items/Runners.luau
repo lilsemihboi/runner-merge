@@ -1,27 +1,63 @@
 local Runners = {}
 
-local RUNNER_BASE_COST = 5
-local RUNNER_GROWTH = 1.35
+local RUNNER_GROWTH = 1.16
+local MIN_PRICE_INCREASE = 5
+local CUSTOM_RUNNER_PRICE_COUNT = 15
 
-local function roundToTens(value: number): number
-	return math.floor((value + 5) / 10) * 10
+local CUSTOM_RUNNER_PRICES = {
+	[1] = 0,
+	[2] = 2,
+	[3] = 5,
+	[4] = 10,
+	[5] = 15,
+	[6] = 25,
+	[7] = 35,
+	[8] = 50,
+	[9] = 70,
+	[10] = 95,
+	[11] = 130,
+	[12] = 175,
+	[13] = 235,
+	[14] = 315,
+	[15] = 420,
+}
+
+local function roundToFives(value: number): number
+	return math.floor((value + 2.5) / 5) * 5
 end
 
 --[[
-    @param runnerAmount number -- Your car amount + add runner amount (first runner is free)
+    @param runnerAmount number -- Total lifetime runner purchase number (first runner is free)
 ]]
 function Runners.calculateRunnerPrice(runnerAmount: number): number
 	local amount = math.max(1, math.floor(runnerAmount))
+	local customPrice = CUSTOM_RUNNER_PRICES[amount]
 
-	if amount == 1 then
-		return 0
+	if customPrice then
+		return customPrice
 	end
 
-	if amount == 2 then
-		return 2
+	local previousPrice = Runners.calculateRunnerPrice(amount - 1)
+	local formulaStartPrice = CUSTOM_RUNNER_PRICES[CUSTOM_RUNNER_PRICE_COUNT]
+	local formulaPrice = roundToFives(formulaStartPrice * (RUNNER_GROWTH ^ (amount - CUSTOM_RUNNER_PRICE_COUNT)))
+
+	return math.max(formulaPrice, previousPrice + MIN_PRICE_INCREASE)
+end
+
+--[[
+	@param currentPurchases number -- Current lifetime runner purchases
+	@param purchaseAmount number -- Amount of runners being bought now
+]]
+function Runners.calculateRunnerBatchPrice(currentPurchases: number, purchaseAmount: number): number
+	local currentAmount = math.max(0, math.floor(currentPurchases))
+	local amountToBuy = math.max(0, math.floor(purchaseAmount))
+	local totalCost = 0
+
+	for index = currentAmount + 1, currentAmount + amountToBuy do
+		totalCost += Runners.calculateRunnerPrice(index)
 	end
 
-	return roundToTens(RUNNER_BASE_COST * (RUNNER_GROWTH ^ (amount - 2)))
+	return totalCost
 end
 
 return Runners

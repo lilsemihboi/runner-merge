@@ -228,7 +228,7 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 	end
 	assert(player == self.player, "You dont own the base!")
 
-	local cost = Runners.calculateRunnerPrice(DataService:get(self.player, "runnerPurchases") + runnerAmount)
+	local cost = Runners.calculateRunnerBatchPrice(DataService:get(self.player, "runnerPurchases"), runnerAmount)
 	if self.profile:getCash() < cost then
 		return "CASH_NOT_ENOUGH"
 	end

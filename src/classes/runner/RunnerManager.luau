@@ -7,7 +7,7 @@
 	simulates every car locally inside ONE Heartbeat loop.
 
 	Server -> client (Networker dispatch):
-		setRunners(plotId, owner, levels, startClock, gateCount)
+		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel)
 		removePlot(plotId)
 	Client -> server:
 		fetch("requestState") -- late-join sync
@@ -27,12 +27,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Charm = require(ReplicatedStorage.Packages.Charm)
 local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
+local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
+local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
+local RunnerUtils = require(script.Parent.RunnerUtils)
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
@@ -43,10 +47,24 @@ function RunnerManager.new(): RunnerManager
 		runners = {},
 		plots = {},
 		boundsCooldown = 0,
+		multiplier = 1,
+		janitor = Janitor.new(),
 	}, RunnerManager) :: RunnerManager
 
 	self.networker = Networker.client.new("RunnerService", self :: any)
 	self:start()
+
+	local function updateMultiplier(new: number)
+		self.multiplier = RunnerUtils.getCashBonusMultiplier(new)
+	end
+
+	local cashBonus = GetDataSource({ "upgrades", "cashBonus" })
+
+	updateMultiplier(cashBonus())
+
+	self.janitor:Add(Charm.subscribe(cashBonus, function(new)
+		updateMultiplier(new)
+	end))
 
 	task.spawn(function()
 		local snapshots: { RunnerServiceTypes.RunnerPlotSnapshot } = self.networker:fetch("requestState")
@@ -57,7 +75,7 @@ function RunnerManager.new(): RunnerManager
 		for _, snapshot in snapshots do
 			-- live broadcasts may already have arrived while fetching; they win
 			if not self.plots[snapshot.plotId] then
-				self:setRunners(snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount)
+				self:setRunners(snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount, snapshot.runnerSpeedLevel)
 			end
 		end
 	end)
@@ -84,7 +102,15 @@ end
 
 -- Server "start" signal: full roster snapshot for one plot. Reconciles the
 -- RunnerClient pool (create / updateLevel / destroy) instead of rebuilding.
-function RunnerManager.setRunners(self: RunnerManager, plotId: number, owner: Player, levels: { number }, startClock: number, gateCount: number): ()
+function RunnerManager.setRunners(
+	self: RunnerManager,
+	plotId: number,
+	owner: Player,
+	levels: { number },
+	startClock: number,
+	gateCount: number,
+	runnerSpeedLevel: number
+): ()
 	local state = self.plots[plotId]
 	if not state then
 		state = {
@@ -93,6 +119,7 @@ function RunnerManager.setRunners(self: RunnerManager, plotId: number, owner: Pl
 			levels = levels,
 			startClock = startClock,
 			gateCount = gateCount,
+			runnerSpeedLevel = runnerSpeedLevel,
 			active = owner == Players.LocalPlayer,
 		}
 		self.plots[plotId] = state
@@ -102,6 +129,7 @@ function RunnerManager.setRunners(self: RunnerManager, plotId: number, owner: Pl
 		state.levels = levels
 		state.startClock = startClock
 		state.gateCount = gateCount
+		state.runnerSpeedLevel = runnerSpeedLevel
 	end
 
 	local path = PathData.get(plotId)
@@ -129,7 +157,7 @@ function RunnerManager.setRunners(self: RunnerManager, plotId: number, owner: Pl
 		if car then
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
-			car:configure(startClock, phase, gateCount)
+			car:configure(startClock, phase, gateCount, runnerSpeedLevel)
 		else
 			cars[index] = RunnerClient.new({
 				plotId = plotId,
@@ -139,6 +167,7 @@ function RunnerManager.setRunners(self: RunnerManager, plotId: number, owner: Pl
 				startClock = startClock,
 				phase = phase,
 				gateCount = gateCount,
+				runnerSpeedLevel = runnerSpeedLevel,
 				isOwner = isOwner,
 				active = state.active,
 			})
@@ -170,7 +199,7 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			return
 		end
 
-		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount)
+		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount, state.runnerSpeedLevel)
 	end)
 end
 
@@ -261,7 +290,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	textLabel.Font = Enum.Font.GothamBlack
 	textLabel.Position = UDim2.fromScale(0.5, 0.5)
 	textLabel.Size = UDim2.new(0, 0, 0, 0)
-	textLabel.Text = `+${FormatCurrency(incomePerLap, false)}`
+	textLabel.Text = `+${FormatCurrency(math.max(0, math.round(incomePerLap * self.multiplier)), false)}`
 	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
 	textLabel.TextScaled = false
 	textLabel.TextSize = 36 --TODO: We can use auto text scaling later
@@ -363,6 +392,7 @@ type PlotState = {
 	levels: { number },
 	startClock: number,
 	gateCount: number,
+	runnerSpeedLevel: number,
 	active: boolean,
 	boundsCf: CFrame?,
 	boundsSize: Vector3?,
@@ -376,6 +406,8 @@ export type RunnerManager = typeof(setmetatable(
 		networker: Networker.Client,
 		updateConn: RBXScriptConnection?,
 		boundsCooldown: number,
+		janitor: Janitor.Janitor,
+		multiplier: number,
 	},
 	RunnerManager
 ))

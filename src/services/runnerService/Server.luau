@@ -10,7 +10,7 @@
 		   clock, and pays incomePerLap per validated gate crossing.
 
 	Determinism contract (must match RunnerClient/RunnerManager exactly):
-		travelTime = path.length / max(1, getRunnerSpeed(level))
+		travelTime = path.length / max(1, getRunnerSpeed(level, runnerSpeedLevel))
 		phase      = (index - 1) / #levels
 		progress   = ((GetServerTimeNow() - startClock) / travelTime + phase) % 1
 ]]
@@ -75,6 +75,13 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		"Disconnect"
 	)
 
+	state.janitor:Add(
+		DataService:getChangedSignal(player, { "upgrades", "runnerSpeed" }):Connect(function()
+			self:_scheduleBroadcast(state)
+		end),
+		"Disconnect"
+	)
+
 	self:_broadcastPlot(state)
 end
 
@@ -99,6 +106,7 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		levels = RunnerUtils.sanitizeLevels(profile:getRunners()),
 		startClock = state.startClock,
 		gateCount = profile:getUpgradeLevel("gates"),
+		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 	}
 end
 
@@ -125,7 +133,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 	table.clear(state.gateAwards)
 
 	local snapshot = self:_snapshot(state)
-	self.networker:fireAll("setRunners", snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount)
+	self.networker:fireAll("setRunners", snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount, snapshot.runnerSpeedLevel)
 end
 
 -- Late-join sync: client fetches every known plot once on startup.
@@ -177,7 +185,8 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 		return
 	end
 
-	local speed = RunnerUtils.getRunnerSpeed(level)
+	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel)
 	local travelTime = path.length / math.max(1, speed)
 	local phase = (runnerIndex - 1) / #levels
 	local now = workspace:GetServerTimeNow()

@@ -42,6 +42,14 @@ function toPascalCase(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+function getFolderName(part, index) {
+  if (index === 0 && part.toLowerCase() === "ui") {
+    return "UI";
+  }
+
+  return toPascalCase(part);
+}
+
 function getVirtualPath(filepath) {
   const relativePath = path.relative(BASE_PATH, filepath);
   const parts = relativePath.split(path.sep);
@@ -65,7 +73,7 @@ function getVirtualPath(filepath) {
   return {
     isInit: filename === "init",
     target: isServer ? "ServerScriptService" : "ReplicatedStorage",
-    folder: parts.slice(0, -1).map(toPascalCase),
+    folder: parts.slice(0, -1).map((part, index) => getFolderName(part, index)),
     name,
     file:
       filename === "init"
@@ -85,6 +93,7 @@ const tree = {
         Services: { $className: "Folder" },
         Classes: { $className: "Folder" },
         Modules: { $className: "Folder" },
+        UI: { $className: "Folder" }
       },
       Packages: { $path: "Packages" },
     },

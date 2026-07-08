@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local AutoRejoinServiceServer = require(ServerScriptService.Services.AutoRejoinService.AutoRejoinServiceServer)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
@@ -18,3 +19,4 @@ DataService:init({
 ProfileServiceServer:init()
 RunnerServiceServer:init()
 PlotServiceServer:init()
+AutoRejoinServiceServer:init()

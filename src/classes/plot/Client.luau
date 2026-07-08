@@ -14,6 +14,7 @@ local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDat
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
+local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 
 local RUNNER_ENABLED_COLOR = Color3.fromRGB(11, 138, 20)
@@ -185,7 +186,7 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 			else
 				self.networker:fire("merge")
 			end
-
+			SoundServiceClient:play("buttonTouch")
 			local flashTween = TweenService:Create(buttonTop, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 				Color = Color3.new(1, 1, 1),
 			})

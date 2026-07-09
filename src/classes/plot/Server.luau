@@ -37,6 +37,7 @@ function Plot.new(player: Player, plotId: number): Plot
 		self.merge,
 		self.upgrade,
 		self.addRunner,
+		self.teleportToBase,
 	})
 	self.networker = networker
 	self.networker:addRecipient(player)
@@ -118,17 +119,24 @@ function Plot.setupSign(self: Plot)
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = FormatNameWithIcons(self.player) .. "'s Base"
 end
 
+function Plot.teleportToBase(self: Plot, player: Player)
+	assert(player == self.player, "You dont own the base!")
+
+	local character = self.player.Character or self.player.CharacterAdded:Wait()
+
+	local humanoidRootPart: BasePart = character:WaitForChild("HumanoidRootPart") :: BasePart
+	humanoidRootPart.CFrame = self.plotModel.Spawn.WorldCFrame
+end
+
 function Plot.onCharacterAdded(self: Plot)
-	local function teleport()
-		local character = self.player.Character or self.player.CharacterAdded:Wait()
+	self:teleportToBase(self.player)
 
-		local humanoidRootPart: BasePart = character:WaitForChild("HumanoidRootPart") :: BasePart
-		humanoidRootPart.CFrame = self.plotModel.Spawn.WorldCFrame
-	end
-
-	teleport()
-
-	self.janitor:Add(self.player.CharacterAdded:Connect(teleport), "Disconnect")
+	self.janitor:Add(
+		self.player.CharacterAdded:Connect(function()
+			self:teleportToBase(self.player)
+		end),
+		"Disconnect"
+	)
 end
 
 function Plot.getPlotData(self: Plot): PlotServiceTypes.PlotData

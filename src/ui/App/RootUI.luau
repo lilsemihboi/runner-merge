@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local e = Vide.create
 
@@ -24,6 +25,7 @@ end
 
 return function()
 	captureRoots()
+	usePx.usePx()
 
 	return e("ScreenGui", {
 		Name = "Root",

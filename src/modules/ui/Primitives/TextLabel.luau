@@ -189,7 +189,7 @@ return function(props: TextLabelProps)
 	end
 
 	return create("TextLabel", {
-		Font = props.Font or Enum.Font.BuilderSansExtraBold,
+		Font = props.Font,
 		FontFace = props.FontFace,
 		LineHeight = props.LineHeight,
 		MaxVisibleGraphemes = props.MaxVisibleGraphemes,

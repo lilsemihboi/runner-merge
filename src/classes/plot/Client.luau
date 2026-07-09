@@ -148,6 +148,11 @@ function Plot.setupUpgradeBoard(self: Plot)
 	end
 end
 
+function Plot.teleportToBase(self: Plot): ()
+	self.networker:fire("teleportToBase")
+	return
+end
+
 function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "Runner" | "Merge", runnerAmount: number?)
 	local lastTrigger = 0
 	local baseCFrame = buttonTop.CFrame

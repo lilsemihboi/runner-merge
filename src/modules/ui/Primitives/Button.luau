@@ -15,6 +15,7 @@ export type ButtonProps = {
 	OnLeave: (() -> ())?,
 	OnDown: (() -> ())?,
 	OnUp: (() -> ())?,
+	OnClick: (() -> ())?,
 
 	-- ImageButton
 	HoverImage: Bindable<string>?,
@@ -104,6 +105,7 @@ local RESERVED_KEYS = {
 	"OnLeave",
 	"OnDown",
 	"OnUp",
+	"OnClick",
 }
 
 return function(props: ButtonProps)
@@ -137,6 +139,12 @@ return function(props: ButtonProps)
 		scale(1)
 		if props.OnLeave then
 			props.OnLeave()
+		end
+	end
+
+	function buttonProps.Activated()
+		if props.OnClick then
+			props.OnClick()
 		end
 	end
 

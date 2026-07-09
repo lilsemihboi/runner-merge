@@ -5,6 +5,7 @@ local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageL
 local RemoveKeys = require(ReplicatedStorage.Shared.Modules.Utils.RemoveKeys)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 export type StudButton = Button.ButtonProps & {
 	Colors: {
@@ -15,12 +16,15 @@ export type StudButton = Button.ButtonProps & {
 		buttonBase: Color3,
 	},
 	Text: string,
+	TextSize: (number | () -> number)?,
 }
 
 local CUSTOM_PROPS = {
 	"Colors",
 	"Text",
+	"TextSize",
 }
+
 return function(props: StudButton)
 	local safeProps = RemoveKeys(props, CUSTOM_PROPS) :: Button.ButtonProps
 	safeProps.ImageTransparency = 1
@@ -31,7 +35,7 @@ return function(props: StudButton)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Color = props.Colors.buttonStroke,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		Thickness = 3,
+		Thickness = usePx(3),
 	})
 
 	local title = TextLabel({
@@ -42,12 +46,13 @@ return function(props: StudButton)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.502, 0.467),
 		Size = UDim2.fromScale(1.005, 0.718),
-		TextScaled = true,
+		TextScaled = if props.TextSize then false else true,
+		TextSize = if props.TextSize then props.TextSize else 14,
 		Stroke = {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 			Color = props.Colors.textStroke,
 			LineJoinMode = Enum.LineJoinMode.Bevel,
-			Thickness = 3.25,
+			Thickness = usePx(3.25),
 		},
 		ZIndex = 5,
 	})

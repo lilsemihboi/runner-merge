@@ -8,8 +8,6 @@ local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerMana
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
-MountUI()
-
 DataService:init()
 PlotServiceClient:init()
 RunnerManager.new()
@@ -17,3 +15,4 @@ AutoRejoinServiceClient:init()
 Feedback:init()
 SoundServiceClient:init()
 SoundService:WaitForChild("Music"):Play()
+MountUI()

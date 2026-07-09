@@ -170,12 +170,14 @@ return function(props: ButtonProps)
 
 	function buttonProps.MouseButton1Down()
 		SoundServiceClient:play("uiClick")
+		scale(0.9)
 		if props.OnDown then
 			props.OnDown()
 		end
 	end
 
 	function buttonProps.MouseButton1Up()
+		scale(hoverScale)
 		if props.OnUp then
 			props.OnUp()
 		end

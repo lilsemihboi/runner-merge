@@ -10,7 +10,8 @@ return function()
 
 	return Frame({
 		Size = usePx.offset(145, 750),
-		Position = usePx.udim2(0, 38, 0, 125),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = usePx.udim2(0, 38, 500 / 1080, 0),
 		BackgroundTransparency = 1,
 
 		Vide.create("UIListLayout", {

@@ -12,8 +12,9 @@ return function()
 
 	return Frame({
 		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 1),
 		Size = usePx.offset(333, 150),
-		Position = usePx.udim2(0, 12, 0, 930),
+		Position = usePx.udim2(0, 12, 1, 0),
 
 		--Invite friend container
 		Frame({

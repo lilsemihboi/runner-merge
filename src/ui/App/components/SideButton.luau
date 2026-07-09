@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local e = Vide.create
@@ -18,23 +19,10 @@ local customRotations = {
 }
 
 return function(props: Props)
-	return e("TextButton")({
-		Size = usePx.offset(145, 145),
-		BackgroundTransparency = 1,
-		TextTransparency = 1,
-		LayoutOrder = props.layoutOrder,
+	local notification: Instance? = nil
 
-		e("ImageLabel")({
-			Size = usePx.offset(128, 128),
-			Image = props.icon,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Rotation = customRotations[props.menuId] or 0,
-			BackgroundTransparency = 1,
-		}),
-
-		-- If the atom returns true it will create exclamination mark
-		props.notify and props.notify() and e("Frame", {
+	if props.notify and props.notify() then
+		notification = e("Frame", {
 			Size = usePx.offset(36, 36),
 			Position = usePx.udim2(0, 105, 0, 20),
 			BackgroundColor3 = Color3.fromRGB(255, 0, 0),
@@ -59,7 +47,24 @@ return function(props: Props)
 					Thickness = usePx(4.5),
 				}),
 			}),
+		})
+	end
+
+	return Button({
+		Size = usePx.offset(145, 145),
+		BackgroundTransparency = 1,
+		LayoutOrder = props.layoutOrder,
+
+		e("ImageLabel")({
+			Size = usePx.offset(128, 128),
+			Image = props.icon,
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Rotation = customRotations[props.menuId] or 0,
+			BackgroundTransparency = 1,
 		}),
+
+		notification,
 
 		e("TextLabel", {
 			Name = "ButtonText",

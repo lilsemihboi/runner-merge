@@ -1,5 +1,5 @@
 return {
-	["Green"] = {
+	Green = {
 		buttonStroke = Color3.fromRGB(8, 70, 0),
 		outsideColor = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(212, 255, 0)),
@@ -10,8 +10,9 @@ return {
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(29, 218, 0)),
 		}),
 		textStroke = Color3.fromRGB(6, 48, 0),
+		buttonBase = Color3.fromRGB(14, 136, 0),
 	},
-	["Blue"] = {
+	Blue = {
 		buttonStroke = Color3.fromRGB(0, 43, 70),
 		outsideColor = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(152, 245, 255)),
@@ -22,8 +23,9 @@ return {
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 174, 255)),
 		}),
 		textStroke = Color3.fromRGB(0, 27, 39),
+		buttonBase = Color3.fromRGB(0, 104, 136),
 	},
-	["Red"] = {
+	Red = {
 		buttonStroke = Color3.fromRGB(65, 7, 7),
 		outsideColor = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 125, 125)),
@@ -34,10 +36,6 @@ return {
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(204, 10, 10)),
 		}),
 		textStroke = Color3.fromRGB(65, 1, 1),
+		buttonBase = Color3.fromRGB(117, 3, 3),
 	},
-} :: { [string]: {
-	buttonStroke: Color3,
-	outsideColor: ColorSequence,
-	insideColor: ColorSequence,
-	textStroke: Color3,
-} }
+}

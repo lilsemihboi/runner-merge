@@ -1,4 +1,7 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SocialService = game:GetService("SocialService")
+
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
@@ -7,8 +10,13 @@ local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLab
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
+local function inviteFriends()
+	SocialService:PromptGameInvite(Players.LocalPlayer)
+end
+
 return function()
 	local cash = getVideDataSource("cash")
+	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
 
 	return Frame({
 		BackgroundTransparency = 1,
@@ -37,14 +45,14 @@ return function()
 			-- Plus Icon Invite Friend
 			-- 269 + 24 padding that should give button size
 			StudButton({
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Visible = canSendFriendInvites,
 				Size = usePx.offset(40, 40),
 				Colors = ButtonColors.Green,
-				Position = usePx.udim2(0, 293, 0, 0),
+				Position = usePx.udim2(0, 300, 0, 20),
 				Text = "+",
 				TextSize = usePx(60),
-				OnClick = function()
-					print("Invite friends prompt should open")
-				end,
+				OnClick = inviteFriends,
 			} :: StudButton.StudButton),
 		}),
 

@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Vide = require(ReplicatedStorage.Packages.Vide)
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
+local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local e = Vide.create

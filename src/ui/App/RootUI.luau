@@ -1,4 +1,3 @@
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Sift = require(ReplicatedStorage.Packages.Sift)
@@ -33,7 +32,6 @@ return function()
 		IgnoreGuiInset = true,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		ClipToDeviceSafeArea = false,
-		Parent = Players.LocalPlayer.PlayerGui,
 
 		Sift.Array.map(capturedRoots, function(root)
 			return root()

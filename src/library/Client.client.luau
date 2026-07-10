@@ -2,13 +2,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local AutoRejoinServiceClient = require(ReplicatedStorage.Shared.Services.AutoRejoinService.AutoRejoinServiceClient)
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
+local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local MountUI = require(ReplicatedStorage.Shared.UI.App.MountUI)
 local PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerManager)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
+MonetizationServiceClient:init(Products)
+
 PlotServiceClient:init()
 RunnerManager.new()
 AutoRejoinServiceClient:init()

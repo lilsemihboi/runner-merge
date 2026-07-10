@@ -3,7 +3,9 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local AutoRejoinServiceServer = require(ServerScriptService.Services.AutoRejoinService.AutoRejoinServiceServer)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
+local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
@@ -16,7 +18,9 @@ DataService:init({
 	template = DataTemplate,
 	profileStoreIndex = RunService:IsStudio() and "__test__" or "__production__",
 })
-
+MonetizationServiceServer:init({
+	products = Products :: any,
+})
 ProfileServiceServer:init()
 RunnerServiceServer:init()
 PlotServiceServer:init()

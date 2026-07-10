@@ -15,7 +15,7 @@ export type StudButton = Button.ButtonProps & {
 		textStroke: Color3,
 		buttonBase: Color3,
 	},
-	Text: string,
+	Text: string | () -> string,
 	TextSize: (number | () -> number)?,
 }
 

@@ -1,11 +1,11 @@
 --!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local AutoGradient = require(ReplicatedStorage.Shared.Modules.Ui.AutoGradient)
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
-local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
+local RobuxButton = require(ReplicatedStorage.Shared.UI.App.Components.RobuxButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -78,13 +78,13 @@ local function offlineMenu()
 
 		-- Yes! (29RBXICON)
 
-		StudButton({
+		RobuxButton({
 			Colors = ButtonColors.Green,
-			Text = `Yes! {utf8.char(0xE002)}9`,
+			product = Products.doubleOfflineEarnings,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = usePx.offset(284, 93),
 			Position = usePx.udim2(0.5, 0, 0, 425),
-		} :: StudButton.StudButton),
+		} :: RobuxButton.RobuxButtonProps),
 	})
 end
 

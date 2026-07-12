@@ -6,16 +6,19 @@ local atom = Charm.atom
 
 type Atom<T> = Charm.Atom<T>
 type LeaderboardData = LeaderboardServiceUtils.LeaderboardData
+export type LeaderboardSliceId = "rebirthsLeaderboard" | "cashLeaderboard"
 
 local rebirthsLeaderboard: Atom<LeaderboardData> = atom({})
 local cashLeaderboard: Atom<LeaderboardData> = atom({})
 
 local actions = {}
 
+local states: { [LeaderboardSliceId]: Atom<LeaderboardData> } = {
+	rebirthsLeaderboard = rebirthsLeaderboard,
+	cashLeaderboard = cashLeaderboard,
+}
+
 return {
 	actions = actions,
-	states = {
-		rebirthsLeaderboard = rebirthsLeaderboard,
-		cashLeaderboard = cashLeaderboard,
-	},
+	states = states,
 }

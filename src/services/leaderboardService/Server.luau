@@ -27,7 +27,9 @@ local usernameCache: { [number]: string } = {}
 function LeaderboardService.init(self: LeaderboardService)
 	self.cashLeaderboard = {}
 	self.rebirthsLeaderboard = {}
-	self.networker = Networker.server.new("LeaderboardService", self)
+	self.networker = Networker.server.new("LeaderboardService", self, {
+		self.getLeaderboards,
+	})
 
 	task.spawn(function()
 		task.wait(5)

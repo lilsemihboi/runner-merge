@@ -9,7 +9,7 @@ local CashBar = require(ReplicatedStorage.Shared.UI.Hud.CashBar)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
-local Slice = require(script.Parent.Slice)
+local Slice = require(script.Parent.OfflineEarningsSlice)
 
 local DataServiceClient = require(ReplicatedStorage.Packages.DataService).client
 

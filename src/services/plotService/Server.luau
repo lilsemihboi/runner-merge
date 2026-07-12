@@ -15,11 +15,11 @@ function PlotService.init(self: PlotService)
 	self.networker = Networker.server.new("PlotService", self)
 	self.playerData = ServicePlayerData.new(PLAYER_DATA_TEMPLATE :: PlayerData, self)
 	self.claimedPlots = {}
+	self.plots = {}
 end
 
 function PlotService.getPlot(self: PlotService, player: Player): Plot?
-	local data = self.playerData:get(player)
-	return data and data.plot
+	return self.plots[player]
 end
 
 function PlotService._claimPlot(self: PlotService): Model?
@@ -52,6 +52,7 @@ function PlotService.playerAdded(self: PlotService, player: Player, playerData: 
 	local plotId = tonumber(plotModel.Name) :: number
 	local plot = PlotServer.new(player, plotId)
 	playerData.plot = plot
+	self.plots[player] = plot
 
 	self.networker:fire(player, "initPlot", plot:getPlotData())
 end
@@ -63,6 +64,7 @@ function PlotService.playerRemoving(self: PlotService, player: Player, playerDat
 		plot:destroy()
 		self:_releasePlot(tostring(plot.plotId))
 	end
+	self.plots[player] = nil
 	self.networker:fire(player, "destroyPlot")
 end
 
@@ -72,6 +74,7 @@ type PlotService = typeof(PlotService) & {
 	networker: Networker.Server,
 	playerData: ServicePlayerData.ServicePlayerData<PlayerData>,
 	claimedPlots: { [string]: boolean },
+	plots: { [Player]: Plot },
 }
 
 return PlotService :: PlotService

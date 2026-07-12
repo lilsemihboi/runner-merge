@@ -164,6 +164,9 @@ end
 ]=]
 DataService:addPlayerRemovingCallback(function(player: Player, data)
 	data.stats.lastLogoutTime = os.time()
+	data.offlineEarnings = nil
+	data.offlineEarningsPaid = nil
+	data.offlineEarningsDoubled = nil
 
 	local sessionStart = playersJoinedAt[player]
 	if sessionStart then

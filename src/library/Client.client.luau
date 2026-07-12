@@ -4,6 +4,7 @@ local AutoRejoinServiceClient = require(ReplicatedStorage.Shared.Services.AutoRe
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local MountUI = require(ReplicatedStorage.Shared.UI.App.MountUI)
+local OfflineEarningsServiceClient = require(ReplicatedStorage.Shared.Services.OfflineEarningsService.OfflineEarningsServiceClient)
 local PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerManager)
@@ -12,6 +13,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
 MonetizationServiceClient:init(Products)
+OfflineEarningsServiceClient:init()
 
 PlotServiceClient:init()
 RunnerManager.new()

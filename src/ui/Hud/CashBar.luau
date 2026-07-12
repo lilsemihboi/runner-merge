@@ -1,3 +1,5 @@
+--!nonstrict
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
@@ -7,16 +9,55 @@ local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
+local Vide = require(ReplicatedStorage.Packages.Vide)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+
+local CashBar = {}
+local hiddenReward = Vide.source(0)
+local hiddenRewardBaseCash = Vide.source(nil)
+
+function CashBar.setHiddenReward(reward: number, baseCash: number)
+	if typeof(reward) ~= "number" or reward <= 0 or typeof(baseCash) ~= "number" then
+		return
+	end
+
+	hiddenReward(reward)
+	hiddenRewardBaseCash(baseCash)
+end
+
+function CashBar.showHiddenReward()
+	hiddenReward(0)
+	hiddenRewardBaseCash(nil)
+end
 
 local function inviteFriends()
 	SocialService:PromptGameInvite(Players.LocalPlayer)
 end
 
-return function()
+function CashBar.Component()
 	local cash = getVideDataSource("cash")
+	local displayedCash = Vide.source(cash())
+	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
+
+	Vide.effect(function()
+		local latestCash = cash()
+		local requestedHiddenReward = hiddenReward()
+		local baseCash = hiddenRewardBaseCash()
+
+		if requestedHiddenReward <= 0 then
+			appliedHiddenReward = 0
+		elseif typeof(baseCash) == "number" and latestCash >= baseCash + requestedHiddenReward then
+			-- Keep the previous offset until the server has credited the larger
+			-- reward (for example, while a double-purchase receipt is processing).
+			appliedHiddenReward = requestedHiddenReward
+		elseif appliedHiddenReward > requestedHiddenReward then
+			appliedHiddenReward = requestedHiddenReward
+		end
+
+		displayedCash(math.max(latestCash - appliedHiddenReward, 0))
+	end)
 
 	return Frame({
 		BackgroundTransparency = 1,
@@ -61,7 +102,7 @@ return function()
 			TextScaled = true,
 			Size = usePx.offset(309, 90),
 			Text = function()
-				return `${Abbreviate(cash())}`
+				return `${Abbreviate(displayedCash())}`
 			end,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
@@ -81,3 +122,5 @@ return function()
 		}),
 	})
 end
+
+return CashBar

@@ -11,11 +11,13 @@ type MonetizationProduct = MonetizationServiceUtils.MonetizationProduct
 export type RobuxButtonProps = StudButton.StudButton & {
 	product: MonetizationProduct,
 	HideGift: boolean?,
+	OnPurchaseRequested: (() -> boolean?)?,
 }
 
 local CUSTOM_PROPS = {
 	"product",
 	"HideGift",
+	"OnPurchaseRequested",
 }
 
 return function(props: RobuxButtonProps)
@@ -28,6 +30,10 @@ return function(props: RobuxButtonProps)
 	local buttonProps = RemoveKeys(props, CUSTOM_PROPS)
 
 	buttonProps.OnClick = function()
+		if props.OnPurchaseRequested and props.OnPurchaseRequested() == false then
+			return
+		end
+
 		MonetizationServiceClient:promptProduct(props.product :: any)
 	end
 	buttonProps.Text = cost

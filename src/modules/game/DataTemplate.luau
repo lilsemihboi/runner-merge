@@ -9,6 +9,10 @@ export type DataSchema = {
 
 	runners: { number },
 
+	offlineEarnings: number?,
+	offlineEarningsPaid: boolean?,
+	offlineEarningsDoubled: boolean?,
+
 	upgrades: {
 		gates: number,
 		runnerSpeed: number,
@@ -23,7 +27,7 @@ export type DataSchema = {
 	stats: {
 		timePlayed: number,
 		totalCashEarned: number,
-		lastLogoutTime: number,
+		lastLogoutTime: number?,
 	},
 }
 
@@ -32,6 +36,8 @@ return {
 	rebirths = 0,
 	runnerPurchases = 0,
 	runners = {},
+
+	offlineEarnings = nil,
 
 	upgrades = {
 		gates = 0,
@@ -47,6 +53,5 @@ return {
 	stats = {
 		timePlayed = 0,
 		totalCashEarned = 0,
-		lastLogoutTime = 0,
 	},
 } :: DataSchema

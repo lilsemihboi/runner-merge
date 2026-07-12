@@ -1,7 +1,7 @@
 local Utils = {}
 
 function Utils.getMinOfflineSeconds()
-	return 5
+	return 900
 end
 
 function Utils.getMaxOfflineSeconds()

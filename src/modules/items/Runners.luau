@@ -1,13 +1,13 @@
 local Runners = {}
 
-local RUNNER_GROWTH = 1.16
+local RUNNER_GROWTH = 1.08
 local MIN_PRICE_INCREASE = 5
 local CUSTOM_RUNNER_PRICE_COUNT = 15
 
 local CUSTOM_RUNNER_PRICES = {
 	[1] = 0,
-	[2] = 2,
-	[3] = 5,
+	[2] = 1,
+	[3] = 3,
 	[4] = 10,
 	[5] = 15,
 	[6] = 25,

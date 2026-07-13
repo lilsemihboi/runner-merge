@@ -13,6 +13,7 @@ local ProfileServiceServer = require(ServerScriptService.Services.ProfileService
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 local SettingsServiceServer = require(ServerScriptService.Services.SettingsService.SettingsServiceServer)
 local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
+local TitleServiceServer = require(ServerScriptService.Services.TitleService.TitleServiceServer)
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 
@@ -35,3 +36,4 @@ LeaderboardServiceServer:init()
 AutoRejoinServiceServer:init()
 SoundServiceServer:init()
 SettingsServiceServer:init()
+TitleServiceServer:init()

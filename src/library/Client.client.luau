@@ -15,6 +15,7 @@ local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerMana
 local SettingsInitializer = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsInitializer)
 local SettingsServiceClient = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsServiceClient)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
+local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
@@ -29,4 +30,5 @@ Feedback:init()
 SettingsServiceClient:init()
 SettingsInitializer()
 SoundService:WaitForChild("Music"):Play()
+TitleServiceClient:init()
 MountUI()

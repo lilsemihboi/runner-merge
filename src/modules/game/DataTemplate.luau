@@ -29,6 +29,11 @@ export type DataSchema = {
 		totalCashEarned: number,
 		lastLogoutTime: number?,
 	},
+
+	settings: {
+		sounds: number,
+		music: number,
+	},
 }
 
 return {
@@ -53,5 +58,10 @@ return {
 	stats = {
 		timePlayed = 0,
 		totalCashEarned = 0,
+	},
+
+	settings = {
+		sounds = 100,
+		music = 100,
 	},
 } :: DataSchema

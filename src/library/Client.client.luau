@@ -12,6 +12,8 @@ local OfflineEarningsServiceClient = require(ReplicatedStorage.Shared.Services.O
 local PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerManager)
+local SettingsInitializer = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsInitializer)
+local SettingsServiceClient = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsServiceClient)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
@@ -24,5 +26,7 @@ RunnerManager.new()
 LeaderboardServiceClient:init()
 AutoRejoinServiceClient:init()
 Feedback:init()
+SettingsServiceClient:init()
+SettingsInitializer()
 SoundService:WaitForChild("Music"):Play()
 MountUI()

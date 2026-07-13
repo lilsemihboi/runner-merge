@@ -11,6 +11,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 require(ServerScriptService.Services.MonetizationService.Modules.ProductServerCallbacks)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
+local SettingsServiceServer = require(ServerScriptService.Services.SettingsService.SettingsServiceServer)
 local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
@@ -21,9 +22,11 @@ DataService:init({
 	template = DataTemplate,
 	profileStoreIndex = RunService:IsStudio() and "__test__" or "__production__",
 })
+
 MonetizationServiceServer:init({
 	products = Products :: any,
 })
+
 ProfileServiceServer:init()
 RunnerServiceServer:init()
 PlotServiceServer:init()
@@ -31,3 +34,4 @@ OfflineEarningsServiceServer:init()
 LeaderboardServiceServer:init()
 AutoRejoinServiceServer:init()
 SoundServiceServer:init()
+SettingsServiceServer:init()

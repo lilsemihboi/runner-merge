@@ -1,6 +1,7 @@
 --!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
@@ -18,8 +19,50 @@ type SettingProps = {
 	type: "slider",
 } & Frame.FrameProps
 
+local activeSlider = Vide.source(nil)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not activeSlider() then
+		return
+	end
+
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement then
+		return
+	end
+
+	local mouse = UserInputService:GetMouseLocation()
+
+	local relative = math.clamp((mouse.X - activeSlider().slider.AbsolutePosition.X) / activeSlider().slider.AbsoluteSize.X, 0, 1)
+	activeSlider().value(relative * 100)
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+		return
+	end
+
+	local slider = activeSlider()
+	if slider then
+		slider.setValue(slider.value())
+		slider.dragging(false)
+		activeSlider(nil)
+	end
+end)
+
 local function settingsEntry(props: SettingProps)
 	local value, setValue = useSetting(props.path)
+	local clientValueSource = Vide.source(value())
+
+	local dragging = Vide.source(false)
+
+	local slider = nil
+
+	Vide.effect(function()
+		if not dragging() then
+			clientValueSource(value())
+		end
+	end)
+
 	return Frame({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -77,6 +120,9 @@ local function settingsEntry(props: SettingProps)
 
 		-- Bar
 		props.type == "slider" and Frame({
+			Vide.action(function(instance)
+				slider = instance
+			end),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 0.5,
@@ -96,9 +142,23 @@ local function settingsEntry(props: SettingProps)
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				--AutoButtonColor = false
 				Colors = ButtonColors.Green,
-				Text = "100",
+				Text = Vide.derive(function()
+					return tostring(math.floor(clientValueSource()))
+				end),
 				Size = usePx.offset(48, 48),
-				Position = usePx.udim2(1, 0, 0.5, 0),
+				Position = Vide.derive(function()
+					return UDim2.fromScale(clientValueSource() / 100, 0.5)
+				end),
+				OnDown = function()
+					dragging(true)
+
+					activeSlider({
+						slider = slider,
+						value = clientValueSource,
+						setValue = setValue,
+						dragging = dragging,
+					})
+				end,
 				ZIndex = 2,
 			} :: StudButton.StudButton),
 
@@ -113,7 +173,9 @@ local function settingsEntry(props: SettingProps)
 				Frame({
 					BackgroundColor3 = Color3.fromRGB(77, 255, 0),
 					BackgroundTransparency = 0,
-					Size = usePx.offset(300, 24),
+					Size = Vide.derive(function()
+						return UDim2.fromScale(clientValueSource() / 100, 1)
+					end),
 
 					Vide.create("UIStroke", {
 						ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,

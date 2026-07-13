@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local Topbarplus = require(ReplicatedStorage.Packages.Topbarplus)
 local assets = require(ReplicatedStorage.Shared.Modules.Items.assets)
 
@@ -11,7 +12,7 @@ return function()
 	settingsButton:oneClick(true)
 	settingsButton:align("Left")
 	settingsButton:bindEvent("selected", function()
-		print("Settings Button Called")
+		Menu.setOpenedMenu("Settings")
 	end)
 
 	return function()

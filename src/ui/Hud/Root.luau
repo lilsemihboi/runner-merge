@@ -8,9 +8,6 @@ return function()
 	return {
 		Navigator(),
 		SideButtons(),
-
-		Menu.setOpenedMenu("Settings"),
-
 		CashBar.Component(),
 	}
 end

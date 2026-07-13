@@ -30,6 +30,7 @@ local TweenService = game:GetService("TweenService")
 local Charm = require(ReplicatedStorage.Packages.Charm)
 local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
+local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
@@ -273,6 +274,7 @@ function RunnerManager._getIncomeIndicatorGui(self: RunnerManager, plotId: numbe
 	billboardGui.AlwaysOnTop = true
 	billboardGui.LightInfluence = 0
 	billboardGui.Size = UDim2.fromScale(2, 2)
+	billboardGui.MaxDistance = 150
 	billboardGui.Parent = attachment
 
 	return billboardGui
@@ -290,7 +292,10 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	textLabel.Font = Enum.Font.GothamBlack
 	textLabel.Position = UDim2.fromScale(0.5, 0.5)
 	textLabel.Size = UDim2.new(0, 0, 0, 0)
-	textLabel.Text = `+${FormatCurrency(math.max(0, math.round(incomePerLap * self.multiplier)), false)}`
+	textLabel.Text = `+${FormatCurrency(
+		math.max(0, math.round(incomePerLap * self.multiplier * (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100)))),
+		false
+	)}`
 	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
 	textLabel.TextScaled = false
 	textLabel.TextSize = 36 --TODO: We can use auto text scaling later

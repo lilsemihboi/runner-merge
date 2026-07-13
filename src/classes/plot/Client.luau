@@ -16,6 +16,7 @@ local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
+local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 
 local RUNNER_ENABLED_COLOR = Color3.fromRGB(11, 138, 20)
 local BUTTON_DISABLED_COLOR = Color3.fromRGB(136, 136, 136)
@@ -35,6 +36,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 		mergeButtons = {},
 		runnerButtons = {},
 		registeredButtons = {},
+		upgradeButtons = {},
 	}, Plot) :: Plot
 	self.networker = Networker.client.new(`plot_{self.player.Name}`, self)
 
@@ -42,6 +44,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self:setupUpgradeBoard()
 	self:_updateMergeButtonState()
 	self:_updateRunnerButtonPrices()
+	self:_updateUpgradeButtonPrices()
 
 	local runnersBought = GetDataSource("runnerPurchases")
 	self.janitor:Add(Charm.subscribe(runnersBought, function()
@@ -51,6 +54,13 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	local cashAtom = GetDataSource("cash")
 	self.janitor:Add(Charm.subscribe(cashAtom, function()
 		self:_updateRunnerButtonPrices()
+		self:_updateUpgradeButtonPrices()
+	end))
+
+	local upgradesAtom = GetDataSource({ "upgrades" })
+
+	self.janitor:Add(Charm.subscribe(upgradesAtom, function()
+		self:_updateUpgradeButtonPrices()
 	end))
 
 	self.janitor:Add(
@@ -185,6 +195,9 @@ function Plot.setupUpgradeBoard(self: Plot)
 			end),
 			"Disconnect"
 		)
+
+		self.upgradeButtons[upgradeFrame.UpgradeButton] = upgradeId
+		self:_updateUpgradeButtonPrices()
 	end
 
 	for _, upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates) in upgradeBoardUI:GetChildren() do
@@ -300,6 +313,61 @@ function Plot._registerRunnerButton(self: Plot, buttonTop: BasePart, buttonModel
 	}
 
 	self:_updateRunnerButtonPrices()
+end
+
+function Plot._updateUpgradeButtonPrices(self: Plot)
+	local cash = DataService:get("cash")
+
+	if typeof(cash) ~= "number" then
+		return
+	end
+
+	for
+		upgradeButton: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates.UpgradeButton),
+		upgradeId: keyof<typeof(_DataTemplate.upgrades)>
+	in self.upgradeButtons do
+		local currentUpgradeLevel: number = DataService:get({ "upgrades", upgradeId })
+		local nextUpgradeLevel: number = currentUpgradeLevel + 1
+		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel)
+
+		if UpgradeUtils.levelCaps[upgradeId] <= currentUpgradeLevel then
+			-- MAX
+
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 180
+			upgradeButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			upgradeButton.FX_DropShadow.Color = Color3.fromRGB(92, 115, 103)
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 30, 86)),
+				ColorSequenceKeypoint.new(0.16, Color3.fromRGB(161, 30, 255)),
+				ColorSequenceKeypoint.new(0.33, Color3.fromRGB(30, 180, 255)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(49, 255, 30)),
+				ColorSequenceKeypoint.new(0.66, Color3.fromRGB(255, 255, 30)),
+				ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 143, 30)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 30, 86)),
+			})
+
+			continue
+		end
+
+		if cash >= upgradeCost then
+			-- Affordable
+
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 90
+			upgradeButton.BackgroundColor3 = Color3.fromRGB(0, 95, 21)
+			upgradeButton.FX_DropShadow.Color = Color3.fromRGB(0, 121, 0)
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Color = ColorSequence.new(Color3.fromRGB(124, 172, 78))
+			continue
+		else
+			-- Not enough cash
+
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 90
+			upgradeButton.BackgroundColor3 = Color3.fromRGB(41, 29, 45)
+			upgradeButton.FX_DropShadow.Color = Color3.fromRGB(116, 96, 96)
+			upgradeButton.BTN_Surface.FX_BackgroundGradient.Color = ColorSequence.new(Color3.fromRGB(71, 71, 71))
+
+			continue
+		end
+	end
 end
 
 function Plot._updateRunnerButtonPrices(self: Plot)
@@ -460,6 +528,7 @@ export type Plot = typeof(setmetatable(
 		mergeButtons: { [number]: BasePart },
 		runnerButtons: { [number]: RunnerButton },
 		registeredButtons: { [Instance]: boolean },
+		upgradeButtons: { [GuiButton]: string },
 	},
 	Plot
 ))

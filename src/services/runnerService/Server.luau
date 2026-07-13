@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local FriendServiceServer = require(ServerScriptService.Services.FriendService.FriendServiceServer)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
@@ -208,7 +209,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local income = RunnerUtils.getRunnerIncomePerLap(level)
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
-	income = math.max(1, math.round(income * RunnerUtils.getCashBonusMultiplier(cashBonusLevel)))
+	income = math.max(1, math.round(income * RunnerUtils.getCashBonusMultiplier(cashBonusLevel) * FriendServiceServer:getFriendMultiplier(player)))
 
 	profile:giveCash(income)
 end

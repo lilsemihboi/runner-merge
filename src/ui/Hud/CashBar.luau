@@ -6,7 +6,9 @@ local SocialService = game:GetService("SocialService")
 
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
+local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -74,7 +76,9 @@ function CashBar.Component()
 			TextLabel({
 				Size = usePx.offset(260, 45),
 				Position = usePx.udim2(0, 9, 0, 0),
-				Text = "Friend boost +0%",
+				Text = function()
+					return `Friend boost +{FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK}%`
+				end,
 				TextScaled = true,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				Stroke = {

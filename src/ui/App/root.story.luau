@@ -10,7 +10,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 return function(parent)
 	DataService:init(DataTemplate)
 	DataService:set("cash", 3196)
-	MonetizationServiceClient:init(Products)
+	MonetizationServiceClient:init(Products :: any)
 
 	local destroy = Vide.mount(RootUI, parent)
 

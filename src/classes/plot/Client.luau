@@ -84,6 +84,53 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	return self
 end
 
+function Plot._setupUpgradeButtonFX(
+	_self: Plot,
+	button: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates.UpgradeButton)
+)
+	local UIScale = Instance.new("UIScale")
+	UIScale.Parent = button
+
+	local spring = Ripple.createSpring(
+		1,
+		{
+			start = true,
+			dampingRatio = 0.7,
+			frequency = 4,
+		} :: Ripple.SpringOptions
+	)
+
+	spring:onChange(function(value)
+		UIScale.Scale = value
+	end)
+
+	button.MouseEnter:Connect(function()
+		SoundServiceClient:play("uiEnter")
+		spring:setGoal(1.1)
+	end)
+
+	button.MouseLeave:Connect(function()
+		spring:setGoal(1)
+	end)
+
+	button.SelectionGained:Connect(function()
+		spring:setGoal(1.1)
+	end)
+
+	button.SelectionLost:Connect(function()
+		spring:setGoal(1)
+	end)
+
+	button.MouseButton1Down:Connect(function()
+		SoundServiceClient:play("uiClick")
+		spring:setGoal(0.9)
+	end)
+
+	button.MouseButton1Up:Connect(function()
+		spring:setGoal(1.1)
+	end)
+end
+
 function Plot.setupUpgradeBoard(self: Plot)
 	local upgradeBoardUI =
 		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
@@ -116,6 +163,8 @@ function Plot.setupUpgradeBoard(self: Plot)
 		self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
 			changeLevelStatus(newLevel)
 		end))
+
+		self:_setupUpgradeButtonFX(upgradeFrame.UpgradeButton)
 
 		self.janitor:Add(
 			upgradeFrame.UpgradeButton.Activated:Connect(function()

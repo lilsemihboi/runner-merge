@@ -18,12 +18,11 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 DataService:init()
 MonetizationServiceClient:init(Products)
 OfflineEarningsServiceClient:init()
-
+SoundServiceClient:init()
 PlotServiceClient:init()
 RunnerManager.new()
 LeaderboardServiceClient:init()
 AutoRejoinServiceClient:init()
 Feedback:init()
-SoundServiceClient:init()
 SoundService:WaitForChild("Music"):Play()
 MountUI()

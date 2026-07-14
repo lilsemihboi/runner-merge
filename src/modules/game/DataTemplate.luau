@@ -8,6 +8,7 @@ export type DataSchema = {
 	runnerPurchases: number,
 
 	runners: { number },
+	index: { number },
 
 	offlineEarnings: number?,
 	offlineEarningsPaid: boolean?,
@@ -41,6 +42,7 @@ return {
 	rebirths = 0,
 	runnerPurchases = 0,
 	runners = {},
+	index = {},
 
 	offlineEarnings = nil,
 

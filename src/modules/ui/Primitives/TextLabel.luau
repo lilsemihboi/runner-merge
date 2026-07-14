@@ -1,3 +1,5 @@
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -37,10 +39,6 @@ local DEFAULT_SHADOW: DropShadowProps = {
 	Transparency = 0.5,
 	Offset = UDim2.fromOffset(2, 2),
 }
-
-local function addUDim2(base: UDim2, offset: UDim2): UDim2
-	return UDim2.new(base.X.Scale + offset.X.Scale, base.X.Offset + offset.X.Offset, base.Y.Scale + offset.Y.Scale, base.Y.Offset + offset.Y.Offset)
-end
 
 export type TextLabelProps = {
 	-- TextLabel-specific
@@ -144,20 +142,21 @@ local function buildDropShadow(props: TextLabelProps, shadowProps: DropShadowPro
 	return create("TextLabel", {
 		Name = "DropShadow",
 		BackgroundTransparency = 1,
-		ZIndex = 0,
+		ZIndex = (props.ZIndex or 1),
 		Text = props.Text,
 		TextColor3 = shadowProps.Color or DEFAULT_SHADOW.Color,
 		TextSize = props.TextSize,
 		TextScaled = (not props.TextSize and (props.TextScaled or false)) or true,
-		Font = props.Font or Enum.Font.BuilderSansExtraBold,
+		Font = if props.FontFace then nil else (props.Font or Enum.Font.BuilderSansExtraBold),
+		FontFace = props.FontFace,
 		TextTransparency = shadowProps.Transparency or DEFAULT_SHADOW.Transparency,
 		TextXAlignment = props.TextXAlignment,
 		TextYAlignment = props.TextYAlignment,
 		TextWrapped = props.TextWrapped,
-		Position = addUDim2(UDim2.fromScale(0.5, 0.5), shadowProps.Offset or DEFAULT_SHADOW.Offset :: UDim2),
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = (shadowProps.Offset or DEFAULT_SHADOW.Offset) + UDim2.fromScale(-0.025, 0.0125),
 		RichText = props.RichText,
 		Size = UDim2.fromScale(1, 1),
+		table.unpack(shadowProps),
 	})
 end
 
@@ -170,56 +169,73 @@ end
 ---   `DropShadow = {}`             → auto-creates a shadow TextLabel behind the text
 ---   `DropShadow = { Offset = UDim2.fromOffset(3, 3) }` → custom shadow offset
 return function(props: TextLabelProps)
-	local children: { Instance } = {}
-
-	if props.DropShadow then
-		table.insert(children, buildDropShadow(props, props.DropShadow))
-	end
+	local textChildren = {}
 
 	if props.Stroke then
-		table.insert(children, buildStroke(props.Stroke))
+		table.insert(textChildren, buildStroke(props.Stroke))
 	end
 
 	if props.Gradient then
-		table.insert(children, buildGradient(props.Gradient))
+		table.insert(textChildren, buildGradient(props.Gradient))
 	end
 
 	for _, child in ipairs(props :: any) do
-		table.insert(children, child)
+		table.insert(textChildren, child)
 	end
 
-	return create("TextLabel", {
-		Font = props.Font,
-		FontFace = props.FontFace,
-		LineHeight = props.LineHeight,
-		MaxVisibleGraphemes = props.MaxVisibleGraphemes,
-		OpenTypeFeatures = props.OpenTypeFeatures,
-		RichText = props.RichText,
-		Text = props.Text,
-		TextColor3 = props.TextColor3,
-		TextDirection = props.TextDirection,
-		TextScaled = props.TextScaled,
-		TextSize = props.TextSize,
-		TextStrokeColor3 = props.TextStrokeColor3,
-		TextStrokeTransparency = props.TextStrokeTransparency,
-		TextTransparency = props.TextTransparency,
-		TextTruncate = props.TextTruncate,
-		TextWrapped = props.TextWrapped,
-		TextXAlignment = props.TextXAlignment,
-		TextYAlignment = props.TextYAlignment,
+	local frameChildren = {}
 
+	if props.DropShadow then
+		table.insert(frameChildren, buildDropShadow(props, props.DropShadow))
+	end
+
+	table.insert(
+		frameChildren,
+		create("TextLabel", {
+			Font = props.Font,
+			FontFace = props.FontFace,
+			LineHeight = props.LineHeight,
+			MaxVisibleGraphemes = props.MaxVisibleGraphemes,
+			OpenTypeFeatures = props.OpenTypeFeatures,
+			RichText = props.RichText,
+			Text = props.Text,
+			TextColor3 = props.TextColor3,
+			TextDirection = props.TextDirection,
+			TextScaled = props.TextScaled,
+			TextSize = props.TextSize,
+			TextStrokeColor3 = props.TextStrokeColor3,
+			TextStrokeTransparency = props.TextStrokeTransparency,
+			TextTransparency = props.TextTransparency,
+			TextTruncate = props.TextTruncate,
+			TextWrapped = props.TextWrapped,
+			TextXAlignment = props.TextXAlignment,
+			TextYAlignment = props.TextYAlignment,
+
+			BackgroundTransparency = props.BackgroundTransparency or 1,
+			BackgroundColor3 = props.BackgroundColor3,
+
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			ZIndex = (props.ZIndex or 1) + 1,
+
+			table.unpack(textChildren),
+		})
+	)
+
+	return create("Frame", {
+		Name = props.Name,
 		Active = props.Active,
 		AnchorPoint = props.AnchorPoint,
 		AutomaticSize = props.AutomaticSize,
 		BackgroundColor3 = props.BackgroundColor3,
-		BackgroundTransparency = props.BackgroundTransparency or 1,
+		BackgroundTransparency = 1,
 		BorderColor3 = props.BorderColor3,
 		BorderMode = props.BorderMode,
 		BorderSizePixel = props.BorderSizePixel,
 		ClipsDescendants = props.ClipsDescendants,
 		Interactable = props.Interactable,
 		LayoutOrder = props.LayoutOrder,
-		Name = props.Name,
 		Position = props.Position,
 		Rotation = props.Rotation,
 		Selectable = props.Selectable,
@@ -229,29 +245,6 @@ return function(props: TextLabelProps)
 		Visible = props.Visible,
 		ZIndex = props.ZIndex,
 
-		NextSelectionDown = props.NextSelectionDown,
-		NextSelectionLeft = props.NextSelectionLeft,
-		NextSelectionRight = props.NextSelectionRight,
-		NextSelectionUp = props.NextSelectionUp,
-		SelectionImageObject = props.SelectionImageObject,
-
-		InputBegan = props.InputBegan,
-		InputChanged = props.InputChanged,
-		InputEnded = props.InputEnded,
-		MouseEnter = props.MouseEnter,
-		MouseLeave = props.MouseLeave,
-		MouseMoved = props.MouseMoved,
-		MouseWheelBackward = props.MouseWheelBackward,
-		MouseWheelForward = props.MouseWheelForward,
-		SelectionGained = props.SelectionGained,
-		SelectionLost = props.SelectionLost,
-		TouchLongPress = props.TouchLongPress,
-		TouchPan = props.TouchPan,
-		TouchPinch = props.TouchPinch,
-		TouchRotate = props.TouchRotate,
-		TouchSwipe = props.TouchSwipe,
-		TouchTap = props.TouchTap,
-
-		table.unpack(children),
+		table.unpack(frameChildren),
 	})
 end

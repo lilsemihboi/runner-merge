@@ -157,9 +157,25 @@ function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?)
 		return current + amount
 	end)
 
+	local hasObtained = DataService:get(self.player, { "index", tostring(runnerLevel) }) == true
+
+	if not hasObtained then
+		DataService:set(self.player, { "index", tostring(runnerLevel) }, true)
+	end
+
 	for _ = 1, amount :: number, 1 do
 		DataService:arrayInsert(self.player, "runners", runnerLevel)
 	end
+end
+
+--[=[
+	Checks if player has runner in their index or not
+	
+	@param runnerLevel number -- Runner Level
+	@return boolean
+]=]
+function Profile.hasUnlockedRunner(self: Profile, runnerLevel: number): boolean
+	return DataService:get(self.player, { "index", tostring(runnerLevel) }) == true
 end
 
 --[=[

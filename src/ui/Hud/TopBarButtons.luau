@@ -1,6 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local Topbarplus = require(ReplicatedStorage.Packages.Topbarplus)
 local assets = require(ReplicatedStorage.Shared.Modules.Items.assets)
@@ -13,7 +12,6 @@ return function()
 	settingsButton:oneClick(true)
 	settingsButton:align("Left")
 	settingsButton:bindEvent("selected", function()
-		ErrorMessage.add("67")
 		Menu.setOpenedMenu("Settings")
 	end)
 

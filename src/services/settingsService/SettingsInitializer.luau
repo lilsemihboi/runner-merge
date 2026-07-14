@@ -8,6 +8,6 @@ return function()
 	end)
 
 	SettingsServiceClient:subscribe("sounds", function(value: number)
-		SoundService:WaitForChild("SFX").Volume = (value / 100) * 0.5
+		SoundService:WaitForChild("SFX").Volume = (value / 100) * 0.75
 	end)
 end

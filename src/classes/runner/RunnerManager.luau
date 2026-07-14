@@ -38,6 +38,7 @@ local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(script.Parent.RunnerUtils)
+local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
@@ -376,6 +377,7 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 
 			for _, gateId in crossedGates do
 				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap)
+				SoundServiceClient:play("moneyPickup")
 				self.networker:fire("reportGate", plotId, index, gateId)
 			end
 		end

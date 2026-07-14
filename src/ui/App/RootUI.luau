@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -36,5 +37,7 @@ return function()
 		Sift.Array.map(capturedRoots, function(root)
 			return root()
 		end),
+
+		ErrorMessage.Component(),
 	})
 end

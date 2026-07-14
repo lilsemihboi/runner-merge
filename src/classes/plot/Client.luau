@@ -1,3 +1,5 @@
+--!nonstrict
+
 local Plot = {}
 Plot.__index = Plot
 
@@ -9,8 +11,10 @@ local Charm = require(ReplicatedStorage.Packages.Charm)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
+local InfoEnums = require(ReplicatedStorage.Shared.Modules.Utils.InfoEnums)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
@@ -180,17 +184,12 @@ function Plot.setupUpgradeBoard(self: Plot)
 			upgradeFrame.UpgradeButton.Activated:Connect(function()
 				local result = self.networker:fetch("upgrade", upgradeId)
 
-				if result == "SUCCESS" then
-					return
-				elseif result == "WRONG_UPGRADE_ID" then
-					print("Wrong upgrade id")
-					--TODO: Alert
-				elseif result == "MAX_LEVEL" then
-					--TODO: Alert
-					print("Max level")
-				elseif result == "NOT_ENOUGH_CASH" then
-					--TODO: Alert
-					print("Not enough cahs")
+				if result ~= "SUCCESS" then
+					if InfoEnums[result] then
+						ErrorMessage.add(InfoEnums[result])
+					else
+						ErrorMessage.add(InfoEnums.ERROR)
+					end
 				end
 			end),
 			"Disconnect"
@@ -249,7 +248,15 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 			lastTrigger = now
 
 			if buttonType == "Runner" then
-				self.networker:fire("addRunner", runnerAmount)
+				local result = self.networker:fetch("addRunner", runnerAmount)
+
+				if result ~= "SUCCESS" then
+					if InfoEnums[result] then
+						ErrorMessage.add(InfoEnums[result])
+					else
+						ErrorMessage.add(InfoEnums.ERROR)
+					end
+				end
 			else
 				self.networker:fire("merge")
 			end

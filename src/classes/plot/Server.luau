@@ -238,7 +238,7 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 
 	local cost = Runners.calculateRunnerBatchPrice(DataService:get(self.player, "runnerPurchases"), runnerAmount)
 	if self.profile:getCash() < cost then
-		return "CASH_NOT_ENOUGH"
+		return "NOT_ENOUGH_CASH"
 	end
 
 	self.profile:giveCash(-cost)

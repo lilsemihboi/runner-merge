@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
+local NotificationMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.NotificationMessage)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -39,5 +40,6 @@ return function()
 		end),
 
 		ErrorMessage.Component(),
+		NotificationMessage.Component(),
 	})
 end

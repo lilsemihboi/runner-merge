@@ -1,10 +1,11 @@
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
+local Menu = require(script.Parent.Menu)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
-
-local e = Vide.create
 
 export type Props = {
 	layoutOrder: number,
@@ -18,42 +19,21 @@ local customRotations = {
 	["index"] = -14.34,
 }
 
+local show = Vide.show
+local e = Vide.create
+
 return function(props: Props)
-	local notification: Instance? = nil
-
-	if props.notify and props.notify() then
-		notification = e("Frame", {
-			Size = usePx.offset(36, 36),
-			Position = usePx.udim2(0, 105, 0, 20),
-			BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-
-			e("UICorner", {
-				CornerRadius = usePx.udim(0, 6),
-			}),
-
-			e("UIStroke", {
-				Thickness = usePx(4.5),
-			}),
-
-			e("TextLabel", {
-				Text = "!",
-				Size = UDim2.fromScale(1, 1),
-				BackgroundTransparency = 1,
-				TextColor3 = Color3.fromRGB(255, 255, 255),
-				TextScaled = true,
-				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
-
-				e("UIStroke", {
-					Thickness = usePx(4.5),
-				}),
-			}),
-		})
-	end
-
 	return Button({
 		Size = usePx.offset(145, 145),
 		BackgroundTransparency = 1,
 		LayoutOrder = props.layoutOrder,
+
+		OnClick = function()
+			if props.notify then
+				props.notify(false)
+			end
+			Menu.setOpenedMenu(props.menuId)
+		end,
 
 		e("ImageLabel")({
 			Size = usePx.offset(128, 128),
@@ -64,7 +44,36 @@ return function(props: Props)
 			BackgroundTransparency = 1,
 		}),
 
-		notification,
+		show(function()
+			return props.notify ~= nil and props.notify()
+		end, function()
+			return e("Frame", {
+				Size = usePx.offset(36, 36),
+				Position = usePx.udim2(0, 105, 0, 20),
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+
+				e("UICorner", {
+					CornerRadius = usePx.udim(0, 6),
+				}),
+
+				e("UIStroke", {
+					Thickness = usePx(4.5),
+				}),
+
+				e("TextLabel", {
+					Text = "!",
+					Size = UDim2.fromScale(1, 1),
+					BackgroundTransparency = 1,
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+
+					e("UIStroke", {
+						Thickness = usePx(4.5),
+					}),
+				}),
+			})
+		end),
 
 		e("TextLabel", {
 			Name = "ButtonText",

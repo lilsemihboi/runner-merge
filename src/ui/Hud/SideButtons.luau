@@ -32,7 +32,7 @@ return function()
 		SideButton({
 			layoutOrder = nextOrder(),
 			icon = "rbxassetid://71053646250865",
-			menuId = "shop",
+			menuId = "Shop",
 			notify = Vide.source(true),
 		}),
 
@@ -40,7 +40,7 @@ return function()
 		SideButton({
 			layoutOrder = nextOrder(),
 			icon = "rbxassetid://126166120946266",
-			menuId = "index",
+			menuId = "Index",
 			notify = Vide.source(true),
 		}),
 
@@ -48,7 +48,7 @@ return function()
 		SideButton({
 			layoutOrder = nextOrder(),
 			icon = "rbxassetid://137794920489098",
-			menuId = "rebirth",
+			menuId = "Rebirth",
 		}),
 	})
 end

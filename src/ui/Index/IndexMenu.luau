@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local CarIds = require(ReplicatedStorage.Shared.Modules.Items.CarIds)
+local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Sift = require(ReplicatedStorage.Packages.Sift)
@@ -15,6 +16,7 @@ local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 type IndexProps = {
 	runnerLevel: number,
 	runnerName: string,
+	runnerImage: string,
 } & Button.ButtonProps
 
 local ownedCars = getVideDataSource({ "index" })
@@ -56,7 +58,7 @@ local function runnerIndex(props: IndexProps)
 
 		-- Car Name
 		TextLabel({
-			Size = usePx.offset(150, 70),
+			Size = usePx.offset(150, 30),
 			Text = function()
 				local isOwned = ownedCars()[tostring(props.runnerLevel)]
 
@@ -66,7 +68,7 @@ local function runnerIndex(props: IndexProps)
 					return "???"
 				end
 			end,
-			Position = UDim2.fromScale(0.5, 0.25),
+			Position = UDim2.fromScale(0.5, 0.15),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			Stroke = { Thickness = usePx(4) },
@@ -97,21 +99,40 @@ local function runnerIndex(props: IndexProps)
 					return Color3.fromRGB(255, 255, 255)
 				end
 			end,
-			Position = UDim2.fromScale(0.5, 0.75),
+			Position = UDim2.fromScale(0.5, 0.85),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Stroke = { Thickness = usePx(4) },
 			ZIndex = 2,
 			TextScaled = true,
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 		}),
+
+		-- Car Image
+		ImageLabel({
+			Image = props.runnerImage,
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.45, 0.45),
+			Size = usePx.offset(178, 178),
+			ImageColor3 = function()
+				local isOwned = ownedCars()[tostring(props.runnerLevel)]
+
+				if isOwned then
+					return Color3.fromRGB(255, 255, 255)
+				else
+					return Color3.fromRGB(0, 0, 0)
+				end
+			end,
+		}),
 	})
 end
 
 local function allRunners()
-	return Sift.Array.map(CarIds, function(carName: string, carLevel: number)
+	return Sift.Array.map(CarIds, function(carInfo: { imageId: string, name: string }, carLevel: number)
 		return runnerIndex({
 			runnerLevel = carLevel,
-			runnerName = carName,
+			runnerName = carInfo.name,
+			runnerImage = carInfo.imageId,
 		})
 	end)
 end

@@ -179,6 +179,8 @@ function Plot.merge(self: Plot, player: Player)
 
 	table.sort(sortedLevels)
 
+	local newlyUnlockedLevels: { number } = {}
+
 	local mergedLevels: { number } = {}
 	local changed = true
 	while changed do
@@ -191,7 +193,9 @@ function Plot.merge(self: Plot, player: Player)
 			local nextLevel = sortedLevels[index + 1]
 
 			if nextLevel == currentLevel then
-				mergedLevels[#mergedLevels + 1] = currentLevel + 1
+				local newLevel = currentLevel + 1
+				mergedLevels[#mergedLevels + 1] = newLevel
+				newlyUnlockedLevels[#newlyUnlockedLevels + 1] = newLevel
 				index += 2
 				changed = true
 			else
@@ -217,6 +221,13 @@ function Plot.merge(self: Plot, player: Player)
 
 	for index, runnerLevel in ipairs(mergedRunnerLevels) do
 		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
+	end
+
+	-- Register any newly-reached levels in the index
+	for _, level in ipairs(newlyUnlockedLevels) do
+		if not self.profile:hasUnlockedRunner(level) then
+			DataService:set(self.player, { "index", tostring(level) }, true)
+		end
 	end
 
 	self._isApplyingRunnerMerge = false

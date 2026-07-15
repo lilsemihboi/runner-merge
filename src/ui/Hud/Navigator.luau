@@ -15,6 +15,8 @@ local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 return function()
 	local manager = CoolTransistions.TransitionManager.new(Players.LocalPlayer.PlayerGui)
 
+	local isProcessing = Vide.source(false)
+
 	local topbarPosition = Vide.spring(function()
 		if Menu.openedMenu() == nil then
 			-- Normal konum
@@ -45,9 +47,18 @@ return function()
 			Colors = ButtonColors.Blue,
 			Text = "Base",
 			OnClick = function()
+				if isProcessing() then
+					return
+				end
+
+				isProcessing(true)
 				manager:PlayInOut(1, function()
 					PlotServiceClient:getPlot():teleportToBase()
+					isProcessing(false)
 				end, "Center", "Hexagon", 0.1)
+			end,
+			Active = function()
+				return not isProcessing()
 			end,
 		} :: StudButton.StudButton),
 	})

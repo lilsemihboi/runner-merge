@@ -122,6 +122,10 @@ function Profile.giveCash(self: Profile, amount: number): ()
 		return currentAmt + amount -- Add amount to existing cash
 	end)
 
+	if amount <= 0 then
+		return
+	end
+
 	DataService:update(self.player, { "stats", "totalCashEarned" }, function(current)
 		return current + amount
 	end)

@@ -1,8 +1,10 @@
 --!nonstrict
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
+local CoolTransistions = require(ReplicatedStorage.Shared.Modules.Ui.CoolTransistions)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
@@ -11,6 +13,8 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 return function()
+	local manager = CoolTransistions.TransitionManager.new(Players.LocalPlayer.PlayerGui)
+
 	local topbarPosition = Vide.spring(function()
 		if Menu.openedMenu() == nil then
 			-- Normal konum
@@ -41,7 +45,9 @@ return function()
 			Colors = ButtonColors.Blue,
 			Text = "Base",
 			OnClick = function()
-				PlotServiceClient:getPlot():teleportToBase()
+				manager:PlayInOut(1, function()
+					PlotServiceClient:getPlot():teleportToBase()
+				end, "Center", "Hexagon", 0.1)
 			end,
 		} :: StudButton.StudButton),
 	})

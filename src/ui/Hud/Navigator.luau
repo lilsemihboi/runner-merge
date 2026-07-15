@@ -11,13 +11,22 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 return function()
+	local topbarPosition = Vide.spring(function()
+		if Menu.openedMenu() == nil then
+			-- Normal konum
+			return usePx.udim2(0, 0, 0, 16)()
+		else
+			-- Yukarı kay
+			return usePx.udim2(0, 0, 0, -120)()
+		end
+	end, 0.35, 0.8)
+
 	return Frame({
 		Size = usePx.udim2(1, 0, 0, 87),
-		Position = usePx.udim2(0, 0, 0, 16),
+		Position = topbarPosition,
 		BackgroundTransparency = 1,
-		Visible = function()
-			return Menu.openedMenu() == nil
-		end,
+		Visible = true,
+
 		Vide.create("UIListLayout", {
 			Padding = UDim.new(0.02, 0),
 			FillDirection = Enum.FillDirection.Horizontal,

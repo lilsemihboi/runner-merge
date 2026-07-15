@@ -38,6 +38,14 @@ return {
 			return openedMenuSource() == props.menuId
 		end)
 
+		local menuScale = Vide.spring(function()
+			if isShown() then
+				return props.Scale or 1
+			else
+				return 0
+			end
+		end, 0.35, 0.8)
+
 		local function closeMenu()
 			if props.OnClose then
 				props.OnClose()
@@ -72,6 +80,12 @@ return {
 		frameProps.BackgroundColor3 = Color3.fromRGB(7, 15, 24)
 		frameProps.BackgroundTransparency = 0.5
 
+		table.insert(
+			frameProps,
+			Vide.create("UIScale", {
+				Scale = menuScale,
+			})
+		)
 		--6px stroke
 
 		local stroke = Vide.create("UIStroke", {

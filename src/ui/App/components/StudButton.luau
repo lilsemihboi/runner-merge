@@ -1,3 +1,5 @@
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
@@ -7,14 +9,21 @@ local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLab
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
+local derive = Vide.derive
+local read = Vide.read
+
+type Bindable<T> = T | () -> T
+
+type StudButtonColors = {
+	buttonStroke: Color3,
+	outsideColor: ColorSequence,
+	insideColor: ColorSequence,
+	textStroke: Color3,
+	buttonBase: Color3,
+}
+
 export type StudButton = Button.ButtonProps & {
-	Colors: {
-		buttonStroke: Color3,
-		outsideColor: ColorSequence,
-		insideColor: ColorSequence,
-		textStroke: Color3,
-		buttonBase: Color3,
-	},
+	Colors: Bindable<StudButtonColors>,
 	Text: string | () -> string,
 	TextSize: (number | () -> number)?,
 }
@@ -26,14 +35,23 @@ local CUSTOM_PROPS = {
 }
 
 return function(props: StudButton)
+	-- cached: reads props.Colors once per update, not once per consumer
+	local colors = derive(function()
+		return read(props.Colors)
+	end)
+
 	local safeProps = RemoveKeys(props, CUSTOM_PROPS) :: Button.ButtonProps
 	safeProps.ImageTransparency = 1
-	safeProps.BackgroundColor3 = props.Colors.buttonBase
+	safeProps.BackgroundColor3 = function()
+		return colors().buttonBase
+	end
 	safeProps.BackgroundTransparency = 0
 
 	local buttonStroke = Vide.create("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Color = props.Colors.buttonStroke,
+		Color = function()
+			return colors().buttonStroke
+		end,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Thickness = usePx(3),
 	})
@@ -50,7 +68,9 @@ return function(props: StudButton)
 		TextSize = if props.TextSize then props.TextSize else 14,
 		Stroke = {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-			Color = props.Colors.textStroke,
+			Color = function()
+				return colors().textStroke
+			end,
 			LineJoinMode = Enum.LineJoinMode.Bevel,
 			Thickness = usePx(3.25),
 		},
@@ -67,12 +87,16 @@ return function(props: StudButton)
 	} :: Frame.FrameProps
 
 	local colorUIGradient = Vide.create("UIGradient", {
-		Color = props.Colors.outsideColor,
+		Color = function()
+			return colors().outsideColor
+		end,
 		Rotation = 90,
 	})
 
 	local studUIGradient = Vide.create("UIGradient", {
-		Color = props.Colors.insideColor,
+		Color = function()
+			return colors().insideColor
+		end,
 		Rotation = 90,
 	})
 

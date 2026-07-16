@@ -125,6 +125,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
 	local cashBonusMultiplier = RunnerUtils.getCashBonusMultiplier(profile:getUpgradeLevel("cashBonus"))
+	local rebirthCashMultiplier = DataService:get(player, { "cashMultiplier" })
 	local earnings = 0
 
 	for index, runnerLevel in levels do
@@ -138,7 +139,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		earnings += gateCrossings * incomePerGate
 	end
 
-	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER)
+	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier)
 end
 
 function OfflineEarnings.requestBegin(_self: OfflineEarnings, player: Player)

@@ -11,7 +11,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 return function(parent)
 	DataService:init(DataTemplate)
-	DataService:set("cash", 3196)
+	DataService:set("cash", 40000)
 	DataService:set("rebirths", 1)
 	DataService:set({ "index", "40" }, true)
 

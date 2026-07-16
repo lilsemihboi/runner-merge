@@ -51,6 +51,7 @@ function RunnerManager.new(): RunnerManager
 		boundsCooldown = 0,
 		multiplier = 1,
 		janitor = Janitor.new(),
+		cashMultiplierAtom = GetDataSource("cashMultiplier"),
 	}, RunnerManager) :: RunnerManager
 
 	self.networker = Networker.client.new("RunnerService", self :: any)
@@ -294,7 +295,12 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	textLabel.Position = UDim2.fromScale(0.5, 0.5)
 	textLabel.Size = UDim2.new(0, 0, 0, 0)
 	textLabel.Text = `+${FormatCurrency(
-		math.max(0, math.round(incomePerLap * self.multiplier * (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100)))),
+		math.max(
+			0,
+			math.round(
+				incomePerLap * self.multiplier * (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100)) * self.cashMultiplierAtom()
+			)
+		),
 		false
 	)}`
 	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
@@ -415,6 +421,7 @@ export type RunnerManager = typeof(setmetatable(
 		boundsCooldown: number,
 		janitor: Janitor.Janitor,
 		multiplier: number,
+		cashMultiplierAtom: Charm.Atom<number>,
 	},
 	RunnerManager
 ))

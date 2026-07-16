@@ -209,7 +209,15 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local income = RunnerUtils.getRunnerIncomePerLap(level)
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
-	income = math.max(1, math.round(income * RunnerUtils.getCashBonusMultiplier(cashBonusLevel) * FriendServiceServer:getFriendMultiplier(player)))
+	income = math.max(
+		1,
+		math.round(
+			income
+				* RunnerUtils.getCashBonusMultiplier(cashBonusLevel)
+				* FriendServiceServer:getFriendMultiplier(player)
+				* DataService:get(player, { "cashMultiplier" })
+		)
+	)
 
 	profile:giveCash(income)
 end

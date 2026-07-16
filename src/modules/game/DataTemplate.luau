@@ -4,10 +4,14 @@
 
 export type DataSchema = {
 	cash: number,
-	rebirths: number,
-	runnerPurchases: number,
+	cashMultiplier: number,
 
+	rebirths: number,
+
+	runnerPurchases: number,
 	runners: { number },
+	runnerSpawnLevel: number,
+
 	index: { number },
 
 	offlineEarnings: number?,
@@ -39,9 +43,14 @@ export type DataSchema = {
 
 return {
 	cash = 0,
+	cashMultiplier = 1,
+
 	rebirths = 0,
+
 	runnerPurchases = 0,
 	runners = {},
+	runnerSpawnLevel = 1,
+
 	index = {},
 
 	offlineEarnings = nil,

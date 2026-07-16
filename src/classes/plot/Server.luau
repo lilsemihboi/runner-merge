@@ -252,8 +252,10 @@ function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)
 		return "NOT_ENOUGH_CASH"
 	end
 
+	local runnerSpawnLevel = DataService:get(self.player, "runnerSpawnLevel")
+
 	self.profile:giveCash(-cost)
-	self.profile:giveRunner(1, runnerAmount)
+	self.profile:giveRunner(runnerSpawnLevel, runnerAmount)
 
 	return "SUCCESS"
 end

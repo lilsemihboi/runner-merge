@@ -4,6 +4,7 @@ local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -12,6 +13,15 @@ local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local function rebirthContainer()
 	local cash = getVideDataSource("cash")
+	print("67")
+
+	local rebirths = getVideDataSource("rebirths")
+
+	local targetCash = Vide.derive(function()
+		local cost = RebirthServiceUtils.calculateCashRequirement(rebirths() + 1)
+
+		return cost
+	end)
 
 	return Frame({
 		Size = usePx.offset(1008 * 0.9, 686 * 0.9),
@@ -102,7 +112,7 @@ local function rebirthContainer()
 
 				TextLabel({
 					Text = function()
-						return `${Abbreviate(cash())} / $5K`
+						return `${Abbreviate(cash())} / ${Abbreviate(targetCash())}`
 					end,
 					Size = usePx.offset(368, 56),
 					Stroke = {
@@ -121,7 +131,7 @@ local function rebirthContainer()
 					BackgroundColor3 = Color3.fromRGB(77, 255, 0),
 					BackgroundTransparency = 0,
 					Size = Vide.derive(function()
-						return UDim2.fromScale(cash() / 5000, 1)
+						return UDim2.fromScale(cash() / targetCash(), 1)
 					end),
 
 					Vide.create("UIStroke", {

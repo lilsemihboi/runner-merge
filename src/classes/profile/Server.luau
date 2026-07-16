@@ -132,6 +132,26 @@ function Profile.giveCash(self: Profile, amount: number): ()
 end
 
 --[=[
+	Resets cash of player
+
+	@return () -- No return value
+]=]
+function Profile.resetCash(self: Profile): ()
+	DataService:set(self.player, { "cash" }, 0)
+end
+
+--[=[
+	Resets upgrades of player
+
+	@return () -- No return value
+]=]
+function Profile.resetUpgrades(self: Profile): ()
+	DataService:set(self.player, { "upgrades", "cashBonus" }, 0)
+	DataService:set(self.player, { "upgrades", "gates" }, 0)
+	DataService:set(self.player, { "upgrades", "runnerSpeed" }, 0)
+end
+
+--[=[
 	Awards a rebirth to the player.
 	Increments the player's rebirth counter by 1.
 	Typically called when a player completes specific progression goals.
@@ -141,6 +161,26 @@ end
 function Profile.giveRebirth(self: Profile): ()
 	DataService:update(self.player, { "rebirths" }, function(currentAmt)
 		return currentAmt + 1 -- Increment rebirth count
+	end)
+end
+
+--[=[
+	Sets rebirth multiplier of player.
+
+	@return () -- No return value
+]=]
+function Profile.setMultiplier(self: Profile, multiplier: number): ()
+	DataService:set(self.player, { "cashMultiplier" }, multiplier)
+end
+
+--[=[
+	Gives runner spawn level.
+
+	@return () -- No return value
+]=]
+function Profile.giveSpawnLevel(self: Profile): ()
+	DataService:update(self.player, { "runnerSpawnLevel" }, function(currentAmt)
+		return currentAmt + 1
 	end)
 end
 

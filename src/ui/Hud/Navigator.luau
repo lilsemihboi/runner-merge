@@ -2,6 +2,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local CoolTransistions = require(ReplicatedStorage.Shared.Modules.Ui.CoolTransistions)
@@ -13,7 +14,11 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 return function()
-	local manager = CoolTransistions.TransitionManager.new(Players.LocalPlayer.PlayerGui)
+	local manager
+
+	if RunService:IsRunning() then
+		manager = CoolTransistions.TransitionManager.new(Players.LocalPlayer.PlayerGui)
+	end
 
 	local isProcessing = Vide.source(false)
 
@@ -47,6 +52,9 @@ return function()
 			Colors = ButtonColors.Blue,
 			Text = "Base",
 			OnClick = function()
+				if not manager then
+					return
+				end
 				if isProcessing() then
 					return
 				end

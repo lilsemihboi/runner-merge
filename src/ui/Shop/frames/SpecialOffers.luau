@@ -1,0 +1,241 @@
+--!nonstrict
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
+local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
+local CarIds = require(ReplicatedStorage.Shared.Modules.Items.CarIds)
+local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
+local RobuxButton = require(ReplicatedStorage.Shared.UI.App.Components.RobuxButton)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
+local ShopContentFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.ShopContentFrame)
+local ShopFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.ShopFrame)
+local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
+local Vide = require(ReplicatedStorage.Packages.Vide)
+local useGamepass = require(ReplicatedStorage.Shared.Services.MonetizationService.Hooks.useGamepass)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+
+local function starterPack()
+	local _owns = useGamepass(Products.starterPack)
+	--TODO: This starter pack is not gamepass
+	return ShopFrame.Blue({
+		Size = usePx.offset(1008, 230),
+		LayoutOrder = 0,
+
+		--Title
+		TextLabel({
+			Text = "Starter Pack",
+			Size = UDim2.fromScale(1, 0.2),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Position = usePx.udim2(0, 0, 0, 10),
+			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		--Worths
+		TextLabel({
+			Text = "\u{E002}149",
+			Size = usePx.offset(200, 45),
+			Position = usePx.udim2(0, 780, 0, 70),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Font = Enum.Font.BuilderSansExtraBold,
+			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+
+			-- Red stick
+			Frame({
+				Size = UDim2.new(0.7, 0, 0, 5),
+				Position = UDim2.fromScale(0.5, 0.45),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Rotation = -15,
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+				BorderSizePixel = 0,
+				BackgroundTransparency = 0,
+			}),
+		}),
+
+		-- Frame Content
+		Frame({
+			Size = UDim2.fromOffset(425, 95),
+			Position = UDim2.fromScale(0.005, 0.98),
+			AnchorPoint = Vector2.new(0, 1),
+			BackgroundTransparency = 1,
+
+			Vide.create("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 20),
+			}),
+
+			-- Level 6 Car
+			ShopFrame.Orange({
+				Size = UDim2.fromScale(0.80, 0.80),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 1,
+
+				TextLabel({
+					Text = `{CarIds[6].name:upper()}`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextSize = usePx(20),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				-- Car Image
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = CarIds[6].imageId,
+					Size = UDim2.fromScale(0.95, 0.95),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.46, 0.45),
+				}),
+
+				-- Car Bonus
+				TextLabel({
+					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(6))}/lap`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
+				}),
+			}),
+
+			ShopFrame.Green({
+				Size = UDim2.fromScale(0.80, 0.80),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 1,
+
+				TextLabel({
+					Text = `MONEY`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextSize = usePx(20),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = "rbxassetid://117630190830410",
+					Size = UDim2.fromScale(0.80, 0.80),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.5),
+				}),
+
+				TextLabel({
+					Text = `+$50k`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
+				}),
+			}),
+
+			ShopFrame.Green({
+				Size = UDim2.fromScale(0.80, 0.80),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 1,
+
+				TextLabel({
+					Text = `MONEY BONUS`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextSize = usePx(20),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					Image = "rbxassetid://121313278016619",
+					Size = UDim2.fromScale(0.5, 0.5),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.75, 0.33),
+					BackgroundTransparency = 1,
+					ZIndex = 2,
+					SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = "rbxassetid://117630190830410",
+					Size = UDim2.fromScale(0.80, 0.80),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.5),
+				}),
+
+				TextLabel({
+					Text = `+20%`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
+				}),
+			}),
+		}),
+
+		RobuxButton({
+			Colors = ButtonColors.Green,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0.87, 0, 0.78, 0),
+			product = Products.starterPack,
+			Size = usePx.offset(200, 70),
+		}),
+	})
+end
+
+return function()
+	return ShopContentFrame({
+		Text = "~Special Offer~",
+		LayoutOrder = 0,
+		Padding = 5,
+
+		starterPack(),
+	})
+end

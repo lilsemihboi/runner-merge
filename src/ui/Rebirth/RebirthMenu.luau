@@ -158,7 +158,7 @@ local function rebirthContainer()
 			rebirthRewardEntry({
 				Title = "Money Bonus",
 				Value = "+5%",
-				Image = "rbxassetid://86111664473103",
+				Image = "rbxassetid://117630190830410",
 				LayoutOrder = 1,
 			}),
 

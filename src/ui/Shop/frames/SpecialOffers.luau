@@ -15,6 +15,226 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local useGamepass = require(ReplicatedStorage.Shared.Services.MonetizationService.Hooks.useGamepass)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
+local function carBundle()
+	return ShopFrame.Purple({
+		Size = usePx.offset(1008, 250),
+		LayoutOrder = 0,
+
+		--Title
+		TextLabel({
+			Text = "Exclusive Car Bundle",
+			Size = UDim2.fromScale(1, 0.2),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Position = usePx.udim2(0, 0, 0, 10),
+			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		--Worths
+		TextLabel({
+			Text = "\u{E002}399",
+			Size = usePx.offset(200, 45),
+			Position = usePx.udim2(0, 780, 0, 100),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Font = Enum.Font.BuilderSansExtraBold,
+			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+
+			-- Red stick
+			Frame({
+				Size = UDim2.new(0.7, 0, 0, 5),
+				Position = UDim2.fromScale(0.5, 0.45),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Rotation = -15,
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+				BorderSizePixel = 0,
+				BackgroundTransparency = 0,
+			}),
+		}),
+
+		-- CONTENT
+		Frame({
+			Size = UDim2.fromOffset(425, 95),
+			Position = usePx.udim2(0, 380, 0, 150),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+
+			Vide.create("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = usePx.udim(0, 20),
+			}),
+
+			ShopFrame.Grey({
+				Size = UDim2.fromScale(0.9, 0.9),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 1,
+
+				TextLabel({
+					Text = `{CarIds[14].name}`,
+					Size = UDim2.fromScale(1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = CarIds[14].imageId,
+					Size = UDim2.fromScale(1, 1),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.45, 0.45),
+				}),
+
+				TextLabel({
+					Text = `Level 14`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+				}),
+			}),
+
+			TextLabel({
+				Text = "+",
+				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+				ZIndex = 99,
+				LayoutOrder = 2,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextScaled = true,
+				Size = UDim2.fromScale(0.07, 0.9),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Stroke = {
+					Thickness = usePx(4),
+				},
+			}),
+
+			ShopFrame.Grey({
+				Size = UDim2.fromScale(0.9, 0.9),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 3,
+
+				TextLabel({
+					Text = `{CarIds[15].name}`,
+					Size = UDim2.fromScale(1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = CarIds[15].imageId,
+					Size = UDim2.fromScale(1, 1),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.45, 0.45),
+				}),
+
+				TextLabel({
+					Text = `Level 15`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+				}),
+			}),
+
+			TextLabel({
+				Text = "+",
+				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+				ZIndex = 99,
+				LayoutOrder = 4,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextScaled = true,
+				Size = UDim2.fromScale(0.07, 0.9),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Stroke = {
+					Thickness = usePx(4),
+				},
+			}),
+
+			ShopFrame.Grey({
+				Size = UDim2.fromScale(0.9, 0.9),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 5,
+
+				TextLabel({
+					Text = `{CarIds[16].name}`,
+					Size = UDim2.fromScale(1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = CarIds[16].imageId,
+					Size = UDim2.fromScale(1, 1),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.45, 0.45),
+				}),
+
+				TextLabel({
+					Text = `Level 16`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = 2 },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+				}),
+			}),
+		}),
+
+		TextLabel({
+			Text = "Limited Time",
+			TextScaled = true,
+			Size = usePx.offset(200, 45),
+			Position = usePx.udim2(0, 780, 0, 10),
+			TextColor3 = Color3.fromRGB(255, 0, 0),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Stroke = { Thickness = 3, Color = Color3.fromRGB(87, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		RobuxButton({
+			Colors = ButtonColors.Green,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0.87, 0, 0.78, 0),
+			product = Products.carBundle1,
+			Size = usePx.offset(200, 70),
+		}),
+	})
+end
+
 local function starterPack()
 	local _owns = useGamepass(Products.starterPack)
 	--TODO: This starter pack is not gamepass
@@ -237,5 +457,6 @@ return function()
 		Padding = 5,
 
 		starterPack(),
+		carBundle(),
 	})
 end

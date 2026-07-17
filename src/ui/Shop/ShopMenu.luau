@@ -1,6 +1,7 @@
 --!nonstrict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local Passes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Passes)
 local SpecialOffers = require(ReplicatedStorage.Shared.UI.Shop.Frames.SpecialOffers)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -17,7 +18,16 @@ local function shopContent()
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		BorderSizePixel = 0,
 
+		Vide.create("UIListLayout", {
+			Padding = UDim.new(0, 0),
+			FillDirection = Enum.FillDirection.Vertical,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+		}),
+
 		SpecialOffers(),
+		Passes(),
 	})
 end
 

@@ -1,5 +1,6 @@
 --!nonstrict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Codes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Codes)
 local Currency = require(ReplicatedStorage.Shared.UI.Shop.Frames.Currency)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local Passes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Passes)
@@ -30,6 +31,7 @@ local function shopContent()
 		SpecialOffers(),
 		Passes(),
 		Currency(),
+		Codes(),
 	})
 end
 

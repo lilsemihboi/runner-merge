@@ -35,6 +35,7 @@ MonetizationServiceServer:init({
 })
 ProfileServiceServer:init()
 CodeServiceServer:init(ServerCallbacks :: any)
+--CodeServiceServer:add("mantle2026", {active = true,expiration = 1798675200, reward = "currency", params = {15_000}})
 FriendServiceServer:init()
 RunnerServiceServer:init()
 PlotServiceServer:init()

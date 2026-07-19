@@ -7,6 +7,7 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 type NotificationProps = {
 	Image: string,
@@ -75,6 +76,12 @@ local function Notification(props: {
 			Size = UDim2.fromScale(1, 0.3),
 			Position = UDim2.fromScale(0.5, 0.85),
 			AnchorPoint = Vector2.new(0.5, 0.5),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Font = Enum.Font.BuilderSansExtraBold,
+			Stroke = {
+				Thickness = usePx(2),
+			},
 		}),
 	})
 end

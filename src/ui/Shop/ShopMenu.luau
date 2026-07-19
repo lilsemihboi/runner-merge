@@ -1,5 +1,6 @@
 --!nonstrict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Currency = require(ReplicatedStorage.Shared.UI.Shop.Frames.Currency)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local Passes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Passes)
 local SpecialOffers = require(ReplicatedStorage.Shared.UI.Shop.Frames.SpecialOffers)
@@ -23,11 +24,12 @@ local function shopContent()
 			FillDirection = Enum.FillDirection.Vertical,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
 		}),
 
 		SpecialOffers(),
 		Passes(),
+		Currency(),
 	})
 end
 

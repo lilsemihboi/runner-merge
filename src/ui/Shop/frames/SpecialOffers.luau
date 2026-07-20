@@ -5,6 +5,7 @@ local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local CarIds = require(ReplicatedStorage.Shared.Modules.Items.CarIds)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
+local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local RobuxButton = require(ReplicatedStorage.Shared.UI.App.Components.RobuxButton)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
@@ -12,7 +13,6 @@ local ShopContentFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.Sho
 local ShopFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.ShopFrame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
-local useGamepass = require(ReplicatedStorage.Shared.Services.MonetizationService.Hooks.useGamepass)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local function carBundle()
@@ -236,12 +236,22 @@ local function carBundle()
 end
 
 local function starterPack()
-	local _owns = useGamepass(Products.starterPack)
-	--TODO: This starter pack is not gamepass
+	local owns = Vide.source(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+
+	if owns() then
+		return nil
+	end
+
+	MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()
+		owns(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+	end)
+
 	return ShopFrame.Blue({
 		Size = usePx.offset(1008, 230),
 		LayoutOrder = 0,
-
+		Visible = function()
+			return not owns()
+		end,
 		--Title
 		TextLabel({
 			Text = "Starter Pack",

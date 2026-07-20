@@ -4,6 +4,7 @@ local Plot = {}
 Plot.__index = Plot
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -15,7 +16,9 @@ local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.Erro
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local InfoEnums = require(ReplicatedStorage.Shared.Modules.Utils.InfoEnums)
+local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
@@ -46,6 +49,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 
 	self:setupButtons()
 	self:setupUpgradeBoard()
+	self:setupStarterPack()
 	self:_updateMergeButtonState()
 	self:_updateRunnerButtonPrices()
 	self:_updateUpgradeButtonPrices()
@@ -207,6 +211,47 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 		setupUpgradeFrame(upgradeFrame, upgradeId)
 	end
+end
+
+function Plot.setupStarterPack(self: Plot)
+	--[[
+		When you touch it it will prompt product purchase,
+		When one time purchase completed destroy the model
+	]]
+	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+
+	if owns() then
+		-- Destroy
+		self.plotModel.StarterPack:Destroy()
+		return
+	end
+
+	self.janitor:Add(
+		MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()
+			owns(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+		end),
+		"Disconnect"
+	)
+
+	self.janitor:Add(Charm.subscribe(owns, function(state)
+		if state == true then
+			self.plotModel.StarterPack:Destroy()
+			return
+		end
+	end))
+
+	self.janitor:Add(
+		self.plotModel.StarterPack.Hitbox.Touched:Connect(function(hit: BasePart)
+			if hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid") then
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+
+				if player == Players.LocalPlayer then
+					MonetizationServiceClient:promptProduct(Products.starterPack)
+				end
+			end
+		end),
+		"Disconnect"
+	)
 end
 
 function Plot.teleportToBase(self: Plot): ()

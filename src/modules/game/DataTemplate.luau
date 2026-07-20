@@ -5,6 +5,8 @@
 export type DataSchema = {
 	cash: number,
 	cashMultiplier: number,
+	customMultiplier: number,
+	spins: number,
 
 	rebirths: number,
 
@@ -44,6 +46,9 @@ export type DataSchema = {
 return {
 	cash = 0,
 	cashMultiplier = 1,
+	customMultiplier = 1,
+
+	spins = 0,
 
 	rebirths = 0,
 

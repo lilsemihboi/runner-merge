@@ -52,6 +52,7 @@ function RunnerManager.new(): RunnerManager
 		multiplier = 1,
 		janitor = Janitor.new(),
 		cashMultiplierAtom = GetDataSource("cashMultiplier"),
+		customMultiplierAtom = GetDataSource("customMultiplier"),
 	}, RunnerManager) :: RunnerManager
 
 	self.networker = Networker.client.new("RunnerService", self :: any)
@@ -298,7 +299,11 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 		math.max(
 			0,
 			math.round(
-				incomePerLap * self.multiplier * (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100)) * self.cashMultiplierAtom()
+				incomePerLap
+					* self.multiplier
+					* (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100))
+					* self.cashMultiplierAtom()
+					* self.customMultiplierAtom()
 			)
 		),
 		false
@@ -422,6 +427,7 @@ export type RunnerManager = typeof(setmetatable(
 		janitor: Janitor.Janitor,
 		multiplier: number,
 		cashMultiplierAtom: Charm.Atom<number>,
+		customMultiplierAtom: Charm.Atom<number>,
 	},
 	RunnerManager
 ))

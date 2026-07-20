@@ -216,6 +216,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 				* RunnerUtils.getCashBonusMultiplier(cashBonusLevel)
 				* FriendServiceServer:getFriendMultiplier(player)
 				* DataService:get(player, { "cashMultiplier" })
+				* DataService:get(player, { "customMultiplier" })
 		)
 	)
 

@@ -17,6 +17,10 @@ local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 local function otherCashProducts()
 	local cash = getVideDataSource("cash")
 
+	local displayedCash = Vide.derive(function()
+		return math.max(cash(), 10_000)
+	end)
+
 	return Frame({
 		BackgroundTransparency = 1,
 		Size = usePx.offset(1008, 250),
@@ -37,7 +41,7 @@ local function otherCashProducts()
 
 			TextLabel({
 				Text = function()
-					return `+${Abbreviate(cash() * 0.2)}`
+					return `+${Abbreviate(displayedCash() * 0.2)}`
 				end,
 				Gradient = {
 					Color = ColorSequence.new({
@@ -81,7 +85,7 @@ local function otherCashProducts()
 
 			TextLabel({
 				Text = function()
-					return `+${Abbreviate(cash() * 0.5)}`
+					return `+${Abbreviate(displayedCash() * 0.5)}`
 				end,
 				Gradient = {
 					Color = ColorSequence.new({
@@ -125,7 +129,7 @@ local function otherCashProducts()
 
 			TextLabel({
 				Text = function()
-					return `+${Abbreviate(cash() * 1.25)}`
+					return `+${Abbreviate(displayedCash() * 1.25)}`
 				end,
 				Gradient = {
 					Color = ColorSequence.new({

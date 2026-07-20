@@ -132,6 +132,19 @@ function Profile.giveCash(self: Profile, amount: number): ()
 end
 
 --[=[
+	Awards spin to the player.
+	Adds the specified amount to the player's current spins.
+	
+	@param amount number -- The amount of cash to give (positive value)
+	@return () -- No return value
+]=]
+function Profile.addSpin(self: Profile, amount: number): ()
+	DataService:update(self.player, { "spins" }, function(currentAmt)
+		return currentAmt + amount -- Add amount to existing spins
+	end)
+end
+
+--[=[
 	Resets cash of player
 
 	@return () -- No return value
@@ -171,6 +184,17 @@ end
 ]=]
 function Profile.setMultiplier(self: Profile, multiplier: number): ()
 	DataService:set(self.player, { "cashMultiplier" }, multiplier)
+end
+
+--[=[
+	Adds custom multiplier.
+
+	@return () -- No return value
+]=]
+function Profile.addCustomMultiplier(self: Profile, multiplier: number): ()
+	DataService:update(self.player, { "customMultiplier" }, function(current)
+		return current + multiplier
+	end)
 end
 
 --[=[

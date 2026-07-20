@@ -203,9 +203,10 @@ return {
 
 	openedMenu = openedMenuSource,
 	setOpenedMenu = function(menuId: string?)
-		if menuId == openedMenuSource() then
-			openedMenuSource(nil)
+		local current = Vide.untrack(openedMenuSource)
 
+		if menuId == current then
+			openedMenuSource(nil)
 			return
 		end
 

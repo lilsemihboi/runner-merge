@@ -10,6 +10,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 local FormatTime = require(ReplicatedStorage.Shared.Modules.Ui.FormatTime)
 local MonetizationServiceUtils = require(script.Parent.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
+local Purchasing = require(ReplicatedStorage.Shared.UI.Hud.Purchasing)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 
 type GiftData = MonetizationServiceUtils.GiftData
@@ -164,6 +165,16 @@ function MonetizationServiceClient.init(self: MonetizationServiceClient, product
 	self.networker = Networker.client.new("MonetizationService", self)
 	self:_initProducts(products :: any)
 
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(_player)
+		if _player == Players.LocalPlayer then
+			Purchasing.DisplayPurchasing(false)
+		end
+	end)
+
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function()
+		Purchasing.DisplayPurchasing(false)
+	end)
+
 	task.spawn(function()
 		if not RunService:IsRunning() then
 			return
@@ -266,6 +277,7 @@ function MonetizationServiceClient.promptProduct(self: MonetizationServiceClient
 		return
 	end
 
+	Purchasing.DisplayPurchasing(true)
 	if product.isPass then
 		MarketplaceService:PromptGamePassPurchase(player, product.id)
 	else

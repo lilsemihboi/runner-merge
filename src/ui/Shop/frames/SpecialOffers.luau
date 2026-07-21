@@ -28,7 +28,7 @@ local function carBundle()
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 			Position = usePx.udim2(0, 0, 0, 10),
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 			ZIndex = 3,
 		}),
 
@@ -40,7 +40,7 @@ local function carBundle()
 			TextScaled = true,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			Font = Enum.Font.BuilderSansExtraBold,
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 			ZIndex = 3,
 
 			-- Red stick
@@ -57,7 +57,7 @@ local function carBundle()
 
 		-- CONTENT
 		Frame({
-			Size = UDim2.fromOffset(425, 95),
+			Size = usePx.offset(700, 160),
 			Position = usePx.udim2(0, 380, 0, 150),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundTransparency = 1,
@@ -82,7 +82,7 @@ local function carBundle()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -99,7 +99,7 @@ local function carBundle()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -135,7 +135,7 @@ local function carBundle()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -152,7 +152,7 @@ local function carBundle()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -188,7 +188,7 @@ local function carBundle()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -205,7 +205,7 @@ local function carBundle()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -221,7 +221,7 @@ local function carBundle()
 			Position = usePx.udim2(0, 780, 0, 10),
 			TextColor3 = Color3.fromRGB(255, 0, 0),
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(87, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(87, 0, 0) },
 			ZIndex = 3,
 		}),
 
@@ -260,7 +260,7 @@ local function starterPack()
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 			Position = usePx.udim2(0, 0, 0, 10),
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 			ZIndex = 3,
 		}),
 
@@ -272,7 +272,7 @@ local function starterPack()
 			TextScaled = true,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			Font = Enum.Font.BuilderSansExtraBold,
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 			ZIndex = 3,
 
 			-- Red stick
@@ -289,7 +289,7 @@ local function starterPack()
 
 		-- Frame Content
 		Frame({
-			Size = UDim2.fromOffset(425, 95),
+			Size = usePx.offset(700, 160),
 			Position = UDim2.fromScale(0.005, 0.98),
 			AnchorPoint = Vector2.new(0, 1),
 			BackgroundTransparency = 1,
@@ -298,7 +298,7 @@ local function starterPack()
 				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 20),
+				Padding = usePx.udim(0, 20),
 			}),
 
 			-- Level 6 Car
@@ -315,7 +315,7 @@ local function starterPack()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextSize = usePx(20),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -334,7 +334,7 @@ local function starterPack()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -349,10 +349,25 @@ local function starterPack()
 				}),
 			}),
 
+			TextLabel({
+				Text = "+",
+				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+				ZIndex = 99,
+				LayoutOrder = 2,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextScaled = true,
+				Size = UDim2.fromScale(0.07, 0.9),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Stroke = {
+					Thickness = usePx(4),
+				},
+			}),
+
 			ShopFrame.Green({
 				Size = UDim2.fromScale(0.80, 0.80),
 				SizeConstraint = Enum.SizeConstraint.RelativeYY,
-				LayoutOrder = 1,
+				LayoutOrder = 3,
 
 				TextLabel({
 					Text = `MONEY`,
@@ -362,7 +377,7 @@ local function starterPack()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextSize = usePx(20),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -379,7 +394,7 @@ local function starterPack()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -394,10 +409,25 @@ local function starterPack()
 				}),
 			}),
 
+			TextLabel({
+				Text = "+",
+				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+				ZIndex = 99,
+				LayoutOrder = 4,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextScaled = true,
+				Size = UDim2.fromScale(0.07, 0.9),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Stroke = {
+					Thickness = usePx(4),
+				},
+			}),
+
 			ShopFrame.Green({
 				Size = UDim2.fromScale(0.80, 0.80),
 				SizeConstraint = Enum.SizeConstraint.RelativeYY,
-				LayoutOrder = 1,
+				LayoutOrder = 5,
 
 				TextLabel({
 					Text = `MONEY BONUS`,
@@ -407,7 +437,7 @@ local function starterPack()
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextSize = usePx(20),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 				}),
 
@@ -434,7 +464,7 @@ local function starterPack()
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
-					Stroke = { Thickness = 2 },
+					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),

@@ -57,7 +57,7 @@ local function otherCashProducts()
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 				Size = usePx.offset(688, 72),
-				Position = UDim2.fromScale(0.4, 0.2),
+				Position = UDim2.fromScale(0.45, 0.2),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 			}),
 
@@ -101,7 +101,7 @@ local function otherCashProducts()
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 				Size = usePx.offset(688, 72),
-				Position = UDim2.fromScale(0.4, 0.2),
+				Position = UDim2.fromScale(0.45, 0.2),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 			}),
 
@@ -145,7 +145,7 @@ local function otherCashProducts()
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 				Size = usePx.offset(688, 72),
-				Position = UDim2.fromScale(0.4, 0.2),
+				Position = UDim2.fromScale(0.45, 0.2),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 			}),
 
@@ -181,7 +181,7 @@ local function hugeCurrency()
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 			Position = usePx.udim2(0, 0, 0, 10),
-			Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 			ZIndex = 3,
 		}),
 

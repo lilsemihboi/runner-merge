@@ -3,6 +3,7 @@ local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local RemoveKeys = require(ReplicatedStorage.Shared.Modules.Utils.RemoveKeys)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 type ShopContentFrameProps = {
 	Padding: number?,
@@ -22,7 +23,7 @@ return function(props: ShopContentFrameProps)
 	safeProps.BackgroundTransparency = 1
 
 	local uiListLayout = Vide.create("UIListLayout", {
-		Padding = UDim.new(0, 16),
+		Padding = usePx.udim(0, 16),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -36,9 +37,9 @@ return function(props: ShopContentFrameProps)
 
 	local title = TextLabel({
 		Text = props.Text,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = usePx.udim2(1, 0, 0, 60),
 		TextColor3 = Color3.fromRGB(255, 255, 255),
-		Stroke = { Thickness = 3, Color = Color3.fromRGB(0, 0, 0) },
+		Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
 		LayoutOrder = -2,
 		Font = Enum.Font.BuilderSansExtraBold,
 		TextScaled = true,

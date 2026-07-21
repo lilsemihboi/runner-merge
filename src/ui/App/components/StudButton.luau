@@ -72,7 +72,7 @@ return function(props: StudButton)
 				return colors().textStroke
 			end,
 			LineJoinMode = Enum.LineJoinMode.Bevel,
-			Thickness = usePx(3.25),
+			Thickness = usePx(3),
 		},
 		ZIndex = 5,
 	})

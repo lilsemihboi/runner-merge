@@ -17,7 +17,7 @@ local function otherGamepasses()
 		Size = usePx.offset(1008, 250),
 
 		Vide.create("UIListLayout", {
-			Padding = UDim.new(0, 30),
+			Padding = usePx.udim(0, 41.5),
 			FillDirection = Enum.FillDirection.Horizontal,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -25,7 +25,7 @@ local function otherGamepasses()
 		}),
 
 		ShopFrame.Red({
-			Size = usePx.offset(470, 250),
+			Size = usePx.offset(476, 250),
 			LayoutOrder = 1,
 
 			TextLabel({
@@ -72,7 +72,7 @@ local function otherGamepasses()
 		}),
 
 		ShopFrame.Green({
-			Size = usePx.offset(470, 250),
+			Size = usePx.offset(476, 250),
 			LayoutOrder = 2,
 
 			TextLabel({

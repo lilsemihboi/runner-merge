@@ -7,6 +7,7 @@ local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 type StudFrameProps = Frame.FrameProps & {
 	Gradient: ColorSequence,
@@ -17,7 +18,7 @@ local function Background(props: ImageLabel.ImageLabelProps)
 	local safeProps = Sift.Dictionary.copy(props)
 	safeProps.Image = "rbxassetid://12055407192"
 	safeProps.ScaleType = Enum.ScaleType.Tile
-	safeProps.TileSize = UDim2.fromOffset(50, 50)
+	safeProps.TileSize = usePx.offset(50, 50)
 	safeProps.BorderSizePixel = 0
 	return ImageLabel(safeProps)
 end
@@ -28,14 +29,14 @@ return function(props: StudFrameProps)
 
 	local Stroke = Vide.create("UIStroke", {
 		Color = Color3.fromRGB(0, 0, 0),
-		Thickness = 4,
+		Thickness = usePx(4),
 		LineJoinMode = Enum.LineJoinMode.Miter,
 	})
 
 	local InnerStroke = Vide.create("UIStroke", {
 		Color = Color3.fromRGB(255, 255, 255),
 		BorderStrokePosition = Enum.BorderStrokePosition.Inner,
-		Thickness = 4,
+		Thickness = usePx(4),
 		LineJoinMode = Enum.LineJoinMode.Miter,
 
 		Vide.create("UIGradient", {

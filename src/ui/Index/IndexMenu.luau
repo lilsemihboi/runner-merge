@@ -150,13 +150,6 @@ local function topInfoText()
 		Stroke = {
 			Thickness = usePx(4),
 		},
-		DropShadow = {
-			Transparency = 0,
-
-			Vide.create("UIStroke", {
-				Thickness = usePx(4),
-			}),
-		},
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextScaled = true,
 		FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),

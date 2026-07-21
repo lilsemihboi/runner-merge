@@ -9,15 +9,15 @@ local UpgradeUtils = {}
 type UpgradeId = keyof<typeof(_DataTemplate.upgrades)>
 
 local UPGRADE_BASE_COSTS: { [UpgradeId]: number } = {
-	gates = 25,
-	runnerSpeed = 50,
-	cashBonus = 250,
+	gates = 50,
+	runnerSpeed = 100,
+	cashBonus = 500,
 }
 
 local UPGRADE_GROWTH: { [UpgradeId]: number } = {
-	gates = 1.45,
-	runnerSpeed = 1.55,
-	cashBonus = 1.7,
+	gates = 2.5,
+	runnerSpeed = 1.7,
+	cashBonus = 1.85,
 }
 
 UpgradeUtils.levelCaps = {
@@ -33,8 +33,13 @@ function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: n
 		return math.floor((value + 5) / 10) * 10
 	end
 
-	if level == 1 and upgradeId == "gates" then
-		return 0
+	if upgradeId == "gates" then
+		if level == 1 then
+			return 0
+		elseif level == 2 then
+			return 50
+		end
+		return roundToTens(5000 * (2.5 ^ (level - 3)))
 	end
 
 	local baseCost = UPGRADE_BASE_COSTS[upgradeId]

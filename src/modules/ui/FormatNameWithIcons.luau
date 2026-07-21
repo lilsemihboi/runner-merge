@@ -1,18 +1,18 @@
 local trustedPeople = {
-	11092812416,
 	1684647642,
+	1899239115,
 }
 
 return function(player: Player)
 	local icons = ""
 
-	if player.HasVerifiedBadge or table.find(trustedPeople, player.UserId) then
-		icons ..= utf8.char(57344) .. " "
-	end
-
 	if player.MembershipType == Enum.MembershipType.Premium then
-		icons ..= utf8.char(57345) .. " "
+		icons ..= utf8.char(0xE003)
 	end
 
-	return icons .. player.DisplayName
+	if player.HasVerifiedBadge or table.find(trustedPeople, player.UserId) then
+		icons ..= utf8.char(57344)
+	end
+
+	return player.DisplayName .. icons
 end

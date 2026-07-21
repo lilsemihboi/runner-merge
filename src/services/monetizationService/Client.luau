@@ -287,6 +287,9 @@ end
 
 function MonetizationServiceClient.promptGift(self: MonetizationServiceClient, userId: number, product: MonetizationProduct): (boolean, string?)
 	local s, e = self.networker:fetch("promptGift", userId, product.giftId)
+	if s == true then
+		Purchasing.DisplayPurchasing(true)
+	end
 	return s, e
 end
 

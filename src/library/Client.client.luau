@@ -8,6 +8,7 @@ local CodeServiceClient = require(ReplicatedStorage.Shared.Services.CodeService.
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local LeaderboardServiceClient = require(ReplicatedStorage.Shared.Services.LeaderboardService.LeaderboardServiceClient)
+local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local MountUI = require(ReplicatedStorage.Shared.UI.App.MountUI)
 local NotificationServiceClient = require(ReplicatedStorage.Shared.Services.NotificationService.NotificationServiceClient)
@@ -18,6 +19,7 @@ local RebirthServiceClient = require(ReplicatedStorage.Shared.Services.RebirthSe
 local RunnerManager = require(ReplicatedStorage.Shared.Classes.Runner.RunnerManager)
 local SettingsInitializer = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsInitializer)
 local SettingsServiceClient = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsServiceClient)
+local ShopSlice = require(ReplicatedStorage.Shared.UI.Shop.ShopSlice)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
@@ -40,3 +42,11 @@ SettingsInitializer()
 SoundService:WaitForChild("Music"):Play()
 TitleServiceClient:init()
 MountUI()
+
+MonetizationServiceClient.giftReceived:Connect(function(product, giftData)
+	ShopSlice.state.giftReceivedData({
+		product = product,
+		giftData = giftData,
+	})
+	Menu.setOpenedMenu("GiftReceivedMenu")
+end)

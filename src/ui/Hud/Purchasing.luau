@@ -62,15 +62,19 @@ local function component()
 	end)
 
 	local prevMenu: string | nil
+	local firstRun = true
+
 	Vide.effect(function()
 		local isShowing = isPurchaseShowing()
-		print("updated")
+
 		if isShowing then
 			prevMenu = Vide.untrack(Menu.openedMenu)
 			Menu.setOpenedMenu(nil)
-		else
+		elseif not firstRun then
 			Menu.setOpenedMenu(prevMenu)
 		end
+
+		firstRun = false
 	end)
 
 	return Frame({

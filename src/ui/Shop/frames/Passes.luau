@@ -65,7 +65,7 @@ local function otherGamepasses()
 			RobuxButton({
 				Colors = ButtonColors.Green,
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = usePx.udim2(0.76, 0, 0.825, 0),
+				Position = usePx.udim2(0.68, 0, 0.825, 0),
 				product = Products.x2Speed,
 				Size = usePx.offset(200, 70),
 			}),
@@ -112,7 +112,7 @@ local function otherGamepasses()
 			RobuxButton({
 				Colors = ButtonColors.Green,
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = usePx.udim2(0.76, 0, 0.825, 0),
+				Position = usePx.udim2(0.68, 0, 0.825, 0),
 				product = Products.x2Cash,
 				Size = usePx.offset(200, 70),
 			}),
@@ -160,7 +160,7 @@ local function vip()
 		RobuxButton({
 			Colors = ButtonColors.Green,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = usePx.udim2(0.87, 0, 0.78, 0),
+			Position = usePx.udim2(0.85, 0, 0.78, 0),
 			product = Products.vip,
 			Size = usePx.offset(200, 70),
 		}),

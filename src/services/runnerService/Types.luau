@@ -5,6 +5,7 @@ export type RunnerPlotSnapshot = {
 	startClock: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
+	carSpeedMultiplier: number,
 }
 
 return nil

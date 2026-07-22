@@ -5,10 +5,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local OfflineEarningsServiceUtils = require(ReplicatedStorage.Shared.Services.OfflineEarningsService.OfflineEarningsServiceUtils)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 
@@ -126,7 +128,8 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
 	local cashBonusMultiplier = RunnerUtils.getCashBonusMultiplier(profile:getUpgradeLevel("cashBonus"))
 	local rebirthCashMultiplier = DataService:get(player, { "cashMultiplier" })
-	local customMultiplier = DataService:get(player, { "customMultiplier" })
+	local customMultiplier = DataService:get(player, { "customMultiplier" }) -- starter pack
+	local vipMultiplier = if MonetizationServiceServer:ownsGamepass(player, Products.vip) == true then 1.5 else 1
 	local earnings = 0
 
 	for index, runnerLevel in levels do
@@ -140,7 +143,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		earnings += gateCrossings * incomePerGate
 	end
 
-	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier)
+	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier * vipMultiplier)
 end
 
 function OfflineEarnings.requestBegin(_self: OfflineEarnings, player: Player)

@@ -79,7 +79,7 @@ local function PlayerCard(props: PlayerCardProps)
 					return
 				end
 
-				local success, err = MonetizationServiceClient:promptGift(props.Player.UserId, product)
+				local success, err = MonetizationServiceClient:promptGift(props.Player.UserId, product())
 				if not success then
 					ErrorMessage.add(err or "Failed to send gift.")
 				end
@@ -131,8 +131,8 @@ local function playersList()
 		}),
 
 		Vide.indexes(players, function(player, index)
-			if player == Players.LocalPlayer then
-				return
+			if player() == Players.LocalPlayer then
+				return nil
 			end
 
 			return PlayerCard({

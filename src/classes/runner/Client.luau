@@ -26,6 +26,7 @@ function Runner.new(config: RunnerConfig): Runner
 		plotId = config.plotId,
 		index = config.index,
 		level = config.level,
+		carSpeedMultiplier = config.carSpeedMultiplier,
 		runnerSpeedLevel = config.runnerSpeedLevel,
 		speed = RunnerUtils.getRunnerSpeed(config.level, config.runnerSpeedLevel),
 		incomePerLap = RunnerUtils.getRunnerIncomePerLap(config.level),
@@ -48,7 +49,7 @@ function Runner.new(config: RunnerConfig): Runner
 end
 
 function Runner._refreshTravelTime(self: Runner): ()
-	self.travelTime = self.path.length / math.max(1, self.speed)
+	self.travelTime = self.path.length / math.max(1, self.speed * self.carSpeedMultiplier)
 end
 
 function Runner._resolveContainer(self: Runner): Instance?
@@ -186,9 +187,10 @@ function Runner._refreshSpeed(self: Runner): ()
 	self:_refreshTravelTime()
 end
 
-function Runner.configure(self: Runner, startClock: number, phase: number, gateCount: number, runnerSpeedLevel: number): ()
+function Runner.configure(self: Runner, startClock: number, phase: number, gateCount: number, runnerSpeedLevel: number, carSpeedMultiplier: number): ()
 	self.startClock = startClock
 	self.phase = phase
+	self.carSpeedMultiplier = carSpeedMultiplier
 	self.gateCount = gateCount
 	self.runnerSpeedLevel = runnerSpeedLevel
 	self:_refreshSpeed()
@@ -219,6 +221,7 @@ export type RunnerConfig = {
 	level: number,
 	path: PathData.Path,
 	startClock: number,
+	carSpeedMultiplier: number,
 	phase: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
@@ -243,6 +246,7 @@ export type Runner = typeof(setmetatable(
 		travelTime: number,
 		prevDistance: number,
 		isOwner: boolean,
+		carSpeedMultiplier: number,
 		active: boolean,
 		janitor: Janitor.Janitor,
 	},

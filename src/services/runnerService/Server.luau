@@ -23,8 +23,10 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local FriendServiceServer = require(ServerScriptService.Services.FriendService.FriendServiceServer)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
+local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
@@ -52,6 +54,9 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		gateAwards = {},
 		janitor = Janitor.new(),
 		broadcastScheduled = false,
+		vipOwned = false,
+		doubleCashOwned = false,
+		doubleSpeedOwned = false,
 	}
 	self.plots[plotId] = state
 
@@ -83,6 +88,41 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		"Disconnect"
 	)
 
+	if MonetizationServiceServer:ownsGamepass(player, Products.vip) then
+		self.networker:set(player, "vipMultiplier", 1.5)
+		state.vipOwned = true
+	end
+
+	if MonetizationServiceServer:ownsGamepass(player, Products.x2Speed) then
+		state.doubleSpeedOwned = true
+	end
+
+	if MonetizationServiceServer:ownsGamepass(player, Products.x2Cash) then
+		self.networker:set(player, "doubleCashMultiplier", 2)
+		state.doubleCashOwned = true
+	end
+
+	state.janitor:Add(MonetizationServiceServer:getPassOwnshipChanged(player, Products.x2Speed):Connect(function(owns)
+		if owns then
+			state.doubleSpeedOwned = true
+			self:_broadcastPlot(state)
+		end
+	end))
+
+	state.janitor:Add(MonetizationServiceServer:getPassOwnshipChanged(player, Products.x2Cash):Connect(function(owns)
+		if owns then
+			self.networker:set(player, "doubleCashMultiplier", 2)
+			state.doubleCashOwned = true
+		end
+	end))
+
+	state.janitor:Add(MonetizationServiceServer:getPassOwnshipChanged(player, Products.vip):Connect(function(owns)
+		if owns then
+			self.networker:set(player, "vipMultiplier", 1.5)
+			state.vipOwned = true
+		end
+	end))
+
 	self:_broadcastPlot(state)
 end
 
@@ -108,6 +148,7 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		startClock = state.startClock,
 		gateCount = profile:getUpgradeLevel("gates"),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
+		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
 	}
 end
 
@@ -134,7 +175,16 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 	table.clear(state.gateAwards)
 
 	local snapshot = self:_snapshot(state)
-	self.networker:fireAll("setRunners", snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount, snapshot.runnerSpeedLevel)
+	self.networker:fireAll(
+		"setRunners",
+		snapshot.plotId,
+		snapshot.owner,
+		snapshot.levels,
+		snapshot.startClock,
+		snapshot.gateCount,
+		snapshot.runnerSpeedLevel,
+		snapshot.carSpeedMultiplier
+	)
 end
 
 -- Late-join sync: client fetches every known plot once on startup.
@@ -188,7 +238,9 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
 	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel)
-	local travelTime = path.length / math.max(1, speed)
+	local doubleSpeedMultiplier = state.doubleSpeedOwned and 2 or 1
+	local actualSpeed = speed * doubleSpeedMultiplier
+	local travelTime = path.length / math.max(1, actualSpeed)
 	local phase = (runnerIndex - 1) / #levels
 	local now = workspace:GetServerTimeNow()
 	local progress = ((now - state.startClock) / travelTime + phase) % 1
@@ -196,7 +248,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	-- distance travelled since passing the gate must be small (just crossed)
 	local delta = (distance - gateDistance) % path.length
-	if delta > speed * GATE_TOLERANCE_SECONDS then
+	if delta > actualSpeed * GATE_TOLERANCE_SECONDS then
 		return
 	end
 
@@ -209,6 +261,8 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local income = RunnerUtils.getRunnerIncomePerLap(level)
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
+	local vipMultiplier = if state.vipOwned then 1.5 else 1
+	local doubleCashMultiplier = if state.doubleCashOwned then 2 else 1
 	income = math.max(
 		1,
 		math.round(
@@ -217,6 +271,8 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 				* FriendServiceServer:getFriendMultiplier(player)
 				* DataService:get(player, { "cashMultiplier" })
 				* DataService:get(player, { "customMultiplier" })
+				* vipMultiplier
+				* doubleCashMultiplier
 		)
 	)
 
@@ -230,6 +286,9 @@ type PlotState = {
 	gateAwards: { [string]: number },
 	janitor: Janitor.Janitor,
 	broadcastScheduled: boolean,
+	vipOwned: boolean,
+	doubleCashOwned: boolean,
+	doubleSpeedOwned: boolean,
 }
 
 type RunnerService = typeof(RunnerService) & {

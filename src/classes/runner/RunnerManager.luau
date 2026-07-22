@@ -53,6 +53,8 @@ function RunnerManager.new(): RunnerManager
 		janitor = Janitor.new(),
 		cashMultiplierAtom = GetDataSource("cashMultiplier"),
 		customMultiplierAtom = GetDataSource("customMultiplier"),
+		vipMultiplier = 1,
+		doubleCashMultiplier = 1,
 	}, RunnerManager) :: RunnerManager
 
 	self.networker = Networker.client.new("RunnerService", self :: any)
@@ -79,7 +81,15 @@ function RunnerManager.new(): RunnerManager
 		for _, snapshot in snapshots do
 			-- live broadcasts may already have arrived while fetching; they win
 			if not self.plots[snapshot.plotId] then
-				self:setRunners(snapshot.plotId, snapshot.owner, snapshot.levels, snapshot.startClock, snapshot.gateCount, snapshot.runnerSpeedLevel)
+				self:setRunners(
+					snapshot.plotId,
+					snapshot.owner,
+					snapshot.levels,
+					snapshot.startClock,
+					snapshot.gateCount,
+					snapshot.runnerSpeedLevel,
+					snapshot.carSpeedMultiplier
+				)
 			end
 		end
 	end)
@@ -113,7 +123,8 @@ function RunnerManager.setRunners(
 	levels: { number },
 	startClock: number,
 	gateCount: number,
-	runnerSpeedLevel: number
+	runnerSpeedLevel: number,
+	carSpeedMultiplier: number
 ): ()
 	local state = self.plots[plotId]
 	if not state then
@@ -124,6 +135,7 @@ function RunnerManager.setRunners(
 			startClock = startClock,
 			gateCount = gateCount,
 			runnerSpeedLevel = runnerSpeedLevel,
+			carSpeedMultiplier = carSpeedMultiplier,
 			active = owner == Players.LocalPlayer,
 		}
 		self.plots[plotId] = state
@@ -132,6 +144,7 @@ function RunnerManager.setRunners(
 		state.owner = owner
 		state.levels = levels
 		state.startClock = startClock
+		state.carSpeedMultiplier = carSpeedMultiplier
 		state.gateCount = gateCount
 		state.runnerSpeedLevel = runnerSpeedLevel
 	end
@@ -161,7 +174,7 @@ function RunnerManager.setRunners(
 		if car then
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
-			car:configure(startClock, phase, gateCount, runnerSpeedLevel)
+			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier)
 		else
 			cars[index] = RunnerClient.new({
 				plotId = plotId,
@@ -174,6 +187,7 @@ function RunnerManager.setRunners(
 				runnerSpeedLevel = runnerSpeedLevel,
 				isOwner = isOwner,
 				active = state.active,
+				carSpeedMultiplier = carSpeedMultiplier,
 			})
 		end
 	end
@@ -203,7 +217,7 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			return
 		end
 
-		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount, state.runnerSpeedLevel)
+		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount, state.runnerSpeedLevel, state.carSpeedMultiplier)
 	end)
 end
 
@@ -304,6 +318,8 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 					* (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100))
 					* self.cashMultiplierAtom()
 					* self.customMultiplierAtom()
+					* self.vipMultiplier
+					* self.doubleCashMultiplier
 			)
 		),
 		false
@@ -412,6 +428,7 @@ type PlotState = {
 	gateCount: number,
 	runnerSpeedLevel: number,
 	active: boolean,
+	carSpeedMultiplier: number,
 	boundsCf: CFrame?,
 	boundsSize: Vector3?,
 	pathRetryScheduled: boolean?,
@@ -428,6 +445,8 @@ export type RunnerManager = typeof(setmetatable(
 		multiplier: number,
 		cashMultiplierAtom: Charm.Atom<number>,
 		customMultiplierAtom: Charm.Atom<number>,
+		vipMultiplier: number,
+		doubleCashMultiplier: number,
 	},
 	RunnerManager
 ))

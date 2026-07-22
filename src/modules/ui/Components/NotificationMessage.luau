@@ -6,6 +6,7 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
+local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local messages = Vide.source({})
 local id = 0
@@ -53,7 +54,15 @@ local function NotificationMessage(props: NotificationMessageProps)
 	Vide.cleanup(closeThread)
 
 	local textProps = props.props()
-	textProps.Size = textProps.Size or UDim2.fromScale(1, 1)
+	textProps.Size = textProps.Size or UDim2.fromScale(0.85, 0.85)
+	textProps.Font = Enum.Font.BuilderSansExtraBold
+	textProps.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textProps.TextScaled = true
+	textProps.AnchorPoint = Vector2.new(0.5, 0.5)
+	textProps.Position = UDim2.fromScale(0.5, 0.5)
+	textProps.Stroke = {
+		Thickness = usePx(2),
+	}
 
 	return Frame({
 		LayoutOrder = -props.i,
@@ -87,7 +96,7 @@ local function Component()
 	end, function()
 		return Frame({
 			Size = UDim2.new(0.55, 0, 0, 42),
-			Position = UDim2.fromScale(0.5, 0.25),
+			Position = UDim2.fromScale(0.5, 0.185),
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundTransparency = 1,
 			ZIndex = 2147483647,

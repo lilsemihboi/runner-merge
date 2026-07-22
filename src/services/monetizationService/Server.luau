@@ -3,8 +3,10 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local ServicePlayerData = require(ReplicatedStorage.Packages.ServicePlayerData)
@@ -61,7 +63,7 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		if not wasPurchased or self.options.canAwardGamepasses == false or self:ownsGamepass(player, gamepassId) then
 			return
 		end
-
+		GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 		self:awardGamepass(player, gamepassId)
 	end)
 
@@ -381,6 +383,8 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 	end
 
 	self.productProcessed:Fire(player, receiptInfo)
+
+	GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end

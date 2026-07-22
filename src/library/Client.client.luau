@@ -7,6 +7,7 @@ local AutoRejoinServiceClient = require(ReplicatedStorage.Shared.Services.AutoRe
 local CodeServiceClient = require(ReplicatedStorage.Shared.Services.CodeService.CodeServiceClient)
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
+local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
 local LeaderboardServiceClient = require(ReplicatedStorage.Shared.Services.LeaderboardService.LeaderboardServiceClient)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
@@ -42,6 +43,7 @@ SettingsInitializer()
 SoundService:WaitForChild("Music"):Play()
 TitleServiceClient:init()
 MountUI()
+GeneralNotificationsServiceClient:init()
 
 MonetizationServiceClient.giftReceived:Connect(function(product, giftData)
 	ShopSlice.state.giftReceivedData({

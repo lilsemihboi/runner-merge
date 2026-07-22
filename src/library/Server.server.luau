@@ -1,3 +1,5 @@
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -6,6 +8,7 @@ local AutoRejoinServiceServer = require(ServerScriptService.Services.AutoRejoinS
 local CodeServiceServer = require(ServerScriptService.Services.CodeService.CodeServiceServer)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local FriendServiceServer = require(ServerScriptService.Services.FriendService.FriendServiceServer)
+local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local LeaderboardServiceServer = require(ServerScriptService.Services.LeaderboardService.LeaderboardServiceServer)
 local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local NotificationServiceServer = require(ServerScriptService.Services.NotificationService.NotificationServiceServer)
@@ -47,3 +50,4 @@ NotificationServiceServer:init()
 SoundServiceServer:init()
 SettingsServiceServer:init()
 TitleServiceServer:init()
+GeneralNotificationsServiceServer:init()

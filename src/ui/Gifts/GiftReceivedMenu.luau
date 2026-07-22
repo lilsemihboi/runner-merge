@@ -19,12 +19,12 @@ local function content()
 	end
 
 	local playerName = "UNKNOWN"
-	local sender = Players:GetPlayerByUserId(receivedData.giftData.fromUserId)
+	local sender = Players:GetPlayerByUserId(receivedData().giftData.fromUserId)
 	if sender then
 		playerName = FormatNameWithIcons(sender)
 	end
 
-	local product = receivedData.product
+	local product = receivedData().product
 	local productInfo = MonetizationServiceClient:getProductInfo(product)
 
 	return Frame({

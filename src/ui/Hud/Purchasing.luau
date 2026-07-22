@@ -15,7 +15,7 @@ local SPRING_DAMPING = 0.55
 local isPurchaseShowing = Vide.source(false)
 
 local function displayPurchasing(displaying: boolean)
-	if displaying then
+	if displaying and not isPurchaseShowing() then
 		SoundServiceClient:play("promptPurchase")
 	end
 

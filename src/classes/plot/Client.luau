@@ -220,11 +220,16 @@ function Plot.setupStarterPack(self: Plot)
 	]]
 	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 
+	DataService:waitForData()
+
+	local cost = MonetizationServiceClient:getProductCostString(Products.starterPack)
 	if owns() then
 		-- Destroy
 		self.plotModel.StarterPack:Destroy()
 		return
 	end
+
+	self.plotModel.StarterPack.Attachment.BillboardGui:WaitForChild("Money").Text = cost
 
 	self.janitor:Add(
 		MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()

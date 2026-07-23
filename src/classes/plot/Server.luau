@@ -38,6 +38,7 @@ function Plot.new(player: Player, plotId: number): Plot
 		self.upgrade,
 		self.addRunner,
 		self.teleportToBase,
+		self.giveGroupReward,
 	})
 	self.networker = networker
 	self.networker:addRecipient(player)
@@ -173,6 +174,37 @@ function Plot._watchRunnerSpawnLevel(self: Plot)
 		end),
 		"Disconnect"
 	)
+end
+
+function Plot.giveGroupReward(self: Plot, player: Player): (boolean, string?)
+	assert(player == self.player, "You dont own the base!")
+
+	local isGroupRewardClaimed = DataService:get(self.player, { "isGroupRewardClaimed" })
+	if isGroupRewardClaimed then
+		return false, "REWARD_ALREADY_CLAIMED"
+	end
+
+	local success, isInGroup = pcall(function()
+		return player:IsInGroupAsync(113923204)
+	end)
+
+	if not success then
+		return false, "ERROR"
+	end
+
+	if not isInGroup then
+		return false, "NOT_IN_GROUP"
+	end
+
+	-- Set it as given
+	DataService:set(self.player, { "isGroupRewardClaimed" }, true)
+
+	-- Reward stuff after
+	self.profile:addCustomMultiplier(0.05)
+	self.profile:giveCash(15_000)
+	self.profile:giveRunner(4)
+
+	return true, "SUCCESS"
 end
 
 function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)

@@ -14,8 +14,10 @@ local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
+local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local InfoEnums = require(ReplicatedStorage.Shared.Modules.Utils.InfoEnums)
+local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
@@ -50,6 +52,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self:setupButtons()
 	self:setupUpgradeBoard()
 	self:setupStarterPack()
+	self:setupGroupRewardsChest()
 	self:_updateMergeButtonState()
 	self:_updateRunnerButtonPrices()
 	self:_updateUpgradeButtonPrices()
@@ -211,6 +214,54 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 		setupUpgradeFrame(upgradeFrame, upgradeId)
 	end
+end
+
+function Plot.claimGroupRewards(self: Plot)
+	local success, result = self.networker:fetch("giveGroupReward")
+
+	if not success then
+		if InfoEnums[result] then
+			ErrorMessage.add(InfoEnums[result])
+		else
+			ErrorMessage.add(InfoEnums.ERROR)
+		end
+	else
+		GeneralNotificationsServiceClient:displayNotification("Successfully claimed group reward 🥳!")
+	end
+
+	return success
+end
+
+function Plot.setupGroupRewardsChest(self: Plot)
+	--[[
+		When you trigger it Menu.setOpenedMenu("GroupRewards")
+		When the data source changed destroy it stuff
+	]]
+	local isGroupRewardClaimed = GetDataSource({ "isGroupRewardClaimed" })
+
+	if isGroupRewardClaimed() then
+		-- Destroy the model
+		self.plotModel.GroupChest:Destroy()
+		return
+	end
+
+	self.janitor:Add(
+		self.plotModel.GroupChest.Main.ProxAtt.ProximityPrompt.Triggered:Connect(function(player: Player)
+			if player ~= Players.LocalPlayer then
+				return
+			end
+
+			Menu.setOpenedMenu("GroupRewards")
+		end),
+		"Disconnect"
+	)
+
+	self.janitor:Add(Charm.subscribe(isGroupRewardClaimed, function(newState: boolean)
+		if newState == true then
+			self.plotModel.GroupChest:Destroy()
+			return
+		end
+	end))
 end
 
 function Plot.setupStarterPack(self: Plot)

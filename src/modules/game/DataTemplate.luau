@@ -8,6 +8,8 @@ export type DataSchema = {
 	customMultiplier: number,
 	spins: number,
 
+	isGroupRewardClaimed: boolean,
+
 	rebirths: number,
 
 	runnerPurchases: number,
@@ -59,6 +61,8 @@ return {
 	index = {},
 
 	offlineEarnings = nil,
+
+	isGroupRewardClaimed = false,
 
 	upgrades = {
 		gates = 0,

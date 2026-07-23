@@ -149,9 +149,9 @@ function RunnerManager.setRunners(
 		state.runnerSpeedLevel = runnerSpeedLevel
 	end
 
-	local path = PathData.get(plotId)
-	if not path or path.length <= 0 then
-		-- plot geometry not replicated to this client yet; retry shortly
+	local laneCount = PathData.getLaneCount(plotId)
+	if laneCount <= 0 then
+		-- plot geometrisi henüz replicate olmamış olabilir
 		self:_schedulePathRetry(state)
 		return
 	end
@@ -169,12 +169,18 @@ function RunnerManager.setRunners(
 
 	for index = 1, count do
 		local phase = (index - 1) / count
+		local lane = RunnerUtils.getRunnerLane(plotId, index, laneCount)
+		local path = PathData.get(plotId, lane)
+		if not path or path.length <= 0 then
+			continue
+		end
+
 		local car = cars[index]
 
 		if car then
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
-			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier)
+			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path)
 		else
 			cars[index] = RunnerClient.new({
 				plotId = plotId,

@@ -9,6 +9,18 @@ function RunnerUtils.getRunnerSpeed(runnerLevel: number, runnerSpeedLevel: numbe
 	return speed * RunnerUtils.getRunnerSpeedMultiplier(speedUpgradeLevel)
 end
 
+function RunnerUtils.getRunnerLane(plotId: number, index: number, laneCount: number): number
+	if laneCount <= 1 then
+		return 1
+	end
+
+	-- Deterministik: aynı (plotId, index) her zaman aynı şeride düşer,
+	-- ekstra network verisi taşımaya gerek kalmadan client/server eşleşir.
+	local hash = (plotId * 92821 + index * 68917) % 2147483647
+
+	return (hash % laneCount) + 1
+end
+
 function RunnerUtils.getRunnerIncomePerLap(runnerLevel: number)
 	local level = math.max(1, math.floor(runnerLevel))
 

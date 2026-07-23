@@ -187,9 +187,18 @@ function Runner._refreshSpeed(self: Runner): ()
 	self:_refreshTravelTime()
 end
 
-function Runner.configure(self: Runner, startClock: number, phase: number, gateCount: number, runnerSpeedLevel: number, carSpeedMultiplier: number): ()
+function Runner.configure(
+	self: Runner,
+	startClock: number,
+	phase: number,
+	gateCount: number,
+	runnerSpeedLevel: number,
+	carSpeedMultiplier: number,
+	path: PathData.Path
+): ()
 	self.startClock = startClock
 	self.phase = phase
+	self.path = path
 	self.carSpeedMultiplier = carSpeedMultiplier
 	self.gateCount = gateCount
 	self.runnerSpeedLevel = runnerSpeedLevel

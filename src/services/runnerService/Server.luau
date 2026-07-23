@@ -226,7 +226,10 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 		return
 	end
 
-	local path = PathData.get(plotId)
+	local laneCount = PathData.getLaneCount(plotId)
+	local lane = RunnerUtils.getRunnerLane(plotId, runnerIndex, laneCount)
+	local path = PathData.get(plotId, lane)
+
 	if not path or path.length <= 0 then
 		return
 	end

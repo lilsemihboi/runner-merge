@@ -17,7 +17,30 @@ local PathData = {}
 
 local SAMPLES_PER_SEGMENT = 12
 
-local cache: { [number]: Path } = {}
+local cache: { [number]: { laneCount: number, lanes: { [number]: Path } } } = {}
+
+local function getLaneFolders(runwayModel: Instance): { Folder }
+	local waypointsFolder = runwayModel:FindFirstChild("waypoints")
+	if not waypointsFolder then
+		return {}
+	end
+
+	local laneFolders: { Folder } = {}
+
+	for _, child in waypointsFolder:GetChildren() do
+		if child:IsA("Folder") and child.Name:match("^lane%d+$") then
+			table.insert(laneFolders, child)
+		end
+	end
+
+	table.sort(laneFolders, function(a: Folder, b: Folder)
+		local aNum = tonumber(a.Name:match("%d+")) or 0
+		local bNum = tonumber(b.Name:match("%d+")) or 0
+		return aNum < bNum
+	end)
+
+	return laneFolders
+end
 
 local function getRunwayModel(plotId: number): Instance?
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
@@ -33,14 +56,9 @@ local function getRunwayModel(plotId: number): Instance?
 	return plotModel:FindFirstChild("Runway")
 end
 
-local function getWaypointPositions(runwayModel: Instance): { Vector3 }
-	local waypointsFolder = runwayModel:FindFirstChild("waypoints")
-	if not waypointsFolder then
-		return {}
-	end
-
+local function getWaypointPositions(laneFolder: Folder): { Vector3 }
 	local attachments: { Attachment } = {}
-	for _, child in waypointsFolder:GetChildren() do
+	for _, child in laneFolder:GetChildren() do
 		if child:IsA("Attachment") then
 			attachments[#attachments + 1] = child
 		end
@@ -49,11 +67,9 @@ local function getWaypointPositions(runwayModel: Instance): { Vector3 }
 	table.sort(attachments, function(firstAttachment: Attachment, secondAttachment: Attachment)
 		local firstNumber = tonumber(firstAttachment.Name)
 		local secondNumber = tonumber(secondAttachment.Name)
-
 		if firstNumber and secondNumber then
 			return firstNumber < secondNumber
 		end
-
 		return firstAttachment.Name < secondAttachment.Name
 	end)
 
@@ -63,6 +79,23 @@ local function getWaypointPositions(runwayModel: Instance): { Vector3 }
 	end
 
 	return positions
+end
+
+function PathData.getLaneCount(plotId: number): number
+	local cached = cache[plotId]
+	if cached then
+		return cached.laneCount
+	end
+
+	local runwayModel = getRunwayModel(plotId)
+	if not runwayModel then
+		return 0
+	end
+
+	local laneFolders = getLaneFolders(runwayModel)
+	cache[plotId] = { laneCount = #laneFolders, lanes = {} }
+
+	return #laneFolders
 end
 
 local function buildSmoothPath(positions: { Vector3 }): { Vector3 }
@@ -160,38 +193,6 @@ local function buildGateDistances(runwayModel: Instance, points: { Vector3 }, cu
 	return gateDistances
 end
 
-function PathData.get(plotId: number): Path?
-	local cached = cache[plotId]
-	if cached then
-		return cached
-	end
-
-	local runwayModel = getRunwayModel(plotId)
-	if not runwayModel then
-		return nil
-	end
-
-	local points = buildSmoothPath(getWaypointPositions(runwayModel))
-	if #points < 2 then
-		return nil
-	end
-
-	local cumulative, length = buildCumulative(points)
-	if length <= 0 then
-		return nil
-	end
-
-	local path: Path = {
-		points = points,
-		cumulative = cumulative,
-		length = length,
-		gateDistances = buildGateDistances(runwayModel, points, cumulative),
-	}
-	cache[plotId] = path
-
-	return path
-end
-
 function PathData.sample(path: Path, distance: number): (Vector3, Vector3)
 	local points = path.points
 	local cumulative = path.cumulative
@@ -235,6 +236,51 @@ function PathData.sample(path: Path, distance: number): (Vector3, Vector3)
 	end
 
 	return position, direction.Unit
+end
+
+function PathData.get(plotId: number, laneId: number?): Path?
+	local lane = laneId or 1
+
+	local cached = cache[plotId]
+	if cached and cached.lanes[lane] then
+		return cached.lanes[lane]
+	end
+
+	local runwayModel = getRunwayModel(plotId)
+	if not runwayModel then
+		return nil
+	end
+
+	local laneFolders = getLaneFolders(runwayModel)
+	if not cached then
+		cached = { laneCount = #laneFolders, lanes = {} }
+		cache[plotId] = cached
+	end
+
+	local laneFolder = laneFolders[lane]
+	if not laneFolder then
+		return nil
+	end
+
+	local points = buildSmoothPath(getWaypointPositions(laneFolder))
+	if #points < 2 then
+		return nil
+	end
+
+	local cumulative, length = buildCumulative(points)
+	if length <= 0 then
+		return nil
+	end
+
+	local path: Path = {
+		points = points,
+		cumulative = cumulative,
+		length = length,
+		gateDistances = buildGateDistances(runwayModel, points, cumulative),
+	}
+	cached.lanes[lane] = path
+
+	return path
 end
 
 export type Path = {

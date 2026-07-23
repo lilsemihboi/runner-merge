@@ -21,7 +21,7 @@ local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 }
 
 UpgradeUtils.levelCaps = {
-	gates = 2,
+	gates = 10,
 	runnerSpeed = 10,
 	cashBonus = 10,
 } :: { [UpgradeId]: number }

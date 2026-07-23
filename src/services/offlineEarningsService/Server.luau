@@ -113,7 +113,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		return 0
 	end
 
-	local path = PathData.get(plot.plotId)
+	local path = PathData.get(plot.plotId, 1)
 	if not path or path.length <= 0 then
 		return 0
 	end

@@ -21,23 +21,31 @@ type SettingProps = {
 
 local activeSlider = Vide.source(nil)
 
+local function isPointerInputType(inputType: Enum.UserInputType): boolean
+	return inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch
+end
+
+local function isPointerEndInputType(inputType: Enum.UserInputType): boolean
+	return inputType == Enum.UserInputType.MouseButton1 or inputType == Enum.UserInputType.Touch
+end
+
 UserInputService.InputChanged:Connect(function(input)
 	if not activeSlider() then
 		return
 	end
 
-	if input.UserInputType ~= Enum.UserInputType.MouseMovement then
+	if not isPointerInputType(input.UserInputType) then
 		return
 	end
 
-	local mouse = UserInputService:GetMouseLocation()
+	local position = input.Position
 
-	local relative = math.clamp((mouse.X - activeSlider().slider.AbsolutePosition.X) / activeSlider().slider.AbsoluteSize.X, 0, 1)
+	local relative = math.clamp((position.X - activeSlider().slider.AbsolutePosition.X) / activeSlider().slider.AbsoluteSize.X, 0, 1)
 	activeSlider().value(relative * 100)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+	if not isPointerEndInputType(input.UserInputType) then
 		return
 	end
 

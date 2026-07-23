@@ -12,6 +12,7 @@ local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendServ
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local VideCharm = require(ReplicatedStorage.Packages.VideCharm)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
@@ -40,6 +41,8 @@ end
 function CashBar.Component()
 	local cash = getVideDataSource("cash")
 	local displayedCash = Vide.source(cash())
+	local friendsCount = VideCharm.useAtom(FriendServiceClient.friendCount)
+
 	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
 
@@ -77,7 +80,7 @@ function CashBar.Component()
 				Size = usePx.offset(260, 45),
 				Position = usePx.udim2(0, 9, 0, 0),
 				Text = function()
-					return `Friend boost +{FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK}%`
+					return `Friend boost +{friendsCount() * Configuration.FRIENDS_PER_TICK}%`
 				end,
 				TextScaled = true,
 				TextColor3 = Color3.fromRGB(255, 255, 255),

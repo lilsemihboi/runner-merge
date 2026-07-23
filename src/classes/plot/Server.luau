@@ -52,6 +52,7 @@ function Plot.new(player: Player, plotId: number): Plot
 	self:onCharacterAdded()
 	self:setupSign()
 	self:_watchRunners()
+	self:_watchRunnerSpawnLevel()
 	self:_checkForGates()
 
 	-- runner simulation is fully client-side; RunnerService only broadcasts
@@ -159,6 +160,59 @@ function Plot.destroy(self: Plot)
 
 	self.janitor:Destroy()
 	self.networker:destroy()
+end
+
+function Plot._watchRunnerSpawnLevel(self: Plot)
+	self.janitor:Add(
+		DataService:getChangedSignal(self.player, { "runnerSpawnLevel" }):Connect(function(newValue)
+			if typeof(newValue) ~= "number" then
+				return
+			end
+
+			self:_bumpLowLevelRunners(newValue)
+		end),
+		"Disconnect"
+	)
+end
+
+function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
+	-- First, let existing duplicates merge naturally (e.g. two level-1s become a level-2)
+	-- before we flatten anything up to minLevel.
+	self:merge(self.player)
+
+	local runnerLevels = self.profile:getRunners()
+	local changedAny = false
+
+	local newLevels: { number } = {}
+	for _, runnerLevel in ipairs(runnerLevels) do
+		if typeof(runnerLevel) == "number" then
+			if runnerLevel < minLevel then
+				changedAny = true
+				newLevels[#newLevels + 1] = minLevel
+			else
+				newLevels[#newLevels + 1] = runnerLevel
+			end
+		end
+	end
+
+	if not changedAny then
+		return
+	end
+
+	self._isApplyingRunnerMerge = true
+
+	for index = #runnerLevels, 1, -1 do
+		DataService:arrayRemove(self.player, { "runners" }, index)
+	end
+
+	for index, runnerLevel in ipairs(newLevels) do
+		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
+	end
+
+	self._isApplyingRunnerMerge = false
+
+	-- Bumping several runners to the same minLevel can create new duplicates.
+	self:merge(self.player)
 end
 
 function Plot.merge(self: Plot, player: Player)

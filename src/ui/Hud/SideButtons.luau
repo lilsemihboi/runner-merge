@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local HudSlice = require(script.Parent.HudSlice)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local SideButton = require(ReplicatedStorage.Shared.UI.App.Components.SideButton)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -27,7 +28,13 @@ return function()
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = sidebarPosition,
 		BackgroundTransparency = 1,
-		Visible = true,
+		Visible = function()
+			if HudSlice.showEverything() then
+				return true
+			else
+				return false
+			end
+		end,
 
 		Vide.create("UIListLayout", {
 			FillDirection = Enum.FillDirection.Vertical,

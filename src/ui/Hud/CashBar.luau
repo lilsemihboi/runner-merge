@@ -9,6 +9,7 @@ local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
+local HudSlice = require(script.Parent.HudSlice)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -69,7 +70,13 @@ function CashBar.Component()
 		AnchorPoint = Vector2.new(0, 1),
 		Size = usePx.offset(333, 150),
 		Position = usePx.udim2(0, 12, 1, 0),
-
+		Visible = function()
+			if HudSlice.showEverything() == false then
+				return false
+			else
+				return true
+			end
+		end,
 		--Invite friend container
 		Frame({
 			BackgroundTransparency = 1,

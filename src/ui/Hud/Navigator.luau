@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local CoolTransistions = require(ReplicatedStorage.Shared.Modules.Ui.CoolTransistions)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local HudSlice = require(script.Parent.HudSlice)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
@@ -36,7 +37,13 @@ return function()
 		Size = usePx.udim2(1, 0, 0, 87),
 		Position = topbarPosition,
 		BackgroundTransparency = 1,
-		Visible = true,
+		Visible = function()
+			if HudSlice.showEverything() then
+				return true
+			else
+				return false
+			end
+		end,
 
 		Vide.create("UIListLayout", {
 			Padding = UDim.new(0.02, 0),

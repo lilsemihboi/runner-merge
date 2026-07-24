@@ -3,15 +3,33 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
 local HudSlice = require(script.Parent.HudSlice)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
 local SideButton = require(ReplicatedStorage.Shared.UI.App.Components.SideButton)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local useOrder = require(ReplicatedStorage.Shared.UI.App.Hooks.useOrder)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 return function()
 	local nextOrder = useOrder()
+	local shopNotify = Vide.source(true)
+	local cash = getVideDataSource("cash")
+	local rebirths = getVideDataSource("rebirths")
+	local canRebirth = Vide.derive(function()
+		return cash() >= RebirthServiceUtils.calculateCashRequirement(rebirths() + 1)
+	end)
+	local wasEligible = false
+
+	Vide.effect(function()
+		local isEligible = canRebirth()
+		if isEligible and not wasEligible then
+			GeneralNotificationsServiceClient:displayNotification("You can rebirth now!")
+		end
+		wasEligible = isEligible
+	end)
 
 	local sidebarPosition = Vide.spring(function()
 		if Menu.openedMenu() == nil then
@@ -19,7 +37,7 @@ return function()
 			return usePx.udim2(0, 38, 500 / 1080, 0)()
 		else
 			-- Sola doğru kay
-			return usePx.udim2(0, -150, 500 / 1080, 0)()
+			return UDim2.fromScale(-1, 500 / 1080)
 		end
 	end, 0.35, 0.8)
 
@@ -49,7 +67,10 @@ return function()
 			layoutOrder = nextOrder(),
 			icon = "rbxassetid://71053646250865",
 			menuId = "Shop",
-			notify = Vide.source(true),
+			notify = shopNotify,
+			onNotifyClick = function()
+				shopNotify(false)
+			end,
 		}),
 
 		-- Index Button
@@ -64,6 +85,8 @@ return function()
 			layoutOrder = nextOrder(),
 			icon = "rbxassetid://137794920489098",
 			menuId = "Rebirth",
+			notify = canRebirth,
+			notificationStyle = "dot",
 		}),
 	})
 end

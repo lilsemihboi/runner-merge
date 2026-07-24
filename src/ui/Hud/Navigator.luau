@@ -29,7 +29,7 @@ return function()
 			return usePx.udim2(0, 0, 0, 16)()
 		else
 			-- Yukarı kay
-			return usePx.udim2(0, 0, 0, -120)()
+			return UDim2.fromScale(0, -1)
 		end
 	end, 0.35, 0.8)
 

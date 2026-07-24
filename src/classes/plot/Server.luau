@@ -15,6 +15,7 @@ local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.P
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
+local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
@@ -266,6 +267,7 @@ function Plot.merge(self: Plot, player: Player)
 	table.sort(sortedLevels)
 
 	local newlyUnlockedLevels: { number } = {}
+	local mergeOperations: { RunnerServiceTypes.MergeOperation } = {}
 
 	local mergedLevels: { number } = {}
 	local changed = true
@@ -282,6 +284,10 @@ function Plot.merge(self: Plot, player: Player)
 				local newLevel = currentLevel + 1
 				mergedLevels[#mergedLevels + 1] = newLevel
 				newlyUnlockedLevels[#newlyUnlockedLevels + 1] = newLevel
+				mergeOperations[#mergeOperations + 1] = {
+					sourceLevel = currentLevel,
+					resultLevel = newLevel,
+				}
 				index += 2
 				changed = true
 			else
@@ -292,6 +298,10 @@ function Plot.merge(self: Plot, player: Player)
 
 		sortedLevels = mergedLevels
 		table.sort(sortedLevels)
+	end
+
+	if #mergeOperations == 0 then
+		return "NO_MATCHING_RUNNERS"
 	end
 
 	local mergedRunnerLevels = {}
@@ -317,6 +327,9 @@ function Plot.merge(self: Plot, player: Player)
 	end
 
 	self._isApplyingRunnerMerge = false
+	RunnerServiceServer:playMergeEffect(self.plotId, mergeOperations)
+
+	return "SUCCESS"
 end
 
 function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)

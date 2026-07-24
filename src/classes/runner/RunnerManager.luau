@@ -27,50 +27,35 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Charm = require(ReplicatedStorage.Packages.Charm)
 local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuration)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
-local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
-local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
+local MergeEffects = require(ReplicatedStorage.Shared.Classes.Runner.MergeEffects)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(script.Parent.RunnerUtils)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
+local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
 local INCOME_INDICATOR_TWEEN_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+
+type UpgradeId = "gates" | "runnerSpeed" | "cashBonus"
+local UPGRADE_IDS: { UpgradeId } = { "gates", "runnerSpeed", "cashBonus" }
 
 function RunnerManager.new(): RunnerManager
 	local self = setmetatable({
 		runners = {},
 		plots = {},
 		boundsCooldown = 0,
-		multiplier = 1,
 		janitor = Janitor.new(),
-		cashMultiplierAtom = GetDataSource("cashMultiplier"),
-		customMultiplierAtom = GetDataSource("customMultiplier"),
-		vipMultiplier = 1,
-		doubleCashMultiplier = 1,
 	}, RunnerManager) :: RunnerManager
 
 	self.networker = Networker.client.new("RunnerService", self :: any)
 	self:start()
-
-	local function updateMultiplier(new: number)
-		self.multiplier = RunnerUtils.getCashBonusMultiplier(new)
-	end
-
-	local cashBonus = GetDataSource({ "upgrades", "cashBonus" })
-
-	updateMultiplier(cashBonus())
-
-	self.janitor:Add(Charm.subscribe(cashBonus, function(new)
-		updateMultiplier(new)
-	end))
 
 	task.spawn(function()
 		local snapshots: { RunnerServiceTypes.RunnerPlotSnapshot } = self.networker:fetch("requestState")
@@ -88,7 +73,8 @@ function RunnerManager.new(): RunnerManager
 					snapshot.startClock,
 					snapshot.gateCount,
 					snapshot.runnerSpeedLevel,
-					snapshot.carSpeedMultiplier
+					snapshot.carSpeedMultiplier,
+					snapshot.upgrades
 				)
 			end
 		end
@@ -124,7 +110,8 @@ function RunnerManager.setRunners(
 	startClock: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
-	carSpeedMultiplier: number
+	carSpeedMultiplier: number,
+	upgrades: RunnerServiceTypes.PublicUpgrades
 ): ()
 	local state = self.plots[plotId]
 	if not state then
@@ -136,6 +123,7 @@ function RunnerManager.setRunners(
 			gateCount = gateCount,
 			runnerSpeedLevel = runnerSpeedLevel,
 			carSpeedMultiplier = carSpeedMultiplier,
+			upgrades = upgrades,
 			active = owner == Players.LocalPlayer,
 		}
 		self.plots[plotId] = state
@@ -147,7 +135,10 @@ function RunnerManager.setRunners(
 		state.carSpeedMultiplier = carSpeedMultiplier
 		state.gateCount = gateCount
 		state.runnerSpeedLevel = runnerSpeedLevel
+		state.upgrades = upgrades
 	end
+
+	self:_updateForeignUpgradeBoard(state)
 
 	local laneCount = PathData.getLaneCount(plotId)
 	if laneCount <= 0 then
@@ -211,6 +202,90 @@ function RunnerManager.removePlot(self: RunnerManager, plotId: number): ()
 	self.plots[plotId] = nil
 end
 
+function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, operations: { RunnerServiceTypes.MergeOperation }): ()
+	local state = self.plots[plotId]
+	if not state or not state.active or #operations == 0 then
+		return
+	end
+
+	MergeEffects.play(plotId, operations)
+end
+
+function RunnerManager._scheduleUpgradeBoardRetry(self: RunnerManager, state: PlotState): ()
+	if state.upgradeBoardRetryScheduled then
+		return
+	end
+
+	state.upgradeBoardRetryScheduled = true
+	task.delay(PATH_RETRY_INTERVAL, function()
+		state.upgradeBoardRetryScheduled = false
+		if self.plots[state.plotId] == state then
+			self:_updateForeignUpgradeBoard(state)
+		end
+	end)
+end
+
+function RunnerManager._updateForeignUpgradeBoard(self: RunnerManager, state: PlotState): ()
+	if state.owner == Players.LocalPlayer then
+		return
+	end
+
+	local plotsFolder = workspace:FindFirstChild("_PLOTS")
+	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(state.plotId)) else nil
+	local upgradeTable = if plotModel then plotModel:FindFirstChild("UpgradeTable") else nil
+	local boardModel = if upgradeTable then upgradeTable:FindFirstChild("UpgradeTable") else nil
+	local upgradePart = if boardModel then boardModel:FindFirstChild("UpgradePart") else nil
+	local surfaceGui = if upgradePart then upgradePart:FindFirstChild("SurfaceGui") else nil
+	local board = if surfaceGui then surfaceGui:FindFirstChild("Frame") else nil
+
+	if not board then
+		self:_scheduleUpgradeBoardRetry(state)
+		return
+	end
+
+	for _, upgradeId in UPGRADE_IDS do
+		local upgradeFrame = board:FindFirstChild(upgradeId)
+		if not upgradeFrame then
+			continue
+		end
+
+		local currentLevel = math.max(0, math.floor(state.upgrades[upgradeId]))
+		local cap = UpgradeUtils.levelCaps[upgradeId]
+		local levelLabel = upgradeFrame:FindFirstChild("level")
+		if levelLabel and levelLabel:IsA("TextLabel") then
+			levelLabel.Text = `Level {currentLevel}/{cap}`
+		end
+
+		local nextLevelLabel = upgradeFrame:FindFirstChild("nextLevel")
+		if nextLevelLabel and nextLevelLabel:IsA("TextLabel") then
+			nextLevelLabel.Text = if currentLevel >= cap then "MAX LEVEL" else `{currentLevel} → {currentLevel + 1}`
+		end
+
+		local button = upgradeFrame:FindFirstChild("UpgradeButton")
+		if not button or not button:IsA("GuiButton") then
+			continue
+		end
+
+		button.Active = false
+		button.AutoButtonColor = false
+		button.Selectable = false
+		button.BackgroundColor3 = Color3.fromRGB(41, 29, 45)
+
+		local hitbox = button:FindFirstChild("BTN_Hitbox")
+		if hitbox and hitbox:IsA("GuiButton") then
+			hitbox.Active = false
+			hitbox.AutoButtonColor = false
+			hitbox.Selectable = false
+		end
+
+		local surface = button:FindFirstChild("BTN_Surface")
+		local label = if surface then surface:FindFirstChild("TXT_ButtonLabel") else nil
+		if label and label:IsA("TextLabel") then
+			label.Text = if currentLevel >= cap then "MAX" else "VIEW ONLY"
+		end
+	end
+end
+
 function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState): ()
 	if state.pathRetryScheduled then
 		return
@@ -223,7 +298,16 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			return
 		end
 
-		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount, state.runnerSpeedLevel, state.carSpeedMultiplier)
+		self:setRunners(
+			state.plotId,
+			state.owner,
+			state.levels,
+			state.startClock,
+			state.gateCount,
+			state.runnerSpeedLevel,
+			state.carSpeedMultiplier,
+			state.upgrades
+		)
 	end)
 end
 
@@ -303,7 +387,7 @@ function RunnerManager._getIncomeIndicatorGui(self: RunnerManager, plotId: numbe
 	return billboardGui
 end
 
-function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number, gateId: number, incomePerLap: number): ()
+function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number, gateId: number, income: number): ()
 	local billboardGui = self:_getIncomeIndicatorGui(plotId, gateId)
 	if not billboardGui then
 		return
@@ -315,21 +399,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	textLabel.Font = Enum.Font.GothamBlack
 	textLabel.Position = UDim2.fromScale(0.5, 0.5)
 	textLabel.Size = UDim2.new(0, 0, 0, 0)
-	textLabel.Text = `+${FormatCurrency(
-		math.max(
-			0,
-			math.round(
-				incomePerLap
-					* self.multiplier
-					* (1 + (FriendServiceClient.friendCount() * Configuration.FRIENDS_PER_TICK / 100))
-					* self.cashMultiplierAtom()
-					* self.customMultiplierAtom()
-					* self.vipMultiplier
-					* self.doubleCashMultiplier
-			)
-		),
-		false
-	)}`
+	textLabel.Text = `+${FormatCurrency(math.max(0, math.round(income)), false)}`
 	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
 	textLabel.TextScaled = false
 	textLabel.TextSize = 36 --TODO: We can use auto text scaling later
@@ -360,6 +430,18 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	end)
 
 	Debris:AddItem(textLabel, 0.6)
+end
+
+function RunnerManager.showGateIncome(self: RunnerManager, plotId: number, gateId: number, income: number): ()
+	local state = self.plots[plotId]
+	if not state or not state.active then
+		return
+	end
+
+	self:_showIncomeIndicator(plotId, gateId, income)
+	if state.owner == Players.LocalPlayer then
+		SoundServiceClient:play("moneyPickup")
+	end
 end
 
 -- Task 2: replication culling. Own plot is always active; other players'
@@ -409,8 +491,6 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			end
 
 			for _, gateId in crossedGates do
-				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap)
-				SoundServiceClient:play("moneyPickup")
 				self.networker:fire("reportGate", plotId, index, gateId)
 			end
 		end
@@ -435,9 +515,11 @@ type PlotState = {
 	runnerSpeedLevel: number,
 	active: boolean,
 	carSpeedMultiplier: number,
+	upgrades: RunnerServiceTypes.PublicUpgrades,
 	boundsCf: CFrame?,
 	boundsSize: Vector3?,
 	pathRetryScheduled: boolean?,
+	upgradeBoardRetryScheduled: boolean?,
 }
 
 export type RunnerManager = typeof(setmetatable(
@@ -448,11 +530,6 @@ export type RunnerManager = typeof(setmetatable(
 		updateConn: RBXScriptConnection?,
 		boundsCooldown: number,
 		janitor: Janitor.Janitor,
-		multiplier: number,
-		cashMultiplierAtom: Charm.Atom<number>,
-		customMultiplierAtom: Charm.Atom<number>,
-		vipMultiplier: number,
-		doubleCashMultiplier: number,
 	},
 	RunnerManager
 ))

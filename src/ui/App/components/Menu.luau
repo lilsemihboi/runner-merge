@@ -18,6 +18,7 @@ local CUSTOM_PROPS = {
 	"OnClose",
 	"Scale",
 }
+local CLOSE_RENDER_DURATION = 0.5
 local openedMenuSource = Vide.source(nil)
 
 local activeCloseFn
@@ -37,14 +38,33 @@ return {
 		local isShown = Vide.derive(function()
 			return openedMenuSource() == props.menuId
 		end)
+		local isRendered = Vide.source(false)
+		local isOpen = Vide.source(false)
+		local visibilityToken = 0
 
-		local menuScale = Vide.spring(function()
+		local menuScale = Vide.spring(isOpen, 0.35, 0.8)
+
+		Vide.effect(function()
+			visibilityToken += 1
+			local token = visibilityToken
+
 			if isShown() then
-				return props.Scale or 1
-			else
-				return 0
+				isRendered(true)
+				task.defer(function()
+					if token == visibilityToken then
+						isOpen(true)
+					end
+				end)
+				return
 			end
-		end, 0.35, 0.8)
+
+			isOpen(false)
+			task.delay(CLOSE_RENDER_DURATION, function()
+				if token == visibilityToken then
+					isRendered(false)
+				end
+			end)
+		end)
 
 		local function closeMenu()
 			if props.OnClose then
@@ -72,7 +92,7 @@ return {
 			props.ShowCloseButton = true
 		end
 
-		frameProps.Visible = isShown
+		frameProps.Visible = isRendered
 		frameProps.Size = usePx.offset(1008 * props.Scale, 802 * props.Scale)
 		frameProps.AnchorPoint = Vector2.new(0.5, 0.5)
 		frameProps.Position = frameProps.Position or UDim2.fromScale(0.5, 0.5)

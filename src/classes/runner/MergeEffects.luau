@@ -5,12 +5,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local RunnersFolder = ReplicatedStorage.Assets.Entities
+local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 
 local INPUT_TWEEN = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local RESULT_TWEEN = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local SPARK_TWEEN = TweenInfo.new(0.38, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local MAX_OPERATIONS_PER_BATCH = 4
-local OPERATION_STAGGER = 0.44
+local ROOT_OPERATION_STAGGER = 0.12
 
 local function getEffectContainer(plotId: number): Folder?
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
@@ -27,7 +27,7 @@ local function getEffectContainer(plotId: number): Folder?
 	return nil
 end
 
-local function getMergeCFrame(plotId: number): CFrame?
+local function getFallbackMergeCFrame(plotId: number): CFrame?
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
 	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(plotId)) else nil
 	if not plotModel or not plotModel:IsA("Model") then
@@ -174,85 +174,154 @@ local function createBurst(container: Folder, cframe: CFrame)
 	Debris:AddItem(ring, SPARK_TWEEN.Time + 0.05)
 end
 
-local function playOperation(plotId: number, sourceLevel: number, resultLevel: number)
+local function getMergeCFrame(leftInput: Model, rightInput: Model): CFrame
+	local leftCFrame = leftInput:GetPivot()
+	local rightCFrame = rightInput:GetPivot()
+	local center = (leftCFrame.Position + rightCFrame.Position) / 2
+	local direction = rightCFrame.Position - leftCFrame.Position
+	direction = Vector3.new(direction.X, 0, direction.Z)
+
+	if direction.Magnitude <= 0.01 then
+		direction = Vector3.new(leftCFrame.LookVector.X, 0, leftCFrame.LookVector.Z)
+	end
+	if direction.Magnitude <= 0.01 then
+		direction = Vector3.zAxis
+	end
+
+	return CFrame.lookAt(center, center + direction.Unit)
+end
+
+local function resolveInput(
+	container: Folder,
+	source: RunnerServiceTypes.MergeSource,
+	sourceLevel: number,
+	sourceCFrames: { [number]: CFrame },
+	resultModels: { [number]: Model },
+	fallbackCFrame: CFrame,
+	fallbackOffset: number
+): Model?
+	if source.resultId then
+		return resultModels[source.resultId]
+	end
+
+	local sourceCFrame = if source.runnerIndex then sourceCFrames[source.runnerIndex] else nil
+	return createGhost(container, sourceLevel, sourceCFrame or fallbackCFrame * CFrame.new(fallbackOffset, 0, 0))
+end
+
+function MergeEffects.play(plotId: number, operations: { RunnerServiceTypes.MergeOperation }, sourceCFrames: { [number]: CFrame })
+	if #operations == 0 then
+		return
+	end
+
 	local container = getEffectContainer(plotId)
-	local center = getMergeCFrame(plotId)
-	if not container or not center then
+	local fallbackCFrame = getFallbackMergeCFrame(plotId)
+	if not container or not fallbackCFrame then
 		return
 	end
 
-	local leftInput = createGhost(container, sourceLevel, center * CFrame.new(-3, 0, 0))
-	local rightInput = createGhost(container, sourceLevel, center * CFrame.new(3, 0, 0))
-	if not leftInput or not rightInput then
-		if leftInput then
-			leftInput:Destroy()
+	local remainingDependencies: { [number]: number } = {}
+	local dependents: { [number]: { RunnerServiceTypes.MergeOperation } } = {}
+	local consumedResults: { [number]: boolean } = {}
+	local resultModels: { [number]: Model } = {}
+
+	for _, operation in ipairs(operations) do
+		local dependencyCount = 0
+		for _, source in { operation.leftSource, operation.rightSource } do
+			if source.resultId then
+				dependencyCount += 1
+				consumedResults[source.resultId] = true
+				dependents[source.resultId] = dependents[source.resultId] or {}
+				table.insert(dependents[source.resultId], operation)
+			end
 		end
-		if rightInput then
-			rightInput:Destroy()
-		end
-		return
+		remainingDependencies[operation.id] = dependencyCount
 	end
 
-	local leftGlow = addGlow(leftInput)
-	local rightGlow = addGlow(rightInput)
-	makeWhite(leftInput)
-	makeWhite(rightInput)
-	tweenModelScale(leftInput, 0.72, 1.2, INPUT_TWEEN)
-	tweenModelScale(rightInput, 0.72, 1.2, INPUT_TWEEN)
-	tweenModelPivot(leftInput, center * CFrame.new(-0.35, 0, 0), INPUT_TWEEN)
-	tweenModelPivot(rightInput, center * CFrame.new(0.35, 0, 0), INPUT_TWEEN)
+	local completeOperation: (number) -> ()
+	local playOperation: (RunnerServiceTypes.MergeOperation) -> ()
 
-	task.delay(INPUT_TWEEN.Time, function()
-		if leftInput.Parent then
-			leftInput:Destroy()
-		end
-		if rightInput.Parent then
-			rightInput:Destroy()
-		end
-		leftGlow:Destroy()
-		rightGlow:Destroy()
+	playOperation = function(operation: RunnerServiceTypes.MergeOperation)
+		local leftInput = resolveInput(container, operation.leftSource, operation.sourceLevel, sourceCFrames, resultModels, fallbackCFrame, -3)
+		local rightInput = resolveInput(container, operation.rightSource, operation.sourceLevel, sourceCFrames, resultModels, fallbackCFrame, 3)
 
-		createBurst(container, center)
-
-		local result = createGhost(container, resultLevel, center)
-		if not result then
+		if not leftInput or not rightInput then
+			if leftInput then
+				leftInput:Destroy()
+			end
+			if rightInput then
+				rightInput:Destroy()
+			end
+			completeOperation(operation.id)
 			return
 		end
 
-		local resultGlow = addGlow(result)
-		resultGlow.FillTransparency = 0.15
-		tweenModelScale(result, 0.2, 1, RESULT_TWEEN)
-		task.delay(RESULT_TWEEN.Time * 0.45, function()
-			if resultGlow.Parent then
-				TweenService:Create(resultGlow, TweenInfo.new(RESULT_TWEEN.Time * 0.55), {
-					FillTransparency = 1,
-					OutlineTransparency = 1,
-				}):Play()
+		local leftCFrame = leftInput:GetPivot()
+		local rightCFrame = rightInput:GetPivot()
+		local center = getMergeCFrame(leftInput, rightInput)
+		local leftGlow = addGlow(leftInput)
+		local rightGlow = addGlow(rightInput)
+		makeWhite(leftInput)
+		makeWhite(rightInput)
+		tweenModelScale(leftInput, 0.72, 1.2, INPUT_TWEEN)
+		tweenModelScale(rightInput, 0.72, 1.2, INPUT_TWEEN)
+		tweenModelPivot(leftInput, CFrame.new(center.Position - center.LookVector * 0.35) * leftCFrame.Rotation, INPUT_TWEEN)
+		tweenModelPivot(rightInput, CFrame.new(center.Position + center.LookVector * 0.35) * rightCFrame.Rotation, INPUT_TWEEN)
+
+		task.delay(INPUT_TWEEN.Time, function()
+			if leftInput.Parent then
+				leftInput:Destroy()
 			end
-		end)
-		Debris:AddItem(result, RESULT_TWEEN.Time + 0.12)
-	end)
-end
+			if rightInput.Parent then
+				rightInput:Destroy()
+			end
+			leftGlow:Destroy()
+			rightGlow:Destroy()
 
-function MergeEffects.play(plotId: number, operations: { { sourceLevel: number, resultLevel: number } })
-	local operationCount = #operations
-	if operationCount == 0 then
-		return
+			createBurst(container, center)
+
+			local result = createGhost(container, operation.resultLevel, center)
+			if not result then
+				completeOperation(operation.id)
+				return
+			end
+
+			resultModels[operation.id] = result
+			local resultGlow = addGlow(result)
+			resultGlow.FillTransparency = 0.15
+			tweenModelScale(result, 0.2, 1, RESULT_TWEEN)
+			task.delay(RESULT_TWEEN.Time * 0.45, function()
+				if resultGlow.Parent then
+					TweenService:Create(resultGlow, TweenInfo.new(RESULT_TWEEN.Time * 0.55), {
+						FillTransparency = 1,
+						OutlineTransparency = 1,
+					}):Play()
+				end
+			end)
+
+			task.delay(RESULT_TWEEN.Time, function()
+				if not consumedResults[operation.id] then
+					Debris:AddItem(result, 0.12)
+				end
+				completeOperation(operation.id)
+			end)
+		end)
 	end
 
-	local selectedOperations = operations
-	if operationCount > MAX_OPERATIONS_PER_BATCH then
-		selectedOperations = {}
-		for index = 1, MAX_OPERATIONS_PER_BATCH - 1 do
-			selectedOperations[index] = operations[index]
+	completeOperation = function(operationId: number)
+		for _, dependent in ipairs(dependents[operationId] or {}) do
+			remainingDependencies[dependent.id] -= 1
+			if remainingDependencies[dependent.id] == 0 then
+				task.defer(playOperation, dependent)
+			end
 		end
-		selectedOperations[MAX_OPERATIONS_PER_BATCH] = operations[operationCount]
 	end
 
-	for index, operation in ipairs(selectedOperations) do
-		task.delay((index - 1) * OPERATION_STAGGER, function()
-			playOperation(plotId, operation.sourceLevel, operation.resultLevel)
-		end)
+	local rootCount = 0
+	for _, operation in ipairs(operations) do
+		if remainingDependencies[operation.id] == 0 then
+			task.delay(rootCount * ROOT_OPERATION_STAGGER, playOperation, operation)
+			rootCount += 1
+		end
 	end
 end
 

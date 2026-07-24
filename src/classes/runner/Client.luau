@@ -36,6 +36,7 @@ function Runner.new(config: RunnerConfig): Runner
 		gateCount = config.gateCount,
 		isOwner = config.isOwner,
 		active = config.active,
+		visible = true,
 		travelTime = 0,
 		prevDistance = 0,
 		janitor = Janitor.new(),
@@ -90,7 +91,7 @@ function Runner._createModel(self: Runner): ()
 	local position, direction = PathData.sample(self.path, self:getDistance(workspace:GetServerTimeNow()))
 	model:PivotTo(CFrame.lookAt(position, position + direction))
 
-	if self.active then
+	if self.active and self.visible then
 		model.Parent = self:_resolveContainer()
 	end
 end
@@ -132,7 +133,7 @@ end
 -- Advances the car to its deterministic position for `now`.
 -- Returns the gate ids crossed since the previous update (owner cars only).
 function Runner.update(self: Runner, now: number): { number }?
-	if not self.active or self.path.length <= 0 then
+	if not self.active or not self.visible or self.path.length <= 0 then
 		return nil
 	end
 
@@ -178,6 +179,29 @@ function Runner.setActive(self: Runner, active: boolean): ()
 	end
 
 	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+end
+
+function Runner.setVisible(self: Runner, visible: boolean): ()
+	if self.visible == visible then
+		return
+	end
+
+	self.visible = visible
+
+	local model = self.model
+	if not model then
+		return
+	end
+
+	if not visible then
+		model.Parent = nil
+		return
+	end
+
+	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	if self.active then
+		model.Parent = self:_resolveContainer()
+	end
 end
 
 -- Re-syncs the deterministic parameters after a roster/upgrade change.
@@ -257,6 +281,7 @@ export type Runner = typeof(setmetatable(
 		isOwner: boolean,
 		carSpeedMultiplier: number,
 		active: boolean,
+		visible: boolean,
 		janitor: Janitor.Janitor,
 	},
 	Runner

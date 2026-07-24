@@ -13,22 +13,24 @@ local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideD
 local useOrder = require(ReplicatedStorage.Shared.UI.App.Hooks.useOrder)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
+local wasEligible = false
+
 return function()
 	local nextOrder = useOrder()
 	local shopNotify = Vide.source(true)
 	local cash = getVideDataSource("cash")
 	local rebirths = getVideDataSource("rebirths")
 	local canRebirth = Vide.derive(function()
-		return cash() >= RebirthServiceUtils.calculateCashRequirement(rebirths() + 1)
+		return (cash() or 0) >= RebirthServiceUtils.calculateCashRequirement((rebirths() or 0) + 1)
 	end)
-	local wasEligible = false
-
 	Vide.effect(function()
 		local isEligible = canRebirth()
-		if isEligible and not wasEligible then
+		local becameEligible = isEligible and not wasEligible
+		wasEligible = isEligible
+
+		if becameEligible then
 			GeneralNotificationsServiceClient:displayNotification("You can rebirth now!")
 		end
-		wasEligible = isEligible
 	end)
 
 	local sidebarPosition = Vide.spring(function()

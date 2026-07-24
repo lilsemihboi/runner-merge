@@ -35,6 +35,39 @@ local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local GATE_TOLERANCE_SECONDS = 2
 -- same (runner, gate) pair can only be awarded once per ~lap
 local LAP_COOLDOWN_RATIO = 0.85
+local MERGE_INPUT_DURATION = 0.28
+local MERGE_RESULT_DURATION = 0.42
+local MERGE_ROOT_STAGGER = 0.12
+local MERGE_EFFECT_TRAIL_DURATION = 0.2
+
+local function getMergeEffectDuration(operations: { RunnerServiceTypes.MergeOperation }): number
+	local completionTimes: { [number]: number } = {}
+	local rootCount = 0
+	local latestCompletion = 0
+
+	for _, operation in ipairs(operations) do
+		local startTime = 0
+		local hasDependency = false
+
+		for _, source in { operation.leftSource, operation.rightSource } do
+			if source.resultId then
+				startTime = math.max(startTime, completionTimes[source.resultId] or 0)
+				hasDependency = true
+			end
+		end
+
+		if not hasDependency then
+			startTime = rootCount * MERGE_ROOT_STAGGER
+			rootCount += 1
+		end
+
+		local completionTime = startTime + MERGE_INPUT_DURATION + MERGE_RESULT_DURATION
+		completionTimes[operation.id] = completionTime
+		latestCompletion = math.max(latestCompletion, completionTime)
+	end
+
+	return latestCompletion + MERGE_EFFECT_TRAIL_DURATION
+end
 
 function RunnerService.init(self: RunnerService)
 	self.plots = {}
@@ -54,6 +87,8 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		gateAwards = {},
 		janitor = Janitor.new(),
 		broadcastScheduled = false,
+		mergeEffectActive = false,
+		mergeEffectId = 0,
 		vipOwned = false,
 		doubleCashOwned = false,
 		doubleSpeedOwned = false,
@@ -163,7 +198,7 @@ end
 -- merge() rewrites the whole array (many remove/insert signals in one frame);
 -- defer so a burst collapses into a single broadcast.
 function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState)
-	if state.broadcastScheduled then
+	if state.mergeEffectActive or state.broadcastScheduled then
 		return
 	end
 
@@ -179,6 +214,10 @@ function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState)
 end
 
 function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
+	if state.mergeEffectActive then
+		return
+	end
+
 	-- roster changed -> indices/phases are re-assigned; old award history is stale
 	table.clear(state.gateAwards)
 
@@ -196,12 +235,37 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 	)
 end
 
-function RunnerService.playMergeEffect(self: RunnerService, plotId: number, operations: { RunnerServiceTypes.MergeOperation })
-	if not self.plots[plotId] or #operations == 0 then
+function RunnerService.beginMergeEffect(self: RunnerService, plotId: number)
+	local state = self.plots[plotId]
+	if not state then
 		return
 	end
 
+	state.mergeEffectActive = true
+	state.mergeEffectId += 1
+end
+
+function RunnerService.playMergeEffect(self: RunnerService, plotId: number, operations: { RunnerServiceTypes.MergeOperation })
+	local state = self.plots[plotId]
+	if not state or #operations == 0 then
+		return
+	end
+
+	if not state.mergeEffectActive then
+		self:beginMergeEffect(plotId)
+	end
+
+	local effectId = state.mergeEffectId
 	self.networker:fireAll("playMergeEffect", plotId, operations)
+
+	task.delay(getMergeEffectDuration(operations), function()
+		if self.plots[plotId] ~= state or state.mergeEffectId ~= effectId then
+			return
+		end
+
+		state.mergeEffectActive = false
+		self:_broadcastPlot(state)
+	end)
 end
 
 -- Late-join sync: client fetches every known plot once on startup.
@@ -307,6 +371,8 @@ type PlotState = {
 	gateAwards: { [string]: number },
 	janitor: Janitor.Janitor,
 	broadcastScheduled: boolean,
+	mergeEffectActive: boolean,
+	mergeEffectId: number,
 	vipOwned: boolean,
 	doubleCashOwned: boolean,
 	doubleSpeedOwned: boolean,

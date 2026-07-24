@@ -172,6 +172,7 @@ function RunnerManager.setRunners(
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
 			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path)
+			car:setVisible(true)
 		else
 			cars[index] = RunnerClient.new({
 				plotId = plotId,
@@ -208,7 +209,30 @@ function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, oper
 		return
 	end
 
-	MergeEffects.play(plotId, operations)
+	local sourceCFrames: { [number]: CFrame } = {}
+	local cars = self.runners[plotId]
+	if cars then
+		for _, operation in ipairs(operations) do
+			for _, source in { operation.leftSource, operation.rightSource } do
+				local runnerIndex = source.runnerIndex
+				if runnerIndex and not sourceCFrames[runnerIndex] then
+					local runner = cars[runnerIndex]
+					if runner and runner.model then
+						sourceCFrames[runnerIndex] = runner.model:GetPivot()
+					end
+				end
+			end
+		end
+
+		for runnerIndex in sourceCFrames do
+			local runner = cars[runnerIndex]
+			if runner then
+				runner:setVisible(false)
+			end
+		end
+	end
+
+	MergeEffects.play(plotId, operations, sourceCFrames)
 end
 
 function RunnerManager._scheduleUpgradeBoardRetry(self: RunnerManager, state: PlotState): ()

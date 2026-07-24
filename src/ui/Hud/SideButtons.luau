@@ -13,7 +13,7 @@ local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideD
 local useOrder = require(ReplicatedStorage.Shared.UI.App.Hooks.useOrder)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
-local wasEligible = false
+local rebirthToastShown = Vide.source(false)
 
 return function()
 	local nextOrder = useOrder()
@@ -25,15 +25,19 @@ return function()
 	end)
 	Vide.effect(function()
 		local isEligible = canRebirth()
-		local becameEligible = isEligible and not wasEligible
-		wasEligible = isEligible
+		local toastWasShown = Vide.untrack(rebirthToastShown)
+		if isEligible == toastWasShown then
+			return
+		end
 
-		if becameEligible then
-			GeneralNotificationsServiceClient:displayNotification("You can rebirth now!")
+		rebirthToastShown(isEligible)
+
+		if isEligible then
+			task.defer(GeneralNotificationsServiceClient.displayNotification, GeneralNotificationsServiceClient, "You can rebirth now!")
 		end
 	end)
 
-	local sidebarPosition = Vide.spring(function()
+	local sidebarPositionTarget = Vide.derive(function()
 		if Menu.openedMenu() == nil then
 			-- Ekranda
 			return usePx.udim2(0, 38, 500 / 1080, 0)()
@@ -41,7 +45,8 @@ return function()
 			-- Sola doğru kay
 			return UDim2.fromScale(-1, 500 / 1080)
 		end
-	end, 0.35, 0.8)
+	end)
+	local sidebarPosition = Vide.spring(sidebarPositionTarget, 0.35, 0.8)
 
 	return Frame({
 		Size = usePx.offset(145, 750),

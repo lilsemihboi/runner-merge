@@ -44,13 +44,14 @@ function CashBar.Component()
 	local cash = getVideDataSource("cash")
 	local displayedCash = Vide.source(cash())
 	local friendsCount = VideCharm.useAtom(FriendServiceClient.friendCount)
-	local cashBarPosition = Vide.spring(function()
+	local cashBarPositionTarget = Vide.derive(function()
 		if Menu.openedMenu() == nil then
 			return usePx.udim2(0, 12, 1, 0)()
 		end
 
 		return UDim2.fromScale(-1, 1)
-	end, 0.35, 0.8)
+	end)
+	local cashBarPosition = Vide.spring(cashBarPositionTarget, 0.35, 0.8)
 
 	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)

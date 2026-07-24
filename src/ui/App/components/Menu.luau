@@ -40,30 +40,22 @@ return {
 		end)
 		local isRendered = Vide.source(false)
 		local isOpen = Vide.source(false)
-		local visibilityToken = 0
 
-		local menuScale = Vide.spring(isOpen, 0.35, 0.8)
+		local menuScaleTarget = Vide.derive(function()
+			return if isOpen() then 1 else 0
+		end)
+		local menuScale = Vide.spring(menuScaleTarget, 0.35, 0.8)
 
 		Vide.effect(function()
-			visibilityToken += 1
-			local token = visibilityToken
-
 			if isShown() then
 				isRendered(true)
-				task.defer(function()
-					if token == visibilityToken then
-						isOpen(true)
-					end
-				end)
+				isOpen(false)
+				Vide.cleanup(task.defer(isOpen, true))
 				return
 			end
 
 			isOpen(false)
-			task.delay(CLOSE_RENDER_DURATION, function()
-				if token == visibilityToken then
-					isRendered(false)
-				end
-			end)
+			Vide.cleanup(task.delay(CLOSE_RENDER_DURATION, isRendered, false))
 		end)
 
 		local function closeMenu()

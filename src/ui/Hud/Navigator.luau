@@ -23,7 +23,7 @@ return function()
 
 	local isProcessing = Vide.source(false)
 
-	local topbarPosition = Vide.spring(function()
+	local topbarPositionTarget = Vide.derive(function()
 		if Menu.openedMenu() == nil then
 			-- Normal konum
 			return usePx.udim2(0, 0, 0, 16)()
@@ -31,7 +31,8 @@ return function()
 			-- Yukarı kay
 			return UDim2.fromScale(0, -1)
 		end
-	end, 0.35, 0.8)
+	end)
+	local topbarPosition = Vide.spring(topbarPositionTarget, 0.35, 0.8)
 
 	return Frame({
 		Size = usePx.udim2(1, 0, 0, 87),

@@ -216,7 +216,7 @@ function Plot.setupUpgradeBoard(self: Plot)
 	end
 end
 
-function Plot.claimGroupRewards(self: Plot)
+function Plot.claimGroupRewards(self: Plot): boolean
 	local success, result = self.networker:fetch("giveGroupReward")
 
 	if not success then
@@ -246,11 +246,15 @@ function Plot.setupGroupRewardsChest(self: Plot)
 	end
 
 	self.janitor:Add(
-		self.plotModel.GroupChest.Main.ProxAtt.ProximityPrompt.Triggered:Connect(function(player: Player)
-			if player ~= Players.LocalPlayer then
+		self.plotModel.GroupChest.Hitbox.Touched:Connect(function(hit: BasePart)
+			local character = self.player.Character
+			if not character or not hit:IsDescendantOf(character) then
 				return
 			end
 
+			if Menu.openedMenu() == "GroupRewards" or Menu.openedMenu() == "OfflineRewards" then
+				return
+			end
 			Menu.setOpenedMenu("GroupRewards")
 		end),
 		"Disconnect"

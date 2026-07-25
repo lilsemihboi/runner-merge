@@ -21,8 +21,9 @@ return function()
 	local cash = getVideDataSource("cash")
 	local rebirths = getVideDataSource("rebirths")
 	local canRebirth = Vide.derive(function()
-		return (cash() or 0) >= RebirthServiceUtils.calculateCashRequirement((rebirths() or 0) + 1)
+		return (cash() or 0) >= RebirthServiceUtils.calculateCashRequirement((rebirths()) + 1)
 	end)
+
 	Vide.effect(function()
 		local isEligible = canRebirth()
 		local toastWasShown = Vide.untrack(rebirthToastShown)
@@ -93,7 +94,6 @@ return function()
 			icon = "rbxassetid://137794920489098",
 			menuId = "Rebirth",
 			notify = canRebirth,
-			notificationStyle = "dot",
 		}),
 	})
 end

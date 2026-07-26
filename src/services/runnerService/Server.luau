@@ -123,14 +123,8 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		"Disconnect"
 	)
 
-	state.janitor:Add(
-		DataService:getChangedSignal(player, { "upgrades", "cashBonus" }):Connect(function()
-			self:_scheduleBroadcast(state)
-		end),
-		"Disconnect"
-	)
-
 	if MonetizationServiceServer:ownsGamepass(player, Products.vip) then
+		self.networker:set(player, "vipMultiplier", 1.5)
 		state.vipOwned = true
 	end
 
@@ -139,6 +133,7 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 	end
 
 	if MonetizationServiceServer:ownsGamepass(player, Products.x2Cash) then
+		self.networker:set(player, "doubleCashMultiplier", 2)
 		state.doubleCashOwned = true
 	end
 
@@ -151,12 +146,14 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 
 	state.janitor:Add(MonetizationServiceServer:getPassOwnshipChanged(player, Products.x2Cash):Connect(function(owns)
 		if owns then
+			self.networker:set(player, "doubleCashMultiplier", 2)
 			state.doubleCashOwned = true
 		end
 	end))
 
 	state.janitor:Add(MonetizationServiceServer:getPassOwnshipChanged(player, Products.vip):Connect(function(owns)
 		if owns then
+			self.networker:set(player, "vipMultiplier", 1.5)
 			state.vipOwned = true
 		end
 	end))
@@ -187,11 +184,6 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		gateCount = profile:getUpgradeLevel("gates"),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
-		upgrades = {
-			gates = profile:getUpgradeLevel("gates"),
-			runnerSpeed = profile:getUpgradeLevel("runnerSpeed"),
-			cashBonus = profile:getUpgradeLevel("cashBonus"),
-		},
 	}
 end
 
@@ -231,7 +223,6 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 		snapshot.gateCount,
 		snapshot.runnerSpeedLevel,
 		snapshot.carSpeedMultiplier,
-		snapshot.upgrades
 	)
 end
 
@@ -361,7 +352,6 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 	)
 
 	profile:giveCash(income)
-	self.networker:fireAll("showGateIncome", plotId, gateId, income)
 end
 
 type PlotState = {

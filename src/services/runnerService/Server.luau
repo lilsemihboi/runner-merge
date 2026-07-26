@@ -222,7 +222,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 		snapshot.startClock,
 		snapshot.gateCount,
 		snapshot.runnerSpeedLevel,
-		snapshot.carSpeedMultiplier,
+		snapshot.carSpeedMultiplier
 	)
 end
 

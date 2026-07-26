@@ -269,22 +269,26 @@ function Plot.setupGroupRewardsChest(self: Plot)
 end
 
 function Plot.setupStarterPack(self: Plot)
-	--[[
-		When you touch it it will prompt product purchase,
-		When one time purchase completed destroy the model
-	]]
 	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 
 	DataService:waitForData()
 
-	local cost = MonetizationServiceClient:getProductCostString(Products.starterPack)
 	if owns() then
-		-- Destroy
 		self.plotModel.StarterPack:Destroy()
 		return
 	end
 
-	self.plotModel.StarterPack.Attachment.BillboardGui:WaitForChild("Money").Text = cost
+	local moneyLabel = self.plotModel.StarterPack.Attachment.BillboardGui:WaitForChild("Money")
+	moneyLabel.Text = MonetizationServiceClient:getProductCostString(Products.starterPack)
+
+	self.janitor:Add(
+		MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()
+			if moneyLabel.Parent then
+				moneyLabel.Text = MonetizationServiceClient:getProductCostString(Products.starterPack)
+			end
+		end),
+		"Disconnect"
+	)
 
 	self.janitor:Add(
 		MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()

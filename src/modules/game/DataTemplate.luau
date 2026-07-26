@@ -27,6 +27,7 @@ export type DataSchema = {
 		runnerSpeed: number,
 		cashBonus: number,
 	},
+	extraGates: number,
 
 	tutorial: {
 		step: number,
@@ -69,6 +70,7 @@ return {
 		runnerSpeed = 0,
 		cashBonus = 0,
 	},
+	extraGates = 0,
 
 	tutorial = {
 		step = 1,

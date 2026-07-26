@@ -1,7 +1,10 @@
+--!nonstrict
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ServerScriptService = game:GetService("ServerScriptService")
+local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 
 Products.doubleOfflineEarnings.callback = function(player: Player)
@@ -78,6 +81,32 @@ Products.starterPack.callback = function(player: Player)
 	profile:addCustomMultiplier(0.2)
 
 	return
+end
+
+Products.extraGate1.callback = function(player: Player)
+	local profile = ProfileServiceServer.getProfile(player)
+	local extraGateCount = profile:getExtraGateCount()
+
+	if extraGateCount ~= 0 then
+		return
+	end
+
+	profile:setExtraGateCount(1)
+	return
+end
+
+Products.extraGate2.callback = function(player: Player): boolean
+	local profile = ProfileServiceServer.getProfile(player)
+
+	local extraGateCount = profile:getExtraGateCount()
+
+	if extraGateCount ~= 1 then
+		GeneralNotificationsServiceServer:sendNotification(player, "You need to buy Gate I first. Purchase Failed. 🥹")
+		return false
+	end
+
+	profile:setExtraGateCount(2)
+	return true
 end
 
 -- 20%, 50%, 125%

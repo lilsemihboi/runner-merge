@@ -366,7 +366,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 	)}`
 	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
 	textLabel.TextScaled = false
-	textLabel.TextSize = 36 --TODO: We can use auto text scaling later
+	textLabel.TextSize = 36
 	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 80, 30)
 	textLabel.TextStrokeTransparency = 0.2
 	textLabel.Parent = billboardGui

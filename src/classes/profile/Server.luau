@@ -197,6 +197,13 @@ function Profile.addCustomMultiplier(self: Profile, multiplier: number): ()
 	end)
 end
 
+function Profile.setExtraGateCount(self: Profile, amount: number)
+	DataService:set(self.player, { "extraGates" }, amount)
+end
+
+function Profile.getExtraGateCount(self: Profile)
+	return DataService:get(self.player, { "extraGates" })
+end
 --[=[
 	Gives runner spawn level.
 

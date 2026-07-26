@@ -365,7 +365,7 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 
 	--true or nil is fine
 	if result == false then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
+		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
 	if not isGift and oneTimePurchase then

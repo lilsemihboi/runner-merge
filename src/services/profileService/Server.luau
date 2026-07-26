@@ -89,7 +89,6 @@ function ProfileService._create(self: ProfileService, player: Player)
 	profiles[player] = profile
 	playersJoinedAt[player] = os.time()
 
-	--TODO: Create leaderstats
 	-- Fire signal to notify listeners that this player's profile is ready
 	profileCreationSignal:Fire(player)
 	self:initLeaderstats(player)

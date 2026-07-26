@@ -28,6 +28,7 @@ function RebirthService.rebirth(_self: RebirthService, player: Player)
 
 	profile:resetCash()
 	profile:resetUpgrades()
+	profile:setExtraGateCount(0)
 
 	-- Award
 

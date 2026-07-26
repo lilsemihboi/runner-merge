@@ -39,7 +39,6 @@ local products = {
 		random = true,
 	} :: MonetizationProduct,
 
-	--TODO: Register callback these products
 	extraGate1 = {
 		id = 3609858039,
 	} :: MonetizationProduct,

@@ -71,7 +71,9 @@ local function component()
 			prevMenu = Vide.untrack(Menu.openedMenu)
 			Menu.setOpenedMenu(nil)
 		elseif not firstRun then
-			Menu.setOpenedMenu(prevMenu)
+			if prevMenu ~= "OfflineRewards" then
+				Menu.setOpenedMenu(prevMenu)
+			end
 		end
 
 		firstRun = false

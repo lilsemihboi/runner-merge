@@ -33,6 +33,7 @@ local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrenc
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
+local MergeEffects = require(script.Parent.MergeEffects)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
@@ -181,6 +182,7 @@ function RunnerManager.setRunners(
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
 			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path)
+			car:setVisible(true)
 		else
 			cars[index] = RunnerClient.new({
 				plotId = plotId,
@@ -209,6 +211,38 @@ function RunnerManager.removePlot(self: RunnerManager, plotId: number): ()
 
 	self.runners[plotId] = nil
 	self.plots[plotId] = nil
+end
+
+function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, operations: { RunnerServiceTypes.MergeOperation }): ()
+	local state = self.plots[plotId]
+	if not state or not state.active or #operations == 0 then
+		return
+	end
+
+	local sourceCFrames: { [number]: CFrame } = {}
+	local cars = self.runners[plotId]
+	if cars then
+		for _, operation in ipairs(operations) do
+			for _, source in { operation.leftSource, operation.rightSource } do
+				local runnerIndex = source.runnerIndex
+				if runnerIndex and not sourceCFrames[runnerIndex] then
+					local runner = cars[runnerIndex]
+					if runner and runner.model then
+						sourceCFrames[runnerIndex] = runner.model:GetPivot()
+					end
+				end
+			end
+		end
+
+		for runnerIndex in sourceCFrames do
+			local runner = cars[runnerIndex]
+			if runner then
+				runner:setVisible(false)
+			end
+		end
+	end
+
+	MergeEffects.play(plotId, operations, sourceCFrames)
 end
 
 function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState): ()

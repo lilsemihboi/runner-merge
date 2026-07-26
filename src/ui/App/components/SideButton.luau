@@ -1,6 +1,7 @@
 --!nonstrict
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local Menu = require(script.Parent.Menu)
@@ -12,6 +13,8 @@ export type Props = {
 	icon: string,
 	menuId: string,
 	notify: Vide.Source<boolean> | nil,
+	onNotifyClick: (() -> ())?,
+	notificationStyle: "badge" | "dot"?,
 }
 
 local customRotations = {
@@ -22,6 +25,55 @@ local customRotations = {
 local show = Vide.show
 local e = Vide.create
 
+local function glowingDot()
+	local pulse = Vide.source(0)
+	local connection = RunService.RenderStepped:Connect(function()
+		pulse((math.sin(os.clock() * 6) + 1) / 2)
+	end)
+	Vide.cleanup(connection)
+
+	return e("Frame", {
+		Size = usePx.offset(48, 48),
+		Position = usePx.udim2(0, 99, 0, 14),
+		BackgroundColor3 = Color3.fromRGB(255, 45, 45),
+		BackgroundTransparency = function()
+			return 0.82 - pulse() * 0.48
+		end,
+		ZIndex = 2,
+
+		e("UICorner", {
+			CornerRadius = UDim.new(1, 0),
+		}),
+
+		e("UIStroke", {
+			Color = Color3.fromRGB(255, 105, 105),
+			Thickness = function()
+				return usePx(4 + pulse() * 4)()
+			end,
+			Transparency = function()
+				return 0.82 - pulse() * 0.5
+			end,
+		}),
+
+		e("Frame", {
+			Size = usePx.offset(26, 26),
+			Position = UDim2.fromScale(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+			ZIndex = 3,
+
+			e("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+
+			e("UIStroke", {
+				Color = Color3.fromRGB(255, 255, 255),
+				Thickness = usePx(3),
+			}),
+		}),
+	})
+end
+
 return function(props: Props)
 	return Button({
 		Size = usePx.offset(145, 145),
@@ -29,8 +81,8 @@ return function(props: Props)
 		LayoutOrder = props.layoutOrder,
 
 		OnClick = function()
-			if props.notify then
-				props.notify(false)
+			if props.onNotifyClick then
+				props.onNotifyClick()
 			end
 			Menu.setOpenedMenu(props.menuId)
 		end,
@@ -47,6 +99,10 @@ return function(props: Props)
 		show(function()
 			return props.notify ~= nil and props.notify()
 		end, function()
+			if props.notificationStyle == "dot" then
+				return glowingDot()
+			end
+
 			return e("Frame", {
 				Size = usePx.offset(36, 36),
 				Position = usePx.udim2(0, 105, 0, 20),

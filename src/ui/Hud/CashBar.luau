@@ -10,6 +10,7 @@ local Configuration = require(ReplicatedStorage.Shared.Modules.Game.Configuratio
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local HudSlice = require(script.Parent.HudSlice)
+local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -43,6 +44,14 @@ function CashBar.Component()
 	local cash = getVideDataSource("cash")
 	local displayedCash = Vide.source(cash())
 	local friendsCount = VideCharm.useAtom(FriendServiceClient.friendCount)
+	local cashBarPositionTarget = Vide.derive(function()
+		if Menu.openedMenu() == nil then
+			return usePx.udim2(0, 12, 1, 0)()
+		end
+
+		return UDim2.fromScale(-1, 1)
+	end)
+	local cashBarPosition = Vide.spring(cashBarPositionTarget, 0.35, 0.8)
 
 	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
@@ -54,11 +63,9 @@ function CashBar.Component()
 
 		if requestedHiddenReward <= 0 then
 			appliedHiddenReward = 0
-		elseif typeof(baseCash) == "number" and latestCash >= baseCash + requestedHiddenReward then
+		elseif (typeof(baseCash) == "number" and latestCash >= baseCash + requestedHiddenReward) or appliedHiddenReward > requestedHiddenReward then
 			-- Keep the previous offset until the server has credited the larger
 			-- reward (for example, while a double-purchase receipt is processing).
-			appliedHiddenReward = requestedHiddenReward
-		elseif appliedHiddenReward > requestedHiddenReward then
 			appliedHiddenReward = requestedHiddenReward
 		end
 
@@ -69,7 +76,7 @@ function CashBar.Component()
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
 		Size = usePx.offset(333, 150),
-		Position = usePx.udim2(0, 12, 1, 0),
+		Position = cashBarPosition,
 		Visible = function()
 			if HudSlice.showEverything() == false then
 				return false

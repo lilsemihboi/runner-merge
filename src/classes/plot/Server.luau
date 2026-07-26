@@ -15,6 +15,7 @@ local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.P
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
+local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
@@ -247,15 +248,25 @@ function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
 	self:merge(self.player)
 end
 
+type MergeCandidate = {
+	level: number,
+	source: RunnerServiceTypes.MergeSource,
+}
+
 function Plot.merge(self: Plot, player: Player)
 	assert(player == self.player, "You dont own the base!")
 
 	local runnerLevels = self.profile:getRunners()
-	local sortedLevels: { number } = {}
+	local sortedLevels: { MergeCandidate } = {}
 
 	for _, runnerLevel in ipairs(runnerLevels) do
 		if typeof(runnerLevel) == "number" then
-			sortedLevels[#sortedLevels + 1] = runnerLevel
+			sortedLevels[#sortedLevels + 1] = {
+				level = runnerLevel,
+				source = {
+					runnerIndex = #sortedLevels + 1,
+				},
+			}
 		end
 	end
 
@@ -263,11 +274,14 @@ function Plot.merge(self: Plot, player: Player)
 		return
 	end
 
-	table.sort(sortedLevels)
+	table.sort(sortedLevels, function(left, right)
+		return left.level < right.level
+	end)
 
 	local newlyUnlockedLevels: { number } = {}
+	local mergeOperations: { RunnerServiceTypes.MergeOperation } = {}
 
-	local mergedLevels: { number } = {}
+	local mergedLevels: { MergeCandidate } = {}
 	local changed = true
 	while changed do
 		changed = false
@@ -275,30 +289,50 @@ function Plot.merge(self: Plot, player: Player)
 		mergedLevels = {}
 
 		while index <= #sortedLevels do
-			local currentLevel = sortedLevels[index]
-			local nextLevel = sortedLevels[index + 1]
+			local currentRunner = sortedLevels[index]
+			local nextRunner = sortedLevels[index + 1]
 
-			if nextLevel == currentLevel then
-				local newLevel = currentLevel + 1
-				mergedLevels[#mergedLevels + 1] = newLevel
+			if nextRunner and nextRunner.level == currentRunner.level then
+				local newLevel = currentRunner.level + 1
+				local operationId = #mergeOperations + 1
+				mergedLevels[#mergedLevels + 1] = {
+					level = newLevel,
+					source = {
+						resultId = operationId,
+					},
+				}
 				newlyUnlockedLevels[#newlyUnlockedLevels + 1] = newLevel
+				mergeOperations[#mergeOperations + 1] = {
+					id = operationId,
+					sourceLevel = currentRunner.level,
+					resultLevel = newLevel,
+					leftSource = currentRunner.source,
+					rightSource = nextRunner.source,
+				}
 				index += 2
 				changed = true
 			else
-				mergedLevels[#mergedLevels + 1] = currentLevel
+				mergedLevels[#mergedLevels + 1] = currentRunner
 				index += 1
 			end
 		end
 
 		sortedLevels = mergedLevels
-		table.sort(sortedLevels)
+		table.sort(sortedLevels, function(left, right)
+			return left.level < right.level
+		end)
+	end
+
+	if #mergeOperations == 0 then
+		return "NO_MATCHING_RUNNERS"
 	end
 
 	local mergedRunnerLevels = {}
-	for _, runnerLevel in ipairs(sortedLevels) do
-		mergedRunnerLevels[#mergedRunnerLevels + 1] = runnerLevel
+	for _, runner in ipairs(sortedLevels) do
+		mergedRunnerLevels[#mergedRunnerLevels + 1] = runner.level
 	end
 
+	RunnerServiceServer:beginMergeEffect(self.plotId)
 	self._isApplyingRunnerMerge = true
 
 	for index = #runnerLevels, 1, -1 do
@@ -317,6 +351,9 @@ function Plot.merge(self: Plot, player: Player)
 	end
 
 	self._isApplyingRunnerMerge = false
+	RunnerServiceServer:playMergeEffect(self.plotId, mergeOperations)
+
+	return "SUCCESS"
 end
 
 function Plot.addRunner(self: Plot, player: Player, runnerAmount: number)

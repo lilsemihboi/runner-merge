@@ -58,7 +58,9 @@ local function component()
 			Menu.setOpenedMenu(nil)
 			HudSlice.showEverything(false)
 		elseif not firstRun then
-			Menu.setOpenedMenu(prevMenu)
+			if prevMenu ~= "OfflineRewards" then
+				Menu.setOpenedMenu(prevMenu)
+			end
 			HudSlice.showEverything(true)
 		end
 

@@ -14,6 +14,7 @@ local Networker = require(ReplicatedStorage.Packages.Networker)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
@@ -115,7 +116,15 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 
 	local nextUpgradeId: number = self.profile:getUpgradeLevel(upgradeId) + 1
 
-	if nextUpgradeId > UpgradeUtils.levelCaps[upgradeId] then
+	if upgradeId == "gates" then
+		local selectedRoute = self.profile:getRoute()
+
+		if nextUpgradeId > RouteServiceUtils[selectedRoute].gateCap then
+			return "MAX_LEVEL"
+		end
+	end
+
+	if upgradeId ~= "gates" and nextUpgradeId > UpgradeUtils.levelCaps[upgradeId]() then
 		return "MAX_LEVEL"
 	end
 

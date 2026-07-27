@@ -156,6 +156,7 @@ function Plot.setupUpgradeBoard(self: Plot)
 	local upgradeBoardUI =
 		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
 
+	UpgradeUtils.updateLevelCaps()
 	local function setupUpgradeFrame(
 		upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates),
 		upgradeId: string
@@ -167,9 +168,9 @@ function Plot.setupUpgradeBoard(self: Plot)
 		local levelAtomForUpgrade = GetDataSource({ "upgrades", upgradeId })
 
 		local function changeLevelStatus(newLevel: number)
-			upgradeFrame.level.Text = `Level {newLevel}/{UpgradeUtils.levelCaps[upgradeId]}`
+			upgradeFrame.level.Text = `Level {newLevel}/{UpgradeUtils.levelCaps[upgradeId]()}`
 			local nextLevel = newLevel + 1
-			if newLevel == UpgradeUtils.levelCaps[upgradeId] then
+			if newLevel == UpgradeUtils.levelCaps[upgradeId]() then
 				upgradeFrame.nextLevel.Text = "MAX LEVEL"
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 			else
@@ -184,6 +185,12 @@ function Plot.setupUpgradeBoard(self: Plot)
 		self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
 			changeLevelStatus(newLevel)
 		end))
+
+		if upgradeId == "gates" then
+			self.janitor:Add(Charm.subscribe(UpgradeUtils.levelCaps.gates, function()
+				changeLevelStatus(levelAtomForUpgrade())
+			end))
+		end
 
 		self:_setupUpgradeButtonFX(upgradeFrame.UpgradeButton)
 
@@ -446,7 +453,7 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 		local nextUpgradeLevel: number = currentUpgradeLevel + 1
 		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel)
 
-		if UpgradeUtils.levelCaps[upgradeId] <= currentUpgradeLevel then
+		if UpgradeUtils.levelCaps[upgradeId]() <= currentUpgradeLevel then
 			-- MAX
 
 			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 180

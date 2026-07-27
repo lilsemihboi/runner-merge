@@ -313,7 +313,7 @@ function RunnerManager._isWithinPlotBounds(self: RunnerManager, state: PlotState
 	return math.abs(relativePos.X) <= boundsSize.X / 2 + padding and math.abs(relativePos.Z) <= boundsSize.Z / 2 + padding
 end
 
-function RunnerManager._getGateAttachment(self: RunnerManager, plotId: number, gateId: number): Attachment?
+function RunnerManager._getGateAttachment(_self: RunnerManager, plotId: number, gateId: number): Attachment?
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
 	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(plotId)) else nil
 	local runwayModel = if plotModel then plotModel:FindFirstChild(`Runway`) else nil

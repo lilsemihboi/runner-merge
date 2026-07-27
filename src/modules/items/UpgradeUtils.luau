@@ -1,4 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Charm = require(ReplicatedStorage.Packages.Charm)
+local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local UpgradeUtils = {}
 
@@ -21,10 +24,25 @@ local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 }
 
 UpgradeUtils.levelCaps = {
-	gates = 10,
-	runnerSpeed = 10,
-	cashBonus = 10,
-} :: { [UpgradeId]: number }
+	gates = Charm.atom(10),
+	runnerSpeed = Charm.atom(10),
+	cashBonus = Charm.atom(10),
+} :: { [UpgradeId]: Charm.Atom<number> }
+
+function UpgradeUtils.updateLevelCaps()
+	local selectedRoute = GetDataSource({ "selectedRoute" })
+
+	local function updateLevelCapForGate(routeId: number)
+		local routeGateCap = RouteServiceUtils[routeId].gateCap
+		UpgradeUtils.levelCaps.gates(routeGateCap)
+	end
+
+	updateLevelCapForGate(selectedRoute())
+
+	Charm.subscribe(selectedRoute, function(state)
+		updateLevelCapForGate(state)
+	end)
+end
 
 function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: number): number
 	local level = math.max(0, math.floor(upgradeLevel))

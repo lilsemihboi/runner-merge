@@ -288,7 +288,7 @@ function RunnerManager._getPlotBounds(_self: RunnerManager, state: PlotState): (
 	local boundsCf: CFrame
 	local boundsSize: Vector3
 
-	local runwayModel = plotModel:FindFirstChild(`Runway{state.routeId}`)
+	local runwayModel = plotModel:FindFirstChild(`Runway`)
 	if runwayModel and runwayModel:IsA("Model") then
 		boundsCf, boundsSize = runwayModel:GetBoundingBox()
 	else
@@ -314,12 +314,9 @@ function RunnerManager._isWithinPlotBounds(self: RunnerManager, state: PlotState
 end
 
 function RunnerManager._getGateAttachment(self: RunnerManager, plotId: number, gateId: number): Attachment?
-	local state = self.plots[plotId]
-	local routeId = if state then state.routeId else 1
-
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
 	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(plotId)) else nil
-	local runwayModel = if plotModel then plotModel:FindFirstChild(`Runway{routeId}`) else nil
+	local runwayModel = if plotModel then plotModel:FindFirstChild(`Runway`) else nil
 	local gateAttachments = if runwayModel then runwayModel:FindFirstChild("gateAttachments") else nil
 	local attachment = if gateAttachments then gateAttachments:FindFirstChild(tostring(gateId)) else nil
 
@@ -465,11 +462,6 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			end
 		end
 	end
-end
-
--- Client-side convenience wrapper for the route-select UI.
-function RunnerManager.selectRoute(self: RunnerManager, plotId: number, routeId: number): ()
-	self.networker:fire("selectRoute", plotId, routeId)
 end
 
 function RunnerManager.destroy(self: RunnerManager): ()

@@ -53,7 +53,7 @@ function Plot.new(player: Player, plotId: number): Plot
 
 	self:onCharacterAdded()
 	self:setupSign()
-	self:setupRunway()
+	self:buildRunway(self.profile:getRoute())
 	self:_watchRunners()
 	self:_watchRunnerSpawnLevel()
 	self:_checkForGates()
@@ -93,6 +93,19 @@ function Plot._checkForGates(self: Plot)
 	)
 end
 
+function Plot.rebuildAllGates(self: Plot, count: number)
+	for gateId, gate in self.gates do
+		gate:destroy()
+		self.gates[gateId] = nil
+	end
+
+	for gateId = 1, count do
+		if not self.gates[gateId] then
+			self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId)
+		end
+	end
+end
+
 function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataTemplate.upgrades)>): string
 	assert(player == self.player, "You dont own the base!")
 
@@ -118,33 +131,25 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 	return "SUCCESS"
 end
 
-function Plot.setupRunway(self: Plot)
-	local function buildRunway(routeId: number)
-		-- Destroy the old runway model
-		if self.runwayModel then
-			self.runwayModel:Destroy()
-			self.runwayModel = nil
-		end
-
-		-- Build new one
-		local routeTemplate: Model = game.ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`) :: Model
-		if not routeTemplate then
-			return
-		end
-
-		self.runwayModel = routeTemplate:Clone() :: Model
-		if self.runwayModel then
-			self.runwayModel.Name = "Runway"
-			self.runwayModel.Parent = self.plotModel
-			self.runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
-		end
+function Plot.buildRunway(self: Plot, routeId: number)
+	-- Destroy the old runway model
+	if self.runwayModel then
+		self.runwayModel:Destroy()
+		self.runwayModel = nil
 	end
 
-	buildRunway(self.profile:getRoute())
+	-- Build new one
+	local routeTemplate: Model = game.ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`) :: Model
+	if not routeTemplate then
+		return
+	end
 
-	DataService:getChangedSignal(self.player, { "selectedRoute" }):Connect(function(newRouteId: number)
-		buildRunway(newRouteId)
-	end)
+	self.runwayModel = routeTemplate:Clone() :: Model
+	if self.runwayModel then
+		self.runwayModel.Name = "Runway"
+		self.runwayModel.Parent = self.plotModel
+		self.runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
+	end
 end
 
 function Plot.setupSign(self: Plot)

@@ -123,16 +123,6 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		"Disconnect"
 	)
 
-	-- Route swap changes path length -> travelTime; reset the clock so cars
-	-- don't jump/teleport when the new roster broadcast lands.
-	state.janitor:Add(
-		DataService:getChangedSignal(player, { "selectedRoute" }):Connect(function()
-			state.startClock = workspace:GetServerTimeNow()
-			self:_scheduleBroadcast(state)
-		end),
-		"Disconnect"
-	)
-
 	if MonetizationServiceServer:ownsGamepass(player, Products.vip) then
 		self.networker:set(player, "vipMultiplier", 1.5)
 		state.vipOwned = true
@@ -214,6 +204,16 @@ function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState)
 
 		self:_broadcastPlot(state)
 	end)
+end
+
+function RunnerService.resetForRouteChange(self: RunnerService, player: Player)
+	for _plotId, state in self.plots do
+		if state.player ~= player then
+			continue
+		end
+		state.startClock = workspace:GetServerTimeNow()
+		self:_broadcastPlot(state)
+	end
 end
 
 function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)

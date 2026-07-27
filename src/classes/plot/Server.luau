@@ -53,6 +53,7 @@ function Plot.new(player: Player, plotId: number): Plot
 
 	self:onCharacterAdded()
 	self:setupSign()
+	self:setupRunway()
 	self:_watchRunners()
 	self:_watchRunnerSpawnLevel()
 	self:_checkForGates()
@@ -115,6 +116,35 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 	self.profile:giveUpgrade(upgradeId)
 
 	return "SUCCESS"
+end
+
+function Plot.setupRunway(self: Plot)
+	local function buildRunway(routeId: number)
+		-- Destroy the old runway model
+		if self.runwayModel then
+			self.runwayModel:Destroy()
+			self.runwayModel = nil
+		end
+
+		-- Build new one
+		local routeTemplate: Model = game.ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`) :: Model
+		if not routeTemplate then
+			return
+		end
+
+		self.runwayModel = routeTemplate:Clone() :: Model
+		if self.runwayModel then
+			self.runwayModel.Name = "Runway"
+			self.runwayModel.Parent = self.plotModel
+			self.runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
+		end
+	end
+
+	buildRunway(self.profile:getRoute())
+
+	DataService:getChangedSignal(self.player, { "selectedRoute" }):Connect(function(newRouteId: number)
+		buildRunway(newRouteId)
+	end)
 end
 
 function Plot.setupSign(self: Plot)
@@ -405,6 +435,7 @@ export type Plot = typeof(setmetatable(
 		player: Player,
 		plotId: number,
 		plotModel: typeof(workspace._PLOTS["1"]),
+		runwayModel: Model?,
 		janitor: Janitor.Janitor,
 		networker: Networker.Server,
 		profile: ProfileServer.Profile,

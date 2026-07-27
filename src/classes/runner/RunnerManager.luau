@@ -7,7 +7,7 @@
 	simulates every car locally inside ONE Heartbeat loop.
 
 	Server -> client (Networker dispatch):
-		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel)
+		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId)
 		removePlot(plotId)
 	Client -> server:
 		fetch("requestState") -- late-join sync
@@ -89,7 +89,8 @@ function RunnerManager.new(): RunnerManager
 					snapshot.startClock,
 					snapshot.gateCount,
 					snapshot.runnerSpeedLevel,
-					snapshot.carSpeedMultiplier
+					snapshot.carSpeedMultiplier,
+					snapshot.routeId
 				)
 			end
 		end
@@ -125,7 +126,8 @@ function RunnerManager.setRunners(
 	startClock: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
-	carSpeedMultiplier: number
+	carSpeedMultiplier: number,
+	routeId: number
 ): ()
 	local state = self.plots[plotId]
 	if not state then
@@ -138,6 +140,7 @@ function RunnerManager.setRunners(
 			runnerSpeedLevel = runnerSpeedLevel,
 			carSpeedMultiplier = carSpeedMultiplier,
 			active = owner == Players.LocalPlayer,
+			routeId = routeId,
 		}
 		self.plots[plotId] = state
 		self.runners[plotId] = {}
@@ -148,6 +151,7 @@ function RunnerManager.setRunners(
 		state.carSpeedMultiplier = carSpeedMultiplier
 		state.gateCount = gateCount
 		state.runnerSpeedLevel = runnerSpeedLevel
+		state.routeId = routeId
 	end
 
 	local laneCount = PathData.getLaneCount(plotId)
@@ -257,7 +261,16 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			return
 		end
 
-		self:setRunners(state.plotId, state.owner, state.levels, state.startClock, state.gateCount, state.runnerSpeedLevel, state.carSpeedMultiplier)
+		self:setRunners(
+			state.plotId,
+			state.owner,
+			state.levels,
+			state.startClock,
+			state.gateCount,
+			state.runnerSpeedLevel,
+			state.carSpeedMultiplier,
+			state.routeId
+		)
 	end)
 end
 
@@ -275,7 +288,7 @@ function RunnerManager._getPlotBounds(_self: RunnerManager, state: PlotState): (
 	local boundsCf: CFrame
 	local boundsSize: Vector3
 
-	local runwayModel = plotModel:FindFirstChild("Runway")
+	local runwayModel = plotModel:FindFirstChild(`Runway{state.routeId}`)
 	if runwayModel and runwayModel:IsA("Model") then
 		boundsCf, boundsSize = runwayModel:GetBoundingBox()
 	else
@@ -300,10 +313,13 @@ function RunnerManager._isWithinPlotBounds(self: RunnerManager, state: PlotState
 	return math.abs(relativePos.X) <= boundsSize.X / 2 + padding and math.abs(relativePos.Z) <= boundsSize.Z / 2 + padding
 end
 
-function RunnerManager._getGateAttachment(_self: RunnerManager, plotId: number, gateId: number): Attachment?
+function RunnerManager._getGateAttachment(self: RunnerManager, plotId: number, gateId: number): Attachment?
+	local state = self.plots[plotId]
+	local routeId = if state then state.routeId else 1
+
 	local plotsFolder = workspace:FindFirstChild("_PLOTS")
 	local plotModel = if plotsFolder then plotsFolder:FindFirstChild(tostring(plotId)) else nil
-	local runwayModel = if plotModel then plotModel:FindFirstChild("Runway") else nil
+	local runwayModel = if plotModel then plotModel:FindFirstChild(`Runway{routeId}`) else nil
 	local gateAttachments = if runwayModel then runwayModel:FindFirstChild("gateAttachments") else nil
 	local attachment = if gateAttachments then gateAttachments:FindFirstChild(tostring(gateId)) else nil
 
@@ -451,6 +467,11 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 	end
 end
 
+-- Client-side convenience wrapper for the route-select UI.
+function RunnerManager.selectRoute(self: RunnerManager, plotId: number, routeId: number): ()
+	self.networker:fire("selectRoute", plotId, routeId)
+end
+
 function RunnerManager.destroy(self: RunnerManager): ()
 	self.networker:destroy()
 	self:stop()
@@ -466,6 +487,7 @@ type PlotState = {
 	levels: { number },
 	startClock: number,
 	gateCount: number,
+	routeId: number,
 	runnerSpeedLevel: number,
 	active: boolean,
 	carSpeedMultiplier: number,

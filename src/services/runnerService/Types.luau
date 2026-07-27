@@ -6,6 +6,7 @@ export type RunnerPlotSnapshot = {
 	gateCount: number,
 	runnerSpeedLevel: number,
 	carSpeedMultiplier: number,
+	routeId: number,
 }
 
 export type MergeSource = {

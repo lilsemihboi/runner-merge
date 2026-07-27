@@ -1,9 +1,10 @@
+--!nonstrict
 --[[
 	PathData
 	=====================================
 	Static Catmull-Rom path cache shared by every runner (client + server).
-	The path for a plot is computed ONCE from the Runway waypoint attachments
-	and reused by all cars on that plot:
+	The path for a plot+route is computed ONCE from the Runway waypoint
+	attachments and reused by all cars on that plot:
 		- points: densely sampled Catmull-Rom polyline
 		- cumulative: arc-length lookup table (cumulative[i] = distance from start to points[i])
 		- length: total arc length
@@ -11,13 +12,17 @@
 
 	PathData.sample resolves distance -> (position, direction) with a binary
 	search over the cumulative table (O(log n) instead of a linear scan).
+
+	Only one route is ever active per plot at a time, so the cache is a
+	single slot per plot keyed by routeId: switching routes invalidates and
+	rebuilds rather than keeping every route's data cached simultaneously.
 ]]
 
 local PathData = {}
 
 local SAMPLES_PER_SEGMENT = 12
 
-local cache: { [number]: { laneCount: number, lanes: { [number]: Path } } } = {}
+local cache: { [number]: { runwayModel: Instance, laneCount: number, lanes: { [number]: Path } } } = {}
 
 local function getLaneFolders(runwayModel: Instance): { Folder }
 	local waypointsFolder = runwayModel:FindFirstChild("waypoints")
@@ -53,7 +58,7 @@ local function getRunwayModel(plotId: number): Instance?
 		return nil
 	end
 
-	return plotModel:FindFirstChild("Runway")
+	return plotModel:FindFirstChild(`Runway`)
 end
 
 local function getWaypointPositions(laneFolder: Folder): { Vector3 }
@@ -81,19 +86,31 @@ local function getWaypointPositions(laneFolder: Folder): { Vector3 }
 	return positions
 end
 
+-- Invalidates the cached entry for plotId if the live Runway instance
+-- differs from the one we last computed against (i.e. it was destroyed
+-- and rebuilt since, whether for a route swap or anything else).
+local function invalidateIfModelChanged(plotId: number, runwayModel: Instance?)
+	local cached = cache[plotId]
+	if cached and cached.runwayModel ~= runwayModel then
+		cache[plotId] = nil
+	end
+end
+
 function PathData.getLaneCount(plotId: number): number
+	local runwayModel = getRunwayModel(plotId)
+	invalidateIfModelChanged(plotId, runwayModel)
+
 	local cached = cache[plotId]
 	if cached then
 		return cached.laneCount
 	end
 
-	local runwayModel = getRunwayModel(plotId)
 	if not runwayModel then
 		return 0
 	end
 
 	local laneFolders = getLaneFolders(runwayModel)
-	cache[plotId] = { laneCount = #laneFolders, lanes = {} }
+	cache[plotId] = { runwayModel = runwayModel, laneCount = #laneFolders, lanes = {} }
 
 	return #laneFolders
 end
@@ -241,19 +258,21 @@ end
 function PathData.get(plotId: number, laneId: number?): Path?
 	local lane = laneId or 1
 
+	local runwayModel = getRunwayModel(plotId)
+	invalidateIfModelChanged(plotId, runwayModel)
+
 	local cached = cache[plotId]
 	if cached and cached.lanes[lane] then
 		return cached.lanes[lane]
 	end
 
-	local runwayModel = getRunwayModel(plotId)
 	if not runwayModel then
 		return nil
 	end
 
 	local laneFolders = getLaneFolders(runwayModel)
 	if not cached then
-		cached = { laneCount = #laneFolders, lanes = {} }
+		cached = { runwayModel = runwayModel, laneCount = #laneFolders, lanes = {} }
 		cache[plotId] = cached
 	end
 

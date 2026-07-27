@@ -7,7 +7,7 @@ local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 
-local gateTemplate = ReplicatedStorage.Assets.GateV1
+local gateTemplate = ReplicatedStorage.Assets.Gates.NormalGate
 
 function Gate.new(player: Player, plotId: number, gateId: number): Gate
 	assert(gateId <= 10, "Gate count cant be bigger than 10")

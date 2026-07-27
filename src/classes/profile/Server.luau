@@ -186,6 +186,15 @@ function Profile.setMultiplier(self: Profile, multiplier: number): ()
 	DataService:set(self.player, { "cashMultiplier" }, multiplier)
 end
 
+function Profile.setRoute(self: Profile, routeId: number): ()
+	DataService:set(self.player, { "selectedRoute" }, routeId)
+	return
+end
+
+function Profile.getRoute(self: Profile)
+	return DataService:get(self.player, { "selectedRoute" })
+end
+
 --[=[
 	Adds custom multiplier.
 

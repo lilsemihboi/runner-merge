@@ -113,12 +113,13 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		return 0
 	end
 
+	local profile = ProfileServiceServer.getProfile(player)
+
 	local path = PathData.get(plot.plotId, 1)
 	if not path or path.length <= 0 then
 		return 0
 	end
 
-	local profile = ProfileServiceServer.getProfile(player)
 	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
 	local gateDistances = getActiveGateDistances(path, profile:getUpgradeLevel("gates"))
 	if #levels == 0 or #gateDistances == 0 then

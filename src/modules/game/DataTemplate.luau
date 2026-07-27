@@ -6,6 +6,8 @@ export type DataSchema = {
 	cash: number,
 	cashMultiplier: number,
 	customMultiplier: number,
+
+	selectedRoute: number,
 	spins: number,
 
 	isGroupRewardClaimed: boolean,
@@ -51,6 +53,7 @@ return {
 	cashMultiplier = 1,
 	customMultiplier = 1,
 
+	selectedRoute = 1,
 	spins = 0,
 
 	rebirths = 0,

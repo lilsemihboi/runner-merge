@@ -4,7 +4,7 @@
 	Zero per-frame server load: NO Heartbeat, NO physics, NO models.
 	The server only:
 		1. Broadcasts each plot's runner roster + startClock ("start" signal)
-		   whenever the runners array / gates upgrade changes (debounced).
+		   whenever the runners array / gates upgrade / route changes (debounced).
 		2. Authoritatively validates client gate-crossing reports on demand,
 		   by recomputing the runner's deterministic progress from the shared
 		   clock, and pays incomePerLap per validated gate crossing.
@@ -123,6 +123,16 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		"Disconnect"
 	)
 
+	-- Route swap changes path length -> travelTime; reset the clock so cars
+	-- don't jump/teleport when the new roster broadcast lands.
+	state.janitor:Add(
+		DataService:getChangedSignal(player, { "selectedRoute" }):Connect(function()
+			state.startClock = workspace:GetServerTimeNow()
+			self:_scheduleBroadcast(state)
+		end),
+		"Disconnect"
+	)
+
 	if MonetizationServiceServer:ownsGamepass(player, Products.vip) then
 		self.networker:set(player, "vipMultiplier", 1.5)
 		state.vipOwned = true
@@ -184,6 +194,7 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		gateCount = profile:getUpgradeLevel("gates"),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
+		routeId = profile:getRoute(),
 	}
 end
 
@@ -222,7 +233,8 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 		snapshot.startClock,
 		snapshot.gateCount,
 		snapshot.runnerSpeedLevel,
-		snapshot.carSpeedMultiplier
+		snapshot.carSpeedMultiplier,
+		snapshot.routeId
 	)
 end
 

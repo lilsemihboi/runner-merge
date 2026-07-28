@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Networker = require(ReplicatedStorage.Packages.Networker)
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
@@ -16,13 +17,18 @@ function RouteService.init(self: RouteService)
 end
 
 function RouteService.selectRoute(_self: RouteService, player: Player, routeId: number)
-	if not ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`) then
+	if not RouteServiceUtils[routeId] then
 		return false, "INVALID_ROUTE"
 	end
 
-	-- TODO: Check rebirth requirement
-
 	local profile = ProfileServiceServer.getProfile(player)
+
+	local routeRebirthRequirement = RouteServiceUtils[routeId].rebirthRequirement
+
+	if routeRebirthRequirement > profile:getRebirths() then
+		return false, "NOT_ENOUGH_REBIRTHS"
+	end
+
 	profile:setRoute(routeId)
 
 	local playerPlot = PlotServiceServer:getPlot(player)

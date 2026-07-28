@@ -53,6 +53,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self:setupUpgradeBoard()
 	self:setupStarterPack()
 	self:setupGroupRewardsChest()
+	self:setupRoutes()
 	self:_updateMergeButtonState()
 	self:_updateRunnerButtonPrices()
 	self:_updateUpgradeButtonPrices()
@@ -157,6 +158,8 @@ function Plot.setupUpgradeBoard(self: Plot)
 		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
 
 	UpgradeUtils.updateLevelCaps()
+	local extraGates = GetDataSource({ "extraGates" })
+
 	local function setupUpgradeFrame(
 		upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates),
 		upgradeId: string
@@ -168,9 +171,17 @@ function Plot.setupUpgradeBoard(self: Plot)
 		local levelAtomForUpgrade = GetDataSource({ "upgrades", upgradeId })
 
 		local function changeLevelStatus(newLevel: number)
+			if upgradeId == "gates" then
+				local limit = UpgradeUtils.levelCaps.gates()
+				local currentGatesOwned = math.min(newLevel, limit - 2)
+				local totalOwned = currentGatesOwned + extraGates()
+
+				newLevel = totalOwned
+			end
+
 			upgradeFrame.level.Text = `Level {newLevel}/{UpgradeUtils.levelCaps[upgradeId]()}`
 			local nextLevel = newLevel + 1
-			if newLevel == UpgradeUtils.levelCaps[upgradeId]() then
+			if newLevel >= UpgradeUtils.levelCaps[upgradeId]() then
 				upgradeFrame.nextLevel.Text = "MAX LEVEL"
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 			else
@@ -180,8 +191,6 @@ function Plot.setupUpgradeBoard(self: Plot)
 			end
 		end
 
-		changeLevelStatus(levelAtomForUpgrade())
-
 		self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
 			changeLevelStatus(newLevel)
 		end))
@@ -190,7 +199,13 @@ function Plot.setupUpgradeBoard(self: Plot)
 			self.janitor:Add(Charm.subscribe(UpgradeUtils.levelCaps.gates, function()
 				changeLevelStatus(levelAtomForUpgrade())
 			end))
+
+			self.janitor:Add(Charm.subscribe(extraGates, function()
+				changeLevelStatus(levelAtomForUpgrade())
+			end))
 		end
+
+		changeLevelStatus(levelAtomForUpgrade())
 
 		self:_setupUpgradeButtonFX(upgradeFrame.UpgradeButton)
 
@@ -221,6 +236,66 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 		setupUpgradeFrame(upgradeFrame, upgradeId)
 	end
+end
+
+function Plot.setupRoutes(self: Plot)
+	local selectedRouteSource = GetDataSource({ "selectedRoute" })
+
+	local runway = nil
+
+	local function placeRunwayPreview(routeId: number)
+		if runway then
+			runway:Destroy()
+			runway = nil
+		end
+		local routeTemplate = ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`)
+
+		if not routeTemplate then
+			return
+		end
+
+		local routePreview: Model = routeTemplate:Clone()
+
+		routePreview:ScaleTo(0.1)
+
+		for _, basePart: BasePart in routePreview:GetDescendants() do
+			if not basePart:IsA("BasePart") then
+				continue
+			end
+
+			basePart.CanCollide = false
+		end
+
+		-- Parent it
+
+		routePreview.Parent = self.plotModel.Routes
+		runway = routePreview
+
+		-- Position it
+
+		routePreview:PivotTo(self.plotModel.Routes.RouteSpawn.WorldCFrame)
+	end
+
+	placeRunwayPreview(selectedRouteSource())
+
+	self.janitor:Add(Charm.subscribe(selectedRouteSource, function(newSelectedRoute: number)
+		placeRunwayPreview(newSelectedRoute)
+	end))
+
+	self.janitor:Add(
+		self.plotModel.Routes.Hitbox.Touched:Connect(function(hit: BasePart)
+			local character = self.player.Character
+			if not character or not hit:IsDescendantOf(character) then
+				return
+			end
+
+			if Menu.openedMenu() == "Routes" or Menu.openedMenu() == "OfflineRewards" then
+				return
+			end
+			Menu.setOpenedMenu("Routes")
+		end),
+		"Disconnect"
+	)
 end
 
 function Plot.claimGroupRewards(self: Plot): boolean

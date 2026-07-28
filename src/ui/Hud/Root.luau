@@ -14,7 +14,6 @@ return function()
 		Notice.Component(),
 		Purchasing.Component(),
 		CashBar.Component(),
-
 		RunService:IsRunning() and DisableCoreGui(),
 	}
 end

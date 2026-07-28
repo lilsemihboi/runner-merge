@@ -10,8 +10,10 @@ local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNa
 local GateServer = require(ServerScriptService.Classes.Gate.GateServer)
 local GetPlayerPortaitImage = require(ReplicatedStorage.Shared.Modules.Ui.GetPlayerPortaitImage)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
+local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
@@ -41,6 +43,7 @@ function Plot.new(player: Player, plotId: number): Plot
 		self.addRunner,
 		self.teleportToBase,
 		self.giveGroupReward,
+		self.upgradeGatesWithPass,
 	})
 	self.networker = networker
 	self.networker:addRecipient(player)
@@ -107,6 +110,30 @@ function Plot.rebuildAllGates(self: Plot, count: number)
 	end
 end
 
+function Plot.upgradeGatesWithPass(self: Plot, player: Player)
+	assert(player == self.player, "You dont own the base!")
+
+	if not MonetizationServiceServer:ownsGamepass(self.player, Products.vip) then
+		return false, "NO_VIP"
+	end
+
+	local currentSelectedRoute = self.profile:getRoute()
+	local routeCap = RouteServiceUtils[currentSelectedRoute].gateCap
+
+	if self.profile:getUpgradeLevel("gates") < routeCap - 2 then
+		return false, "BUY_GATES_FIRST"
+	end
+
+	local extraGateCount = self.profile:getExtraGateCount()
+
+	if extraGateCount >= 2 then
+		return false, "ALREADY_BOUGHT_EXTRAS"
+	end
+
+	self.profile:setExtraGateCount(extraGateCount + 1)
+	return true, "SUCCESS"
+end
+
 function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataTemplate.upgrades)>): string
 	assert(player == self.player, "You dont own the base!")
 
@@ -119,7 +146,7 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 	if upgradeId == "gates" then
 		local selectedRoute = self.profile:getRoute()
 
-		if nextUpgradeId > RouteServiceUtils[selectedRoute].gateCap then
+		if nextUpgradeId > RouteServiceUtils[selectedRoute].gateCap - 2 then
 			return "MAX_LEVEL"
 		end
 	end

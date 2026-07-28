@@ -158,7 +158,9 @@ function Plot.setupUpgradeBoard(self: Plot)
 		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
 
 	UpgradeUtils.updateLevelCaps()
+
 	local extraGates = GetDataSource({ "extraGates" })
+	local selectedRouteAtom = GetDataSource({ "selectedRoute" })
 
 	local function setupUpgradeFrame(
 		upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates),
@@ -169,7 +171,6 @@ function Plot.setupUpgradeBoard(self: Plot)
 		end
 
 		local levelAtomForUpgrade = GetDataSource({ "upgrades", upgradeId })
-
 		local function changeLevelStatus(newLevel: number)
 			if upgradeId == "gates" then
 				local limit = UpgradeUtils.levelCaps.gates()
@@ -199,10 +200,103 @@ function Plot.setupUpgradeBoard(self: Plot)
 			self.janitor:Add(Charm.subscribe(UpgradeUtils.levelCaps.gates, function()
 				changeLevelStatus(levelAtomForUpgrade())
 			end))
+			local extraFrame = upgradeFrame:FindFirstChild("Extra") :: Frame?
+			local vipButton = extraFrame and (extraFrame:FindFirstChild("vip") :: GuiButton?)
+			local singularButton = extraFrame and (extraFrame:FindFirstChild("singular") :: GuiButton?)
 
-			self.janitor:Add(Charm.subscribe(extraGates, function()
+			local function updateSingularButtonPrice(extraGateCount: number)
+				local nextGateNumber = extraGateCount + 1
+				local product = Products[`extraGate{nextGateNumber}`]
+
+				if product then
+					singularButton.BTN_Surface.TXT_ButtonLabel.Text = MonetizationServiceClient:getProductCostString(product)
+				else
+					singularButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
+				end
+			end
+
+			updateSingularButtonPrice(extraGates())
+
+			for tier = 1, 2 do
+				local product = Products[`extraGate{tier}`]
+				if product then
+					self.janitor:Add(
+						MonetizationServiceClient:getProductInfoChangedSignal(product):Connect(function()
+							if singularButton.Parent then
+								updateSingularButtonPrice(extraGates())
+							end
+						end),
+						"Disconnect"
+					)
+				end
+			end
+
+			vipButton.Activated:Connect(function()
+				local ownsVip = MonetizationServiceClient:ownsGamepass(Products.vip)
+
+				if not ownsVip then
+					MonetizationServiceClient:promptProduct(Products.vip)
+					return
+				end
+
+				local success, response = self.networker:fetch("upgradeGatesWithPass")
+				if not success then
+					if InfoEnums[response] then
+						ErrorMessage.add(InfoEnums[response])
+					else
+						ErrorMessage.add(InfoEnums.ERROR)
+					end
+				else
+					GeneralNotificationsServiceClient:displayNotification("Successfully placed extra gate.")
+				end
+			end)
+
+			singularButton.Activated:Connect(function()
+				local nextExtraGate = extraGates() + 1
+				if not Products[`extraGate{nextExtraGate}`] then
+					return
+				end
+
+				local nextGateProduct = Products[`extraGate{nextExtraGate}`]
+				MonetizationServiceClient:promptProduct(nextGateProduct)
+			end)
+
+			self:_setupUpgradeButtonFX(vipButton)
+			self:_setupUpgradeButtonFX(singularButton)
+
+			local function updateGateButtonVisibility(rawLevel: number)
+				local limit = UpgradeUtils.levelCaps.gates()
+				local baseGatesOwned = math.min(rawLevel, limit - 2)
+				local effectiveLevel = baseGatesOwned + extraGates()
+				local baseCapReached = baseGatesOwned >= (limit - 2)
+
+				if effectiveLevel >= limit then
+					-- Fully maxed, including extra gates purchased
+					upgradeFrame.UpgradeButton.Visible = true
+					extraFrame.Visible = false
+				else
+					upgradeFrame.UpgradeButton.Visible = not baseCapReached
+					extraFrame.Visible = baseCapReached
+				end
+			end
+
+			self.janitor:Add(Charm.subscribe(extraGates, function(state)
 				changeLevelStatus(levelAtomForUpgrade())
+				updateGateButtonVisibility(levelAtomForUpgrade())
+				updateSingularButtonPrice(state)
 			end))
+
+			self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
+				updateGateButtonVisibility(newLevel)
+			end))
+
+			self.janitor:Add(Charm.subscribe(selectedRouteAtom, function()
+				changeLevelStatus(levelAtomForUpgrade())
+				updateGateButtonVisibility(levelAtomForUpgrade())
+				self:_updateUpgradeButtonPrices()
+			end))
+
+			updateGateButtonVisibility(levelAtomForUpgrade())
 		end
 
 		changeLevelStatus(levelAtomForUpgrade())
@@ -515,7 +609,7 @@ end
 
 function Plot._updateUpgradeButtonPrices(self: Plot)
 	local cash = DataService:get("cash")
-
+	local extraGates = GetDataSource({ "extraGates" })
 	if typeof(cash) ~= "number" then
 		return
 	end
@@ -525,6 +619,13 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 		upgradeId: keyof<typeof(_DataTemplate.upgrades)>
 	in self.upgradeButtons do
 		local currentUpgradeLevel: number = DataService:get({ "upgrades", upgradeId })
+
+		if upgradeId == "gates" then
+			local limit = UpgradeUtils.levelCaps.gates()
+			local currentGatesOwned = math.min(currentUpgradeLevel, limit - 2)
+			currentUpgradeLevel = currentGatesOwned + extraGates()
+		end
+
 		local nextUpgradeLevel: number = currentUpgradeLevel + 1
 		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel)
 

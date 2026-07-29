@@ -5,8 +5,10 @@ local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local RebirthServiceClient = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceClient)
 local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
+local RobuxButton = require(ReplicatedStorage.Shared.UI.App.Components.RobuxButton)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -255,7 +257,7 @@ local function rebirthContainer()
 		StudButton({
 			Size = usePx.offset(350, 100),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = usePx.udim2(0.5, 0, 0.89, 0),
+			Position = usePx.udim2(0.3, 0, 0.89, 0),
 			Colors = function()
 				if canAfford() then
 					return ButtonColors.Green
@@ -267,6 +269,16 @@ local function rebirthContainer()
 			OnClick = function()
 				RebirthServiceClient:rebirth()
 			end,
+		}),
+
+		-- Skip Rebirth
+		RobuxButton({
+			Colors = ButtonColors.Blue,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0.725, 0, 0.89, 0),
+			product = Products.skipRebirth,
+			Size = usePx.offset(350, 100),
+			Text = "Skip",
 		}),
 	})
 end

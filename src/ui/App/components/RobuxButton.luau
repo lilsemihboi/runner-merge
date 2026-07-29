@@ -33,6 +33,7 @@ local CUSTOM_PROPS = {
 	"Position",
 	"AnchorPoint",
 	"ZIndex",
+	"Text",
 }
 
 return function(props: RobuxButtonProps)
@@ -45,7 +46,13 @@ return function(props: RobuxButtonProps)
 
 	local buttonProps = RemoveKeys(props, CUSTOM_PROPS)
 	buttonProps.LayoutOrder = 2
-	buttonProps.Text = cost
+	buttonProps.Text = function()
+		if props.Text then
+			return `{props.Text} ({cost()})`
+		else
+			return cost()
+		end
+	end
 
 	buttonProps.OnClick = function()
 		if props.OnPurchaseRequested and props.OnPurchaseRequested() == false then

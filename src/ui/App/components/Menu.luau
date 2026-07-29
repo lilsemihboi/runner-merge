@@ -1,6 +1,8 @@
 --!nonstrict
 
+local AvatarEditorService = game:GetService("AvatarEditorService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
@@ -20,6 +22,7 @@ local CUSTOM_PROPS = {
 }
 local CLOSE_RENDER_DURATION = 0.5
 local openedMenuSource = Vide.source(nil)
+local hasPromptedFavorite = false
 
 local activeCloseFn
 local activeMenuId
@@ -223,6 +226,13 @@ return {
 		end
 
 		openedMenuSource(menuId)
+
+		if menuId == "GroupRewards" and RunService:IsRunning() and not hasPromptedFavorite then
+			hasPromptedFavorite = true
+			pcall(function()
+				AvatarEditorService:PromptSetFavorite(game.PlaceId, Enum.AvatarItemType.Asset, true)
+			end)
+		end
 	end,
 	closeCurrentMenu = function()
 		if activeCloseFn ~= nil and activeMenuId == openedMenuSource() then

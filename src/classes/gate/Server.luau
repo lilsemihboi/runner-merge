@@ -8,13 +8,15 @@ local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 
 local gateTemplate = ReplicatedStorage.Assets.Gates.NormalGate
+local exclusiveGateTemplate = ReplicatedStorage.Assets.Gates.ExclusiveGate
 
-function Gate.new(player: Player, plotId: number, gateId: number): Gate
+function Gate.new(player: Player, plotId: number, gateId: number, isExclusive: boolean?): Gate
 	local self = setmetatable({
 		profile = ProfileServiceServer.getProfile(player),
 		gateId = gateId,
 		janitor = Janitor.new(),
 		plotId = plotId,
+		isExclusive = isExclusive or false,
 	}, Gate) :: Gate
 
 	self:placeGate()
@@ -23,7 +25,14 @@ function Gate.new(player: Player, plotId: number, gateId: number): Gate
 end
 
 function Gate.placeGate(self: Gate)
-	local gateModel = gateTemplate:Clone()
+	local gateModel
+
+	if self.isExclusive then
+		gateModel = exclusiveGateTemplate:Clone()
+	else
+		gateModel = gateTemplate:Clone()
+	end
+
 	self.gateModel = gateModel
 	self.janitor:Add(gateModel, "Destroy")
 
@@ -67,6 +76,7 @@ export type Gate = typeof(setmetatable(
 		gateId: number,
 		gateModel: Model?,
 		janitor: Janitor.Janitor,
+		isExclusive: boolean,
 	},
 	Gate
 ))

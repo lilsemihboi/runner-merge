@@ -78,20 +78,31 @@ function Plot._checkForGates(self: Plot)
 			end
 		end
 
+		local selectedRouteId = self.profile:getRoute()
+		local routeCap = RouteServiceUtils[selectedRouteId].gateCap
+
 		for gateId = 1, count do
 			if not self.gates[gateId] then
-				self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId)
+				local isExclusive = gateId > (routeCap - 2)
+				self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId, isExclusive)
 			end
 		end
 	end
 
-	buildGates(self.profile:getUpgradeLevel("gates"))
+	buildGates(self.profile:getUpgradeLevel("gates") + self.profile:getExtraGateCount())
 
 	self.janitor:Add(
 		DataService:getChangedSignal(self.player, { "upgrades", "gates" }):Connect(function(newValue)
 			if typeof(newValue) == "number" then
-				buildGates(newValue)
+				buildGates(newValue + self.profile:getExtraGateCount())
 			end
+		end),
+		"Disconnect"
+	)
+
+	self.janitor:Add(
+		DataService:getChangedSignal(self.player, { "extraGates" }):Connect(function(newValue)
+			buildGates(self.profile:getUpgradeLevel("gates") + newValue)
 		end),
 		"Disconnect"
 	)
@@ -103,9 +114,13 @@ function Plot.rebuildAllGates(self: Plot, count: number)
 		self.gates[gateId] = nil
 	end
 
+	local selectedRouteId = self.profile:getRoute()
+	local routeCap = RouteServiceUtils[selectedRouteId].gateCap
+
 	for gateId = 1, count do
 		if not self.gates[gateId] then
-			self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId)
+			local isExclusive = gateId > (routeCap - 2)
+			self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId, isExclusive)
 		end
 	end
 end

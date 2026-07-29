@@ -6,6 +6,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local ServerScriptService = game:GetService("ServerScriptService")
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
+local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
 
 Products.doubleOfflineEarnings.callback = function(player: Player)
 	local reward = DataService:get(player, "offlineEarnings")
@@ -107,6 +108,27 @@ Products.extraGate2.callback = function(player: Player): boolean
 
 	profile:setExtraGateCount(2)
 	return true
+end
+
+Products.skipRebirth.callback = function(player: Player)
+	local profile = ProfileServiceServer.getProfile(player)
+
+	local playerRebirths = profile:getRebirths()
+	local nextRebirth = playerRebirths + 1
+
+	profile:resetCash()
+	profile:setExtraGateCount(0)
+	profile:resetUpgrades()
+
+	-- Award
+	profile:giveRebirth()
+	profile:setMultiplier(RebirthServiceUtils.getCashMultiplierForRebirth(nextRebirth))
+
+	if nextRebirth <= 80 and nextRebirth % 2 == 0 then
+		profile:giveSpawnLevel()
+	end
+
+	return
 end
 
 -- 20%, 50%, 125%

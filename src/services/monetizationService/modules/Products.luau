@@ -43,6 +43,10 @@ local products = {
 		id = 3609858039,
 	} :: MonetizationProduct,
 
+	skipRebirth = {
+		id = 3612182563,
+	} :: MonetizationProduct,
+
 	extraGate2 = {
 		id = 3609858087,
 	} :: MonetizationProduct,

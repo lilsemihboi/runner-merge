@@ -282,10 +282,19 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 			local function updateGateButtonVisibility(rawLevel: number)
 				local route = RouteServiceUtils[selectedRouteAtom()]
-				local cashCapReached = route ~= nil and rawLevel >= route.cashGateCap
+				if not route then
+					upgradeFrame.UpgradeButton.Visible = true
+					extraFrame.Visible = false
+					return
+				end
 
-				upgradeFrame.UpgradeButton.Visible = not cashCapReached
-				extraFrame.Visible = cashCapReached
+				local cashGateCount = math.clamp(rawLevel, 0, route.cashGateCap)
+				local cashCapReached = cashGateCount >= route.cashGateCap
+				local activeExtraGateCount = if cashCapReached then math.clamp(extraGates(), 0, route.gateCap - route.cashGateCap) else 0
+				local isFullyMaxed = cashGateCount + activeExtraGateCount >= route.gateCap
+
+				upgradeFrame.UpgradeButton.Visible = not cashCapReached or isFullyMaxed
+				extraFrame.Visible = cashCapReached and not isFullyMaxed
 			end
 
 			local function renderGateUpgradeState()

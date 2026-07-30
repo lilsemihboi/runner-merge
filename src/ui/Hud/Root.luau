@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+--local CarUnlocked = require(script.Parent.CarUnlocked)
 local CashBar = require(script.Parent.CashBar)
 local DisableCoreGui = require(script.Parent.DisableCoreGui)
 local Navigator = require(script.Parent.Navigator)
@@ -15,6 +16,8 @@ return function()
 
 		Notice.Component(),
 		Purchasing.Component(),
+		--CarUnlocked.Component(),
+		--CarUnlocked.setCarData({6,7,8,40}),
 		CashBar.Component(),
 		RunService:IsRunning() and DisableCoreGui(),
 	}

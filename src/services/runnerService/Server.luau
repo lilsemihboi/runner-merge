@@ -117,6 +117,13 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 	)
 
 	state.janitor:Add(
+		DataService:getChangedSignal(player, { "extraGates" }):Connect(function()
+			self:_scheduleBroadcast(state)
+		end),
+		"Disconnect"
+	)
+
+	state.janitor:Add(
 		DataService:getChangedSignal(player, { "upgrades", "runnerSpeed" }):Connect(function()
 			self:_scheduleBroadcast(state)
 		end),
@@ -181,7 +188,7 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		owner = state.player,
 		levels = RunnerUtils.sanitizeLevels(profile:getRunners()),
 		startClock = state.startClock,
-		gateCount = profile:getUpgradeLevel("gates"),
+		gateCount = profile:getActiveGateCount(),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
 		routeId = profile:getRoute(),
@@ -305,7 +312,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 		return
 	end
 
-	local gateCount = profile:getUpgradeLevel("gates")
+	local gateCount = profile:getActiveGateCount()
 	if gateId < 1 or gateId > gateCount then
 		return
 	end

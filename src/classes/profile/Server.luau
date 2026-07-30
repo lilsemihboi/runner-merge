@@ -12,6 +12,7 @@ Profile.__index = Profile
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
 function Profile._waitForData(self: Profile)
 	DataService:waitForData(self.player)
@@ -213,6 +214,19 @@ end
 function Profile.getExtraGateCount(self: Profile)
 	return DataService:get(self.player, { "extraGates" })
 end
+
+function Profile.getActiveGateCount(self: Profile, routeId: number?): number
+	local route = RouteServiceUtils[routeId or self:getRoute()]
+	if not route then
+		return 0
+	end
+
+	local cashGateCount = math.clamp(self:getUpgradeLevel("gates"), 0, route.cashGateCap)
+	local extraGateCount = if cashGateCount >= route.cashGateCap then math.clamp(self:getExtraGateCount(), 0, route.gateCap - route.cashGateCap) else 0
+
+	return cashGateCount + extraGateCount
+end
+
 --[=[
 	Gives runner spawn level.
 

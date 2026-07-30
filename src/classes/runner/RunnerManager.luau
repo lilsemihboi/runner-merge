@@ -36,6 +36,7 @@ local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local MergeEffects = require(script.Parent.MergeEffects)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClient)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(script.Parent.RunnerUtils)
@@ -350,11 +351,13 @@ function RunnerManager._getIncomeIndicatorGui(self: RunnerManager, plotId: numbe
 	return billboardGui
 end
 
-function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number, gateId: number, incomePerLap: number): ()
+function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number, gateId: number, incomePerLap: number, routeId: number): ()
 	local billboardGui = self:_getIncomeIndicatorGui(plotId, gateId)
 	if not billboardGui then
 		return
 	end
+	local route = RouteServiceUtils[routeId]
+	local isExclusive = route ~= nil and gateId > route.cashGateCap
 
 	local textLabel = Instance.new("TextLabel")
 	textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -377,7 +380,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 		),
 		false
 	)}`
-	textLabel.TextColor3 = Color3.fromRGB(70, 255, 120)
+	textLabel.TextColor3 = if isExclusive then Color3.fromRGB(255, 221, 89) else Color3.fromRGB(70, 255, 120)
 	textLabel.TextScaled = false
 	textLabel.TextSize = 36
 	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 80, 30)
@@ -456,7 +459,7 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			end
 
 			for _, gateId in crossedGates do
-				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap)
+				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
 				SoundServiceClient:play("moneyPickup")
 				self.networker:fire("reportGate", plotId, index, gateId)
 			end

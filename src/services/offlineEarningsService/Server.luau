@@ -121,7 +121,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 	end
 
 	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
-	local gateDistances = getActiveGateDistances(path, profile:getUpgradeLevel("gates"))
+	local gateDistances = getActiveGateDistances(path, profile:getActiveGateCount())
 	if #levels == 0 or #gateDistances == 0 then
 		return 0
 	end

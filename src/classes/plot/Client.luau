@@ -22,6 +22,7 @@ local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.Mone
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
+local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
@@ -171,42 +172,59 @@ function Plot.setupUpgradeBoard(self: Plot)
 		end
 
 		local levelAtomForUpgrade = GetDataSource({ "upgrades", upgradeId })
-		local function changeLevelStatus(newLevel: number)
+		local function changeLevelStatus(rawLevel: number)
 			if upgradeId == "gates" then
-				local limit = UpgradeUtils.levelCaps.gates()
-				local currentGatesOwned = math.min(newLevel, limit - 2)
-				local totalOwned = currentGatesOwned + extraGates()
+				local route = RouteServiceUtils[selectedRouteAtom()]
+				if not route then
+					return
+				end
 
-				newLevel = totalOwned
+				local cashGateCount = math.clamp(rawLevel, 0, route.cashGateCap)
+				local activeExtraGateCount = if cashGateCount >= route.cashGateCap then math.clamp(extraGates(), 0, route.gateCap - route.cashGateCap) else 0
+				local totalGateCount = cashGateCount + activeExtraGateCount
+
+				upgradeFrame.level.Text = `Level {totalGateCount}/{route.gateCap}`
+				if cashGateCount >= route.cashGateCap then
+					upgradeFrame.nextLevel.Text = if totalGateCount >= route.gateCap then "MAX LEVEL" else `{totalGateCount} → {totalGateCount + 1}`
+					upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
+					return
+				end
+
+				local nextCashGateLevel = rawLevel + 1
+				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextCashGateLevel)
+				upgradeFrame.nextLevel.Text = `{cashGateCount} → {cashGateCount + 1}`
+				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
+				return
 			end
 
-			upgradeFrame.level.Text = `Level {newLevel}/{UpgradeUtils.levelCaps[upgradeId]()}`
-			local nextLevel = newLevel + 1
-			if newLevel >= UpgradeUtils.levelCaps[upgradeId]() then
+			upgradeFrame.level.Text = `Level {rawLevel}/{UpgradeUtils.levelCaps[upgradeId]()}`
+			local nextLevel = rawLevel + 1
+			if rawLevel >= UpgradeUtils.levelCaps[upgradeId]() then
 				upgradeFrame.nextLevel.Text = "MAX LEVEL"
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 			else
-				upgradeFrame.nextLevel.Text = `{newLevel} → {nextLevel}`
+				upgradeFrame.nextLevel.Text = `{rawLevel} → {nextLevel}`
 				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextLevel)
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
 			end
 		end
 
-		self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
-			changeLevelStatus(newLevel)
-		end))
+		if upgradeId ~= "gates" then
+			self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
+				changeLevelStatus(newLevel)
+			end))
+		end
 
 		if upgradeId == "gates" then
-			self.janitor:Add(Charm.subscribe(UpgradeUtils.levelCaps.gates, function()
-				changeLevelStatus(levelAtomForUpgrade())
-			end))
-			local extraFrame = upgradeFrame:FindFirstChild("Extra") :: Frame?
-			local vipButton = extraFrame and (extraFrame:FindFirstChild("vip") :: GuiButton?)
-			local singularButton = extraFrame and (extraFrame:FindFirstChild("singular") :: GuiButton?)
+			local extraFrame = upgradeFrame:WaitForChild("Extra") :: Frame
+			local vipButton = extraFrame:WaitForChild("vip") :: GuiButton
+			local singularButton = extraFrame:WaitForChild("singular") :: GuiButton
 
 			local function updateSingularButtonPrice(extraGateCount: number)
+				local route = RouteServiceUtils[selectedRouteAtom()]
+				local maxExtraGateCount = if route then route.gateCap - route.cashGateCap else 0
 				local nextGateNumber = extraGateCount + 1
-				local product = Products[`extraGate{nextGateNumber}`]
+				local product = if extraGateCount < maxExtraGateCount then Products[`extraGate{nextGateNumber}`] else nil
 
 				if product then
 					singularButton.BTN_Surface.TXT_ButtonLabel.Text = MonetizationServiceClient:getProductCostString(product)
@@ -214,8 +232,6 @@ function Plot.setupUpgradeBoard(self: Plot)
 					singularButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 				end
 			end
-
-			updateSingularButtonPrice(extraGates())
 
 			for tier = 1, 2 do
 				local product = Products[`extraGate{tier}`]
@@ -265,41 +281,37 @@ function Plot.setupUpgradeBoard(self: Plot)
 			self:_setupUpgradeButtonFX(singularButton)
 
 			local function updateGateButtonVisibility(rawLevel: number)
-				local limit = UpgradeUtils.levelCaps.gates()
-				local baseGatesOwned = math.min(rawLevel, limit - 2)
-				local effectiveLevel = baseGatesOwned + extraGates()
-				local baseCapReached = baseGatesOwned >= (limit - 2)
+				local route = RouteServiceUtils[selectedRouteAtom()]
+				local cashCapReached = route ~= nil and rawLevel >= route.cashGateCap
 
-				if effectiveLevel >= limit then
-					-- Fully maxed, including extra gates purchased
-					upgradeFrame.UpgradeButton.Visible = true
-					extraFrame.Visible = false
-				else
-					upgradeFrame.UpgradeButton.Visible = not baseCapReached
-					extraFrame.Visible = baseCapReached
-				end
+				upgradeFrame.UpgradeButton.Visible = not cashCapReached
+				extraFrame.Visible = cashCapReached
 			end
 
-			self.janitor:Add(Charm.subscribe(extraGates, function(state)
-				changeLevelStatus(levelAtomForUpgrade())
-				updateGateButtonVisibility(levelAtomForUpgrade())
-				updateSingularButtonPrice(state)
+			local function renderGateUpgradeState()
+				local rawLevel = levelAtomForUpgrade()
+				changeLevelStatus(rawLevel)
+				updateGateButtonVisibility(rawLevel)
+				updateSingularButtonPrice(extraGates())
+				self:_updateUpgradeButtonPrices()
+			end
+
+			self.janitor:Add(Charm.subscribe(extraGates, function()
+				renderGateUpgradeState()
 			end))
 
-			self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
-				updateGateButtonVisibility(newLevel)
+			self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function()
+				renderGateUpgradeState()
 			end))
 
 			self.janitor:Add(Charm.subscribe(selectedRouteAtom, function()
-				changeLevelStatus(levelAtomForUpgrade())
-				updateGateButtonVisibility(levelAtomForUpgrade())
-				self:_updateUpgradeButtonPrices()
+				renderGateUpgradeState()
 			end))
 
-			updateGateButtonVisibility(levelAtomForUpgrade())
+			renderGateUpgradeState()
+		else
+			changeLevelStatus(levelAtomForUpgrade())
 		end
-
-		changeLevelStatus(levelAtomForUpgrade())
 
 		self:_setupUpgradeButtonFX(upgradeFrame.UpgradeButton)
 
@@ -609,7 +621,6 @@ end
 
 function Plot._updateUpgradeButtonPrices(self: Plot)
 	local cash = DataService:get("cash")
-	local extraGates = GetDataSource({ "extraGates" })
 	if typeof(cash) ~= "number" then
 		return
 	end
@@ -619,17 +630,18 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 		upgradeId: keyof<typeof(_DataTemplate.upgrades)>
 	in self.upgradeButtons do
 		local currentUpgradeLevel: number = DataService:get({ "upgrades", upgradeId })
-
+		local levelCap = UpgradeUtils.levelCaps[upgradeId]()
 		if upgradeId == "gates" then
-			local limit = UpgradeUtils.levelCaps.gates()
-			local currentGatesOwned = math.min(currentUpgradeLevel, limit - 2)
-			currentUpgradeLevel = currentGatesOwned + extraGates()
+			local route = RouteServiceUtils[DataService:get({ "selectedRoute" })]
+			if route then
+				levelCap = route.cashGateCap
+			end
 		end
 
 		local nextUpgradeLevel: number = currentUpgradeLevel + 1
 		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel)
 
-		if UpgradeUtils.levelCaps[upgradeId]() <= currentUpgradeLevel then
+		if levelCap <= currentUpgradeLevel then
 			-- MAX
 
 			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 180

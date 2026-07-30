@@ -79,47 +79,45 @@ function Plot._checkForGates(self: Plot)
 		end
 
 		local selectedRouteId = self.profile:getRoute()
-		local routeCap = RouteServiceUtils[selectedRouteId].gateCap
+		local cashGateCap = RouteServiceUtils[selectedRouteId].cashGateCap
 
 		for gateId = 1, count do
 			if not self.gates[gateId] then
-				local isExclusive = gateId > (routeCap - 2)
+				local isExclusive = gateId > cashGateCap
 				self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId, isExclusive)
 			end
 		end
 	end
 
-	buildGates(self.profile:getUpgradeLevel("gates") + self.profile:getExtraGateCount())
+	buildGates(self.profile:getActiveGateCount())
 
 	self.janitor:Add(
-		DataService:getChangedSignal(self.player, { "upgrades", "gates" }):Connect(function(newValue)
-			if typeof(newValue) == "number" then
-				buildGates(newValue + self.profile:getExtraGateCount())
-			end
+		DataService:getChangedSignal(self.player, { "upgrades", "gates" }):Connect(function()
+			buildGates(self.profile:getActiveGateCount())
 		end),
 		"Disconnect"
 	)
 
 	self.janitor:Add(
-		DataService:getChangedSignal(self.player, { "extraGates" }):Connect(function(newValue)
-			buildGates(self.profile:getUpgradeLevel("gates") + newValue)
+		DataService:getChangedSignal(self.player, { "extraGates" }):Connect(function()
+			buildGates(self.profile:getActiveGateCount())
 		end),
 		"Disconnect"
 	)
 end
 
-function Plot.rebuildAllGates(self: Plot, count: number)
+function Plot.rebuildAllGates(self: Plot)
 	for gateId, gate in self.gates do
 		gate:destroy()
 		self.gates[gateId] = nil
 	end
 
 	local selectedRouteId = self.profile:getRoute()
-	local routeCap = RouteServiceUtils[selectedRouteId].gateCap
+	local cashGateCap = RouteServiceUtils[selectedRouteId].cashGateCap
 
-	for gateId = 1, count do
+	for gateId = 1, self.profile:getActiveGateCount() do
 		if not self.gates[gateId] then
-			local isExclusive = gateId > (routeCap - 2)
+			local isExclusive = gateId > cashGateCap
 			self.gates[gateId] = GateServer.new(self.player, self.plotId, gateId, isExclusive)
 		end
 	end
@@ -133,15 +131,15 @@ function Plot.upgradeGatesWithPass(self: Plot, player: Player)
 	end
 
 	local currentSelectedRoute = self.profile:getRoute()
-	local routeCap = RouteServiceUtils[currentSelectedRoute].gateCap
+	local route = RouteServiceUtils[currentSelectedRoute]
 
-	if self.profile:getUpgradeLevel("gates") < routeCap - 2 then
+	if self.profile:getUpgradeLevel("gates") < route.cashGateCap then
 		return false, "BUY_GATES_FIRST"
 	end
 
 	local extraGateCount = self.profile:getExtraGateCount()
 
-	if extraGateCount >= 2 then
+	if extraGateCount >= route.gateCap - route.cashGateCap then
 		return false, "ALREADY_BOUGHT_EXTRAS"
 	end
 
@@ -161,7 +159,7 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 	if upgradeId == "gates" then
 		local selectedRoute = self.profile:getRoute()
 
-		if nextUpgradeId > RouteServiceUtils[selectedRoute].gateCap - 2 then
+		if nextUpgradeId > RouteServiceUtils[selectedRoute].cashGateCap then
 			return "MAX_LEVEL"
 		end
 	end

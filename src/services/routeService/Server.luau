@@ -38,7 +38,7 @@ function RouteService.selectRoute(_self: RouteService, player: Player, routeId: 
 
 	playerPlot:buildRunway(routeId)
 	RunnerServiceServer:resetForRouteChange(player)
-	playerPlot:rebuildAllGates(playerPlot.profile:getUpgradeLevel("gates"))
+	playerPlot:rebuildAllGates()
 
 	return true, "SUCCESS"
 end

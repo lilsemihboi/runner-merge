@@ -473,15 +473,17 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 		end
 
 		for index, car in cars do
-			local crossedGates = car:update(now)
-			if not crossedGates then
-				continue
+			local crossedGates, lapsCompleted = car:update(now)
+			if crossedGates then
+				for _, gateId in crossedGates do
+					self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
+					SoundServiceClient:play("moneyPickup")
+					self.networker:fire("reportGate", plotId, index, gateId)
+				end
 			end
 
-			for _, gateId in crossedGates do
-				self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
-				SoundServiceClient:play("moneyPickup")
-				self.networker:fire("reportGate", plotId, index, gateId)
+			if lapsCompleted > 0 then
+				self.networker:fire("reportLap", plotId, index)
 			end
 		end
 	end

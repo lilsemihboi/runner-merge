@@ -80,6 +80,7 @@ function RunnerService.init(self: RunnerService)
 	self.networker = Networker.server.new("RunnerService", self, {
 		self.reportGate,
 		self.requestState,
+		self.reportLap,
 	})
 end
 
@@ -93,6 +94,7 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		player = player,
 		startClock = workspace:GetServerTimeNow(),
 		gateAwards = {},
+		lapCounts = {},
 		janitor = Janitor.new(),
 		broadcastScheduled = false,
 		mergeEffectActive = false,
@@ -258,6 +260,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, cle
 	-- roster changed -> indices/phases are re-assigned; old award history is stale
 	if clearGateAwards ~= false then
 		table.clear(state.gateAwards)
+		table.clear(state.lapCounts)
 	end
 
 	local snapshot = self:_snapshot(state)
@@ -316,6 +319,58 @@ function RunnerService.requestState(self: RunnerService, _player: Player): { Run
 	end
 
 	return snapshots
+end
+
+function RunnerService.reportLap(self: RunnerService, player: Player, plotId: number, runnerIndex: number)
+	if typeof(plotId) ~= "number" or typeof(runnerIndex) ~= "number" or runnerIndex % 1 ~= 0 then
+		return
+	end
+
+	local state = self.plots[plotId]
+	if not state or state.player ~= player then
+		return
+	end
+
+	local profile = ProfileServiceServer.getProfile(player)
+	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local level = levels[runnerIndex]
+	if not level then
+		return
+	end
+
+	local laneCount = PathData.getLaneCount(plotId)
+	local lane = RunnerUtils.getRunnerLane(plotId, runnerIndex, laneCount)
+	local path = PathData.get(plotId, lane)
+	if not path or path.length <= 0 then
+		return
+	end
+
+	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local doubleSpeedMultiplier = state.doubleSpeedOwned and 2 or 1
+	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel) * doubleSpeedMultiplier
+	local travelTime = path.length / math.max(1, speed)
+	local phase = (runnerIndex - 1) / #levels
+
+	local now = workspace:GetServerTimeNow()
+	local totalLaps = math.floor((now - state.startClock) / travelTime + phase)
+
+	local previousLaps = state.lapCounts[runnerIndex] or 0
+	local newLaps = totalLaps - previousLaps
+	if newLaps <= 0 then
+		return
+	end
+	state.lapCounts[runnerIndex] = totalLaps
+
+	self:_spendLaps(player, newLaps)
+end
+
+-- Pools laps from every runner on the plot and spends them against
+-- lapsLeftToAcquire, awarding lucky blocks (possibly several in one go
+-- if a client was AFK and reports a big lap batch at once).
+function RunnerService._spendLaps(_self: RunnerService, player: Player, lapsGained: number)
+	local remaining = DataService:get(player, { "lapsLeftToAcquire" }) - lapsGained
+
+	DataService:set(player, { "lapsLeftToAcquire" }, math.max(0, remaining))
 end
 
 -- Authoritative gate validation. Recomputes the runner's deterministic
@@ -409,6 +464,7 @@ type PlotState = {
 	player: Player,
 	startClock: number,
 	gateAwards: { [string]: number },
+	lapCounts: { [number]: number },
 	janitor: Janitor.Janitor,
 	broadcastScheduled: boolean,
 	mergeEffectActive: boolean,

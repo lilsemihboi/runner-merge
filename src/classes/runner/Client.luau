@@ -41,14 +41,24 @@ function Runner.new(config: RunnerConfig): Runner
 		visible = true,
 		travelTime = 0,
 		prevDistance = 0,
+		prevLap = 0,
 		janitor = Janitor.new(),
 	}, Runner) :: Runner
 
 	self:_refreshTravelTime()
 	self:_createModel()
-	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	local now = workspace:GetServerTimeNow()
+	self.prevDistance = self:getDistance(now)
+	self.prevLap = self:getLapCount(now)
 
 	return self
+end
+
+function Runner.getLapCount(self: Runner, current: number): number
+	if self.travelTime <= 0 then
+		return 0
+	end
+	return math.floor((current - self.startClock) / self.travelTime + self.phase)
 end
 
 function Runner._refreshTravelTime(self: Runner): ()
@@ -154,9 +164,9 @@ end
 
 -- Advances the car to its deterministic position for `now`.
 -- Returns the gate ids crossed since the previous update (owner cars only).
-function Runner.update(self: Runner, now: number): { number }?
+function Runner.update(self: Runner, now: number): ({ number }?, number)
 	if not self.active or not self.visible or self.path.length <= 0 then
-		return nil
+		return nil, 0
 	end
 
 	local distance = self:getDistance(now)
@@ -175,13 +185,21 @@ function Runner.update(self: Runner, now: number): { number }?
 	end
 
 	local crossedGates: { number }? = nil
-	if self.isOwner and self.gateCount > 0 then
-		crossedGates = self:_getCrossedGates(self.prevDistance, distance)
+	local lapsCompleted = 0
+
+	if self.isOwner then
+		if self.gateCount > 0 then
+			crossedGates = self:_getCrossedGates(self.prevDistance, distance)
+		end
+
+		local lapCount = self:getLapCount(now)
+		lapsCompleted = lapCount - self.prevLap
+		self.prevLap = lapCount
 	end
 
 	self.prevDistance = distance
 
-	return crossedGates
+	return crossedGates, lapsCompleted
 end
 
 -- Task 2: bounds based replication toggle. Inactive cars are unparented
@@ -200,7 +218,9 @@ function Runner.setActive(self: Runner, active: boolean): ()
 		return
 	end
 
-	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	local now = workspace:GetServerTimeNow()
+	self.prevDistance = self:getDistance(now)
+	self.prevLap = self:getLapCount(now)
 end
 
 function Runner.setVisible(self: Runner, visible: boolean): ()
@@ -220,7 +240,9 @@ function Runner.setVisible(self: Runner, visible: boolean): ()
 		return
 	end
 
-	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	local now = workspace:GetServerTimeNow()
+	self.prevDistance = self:getDistance(now)
+	self.prevLap = self:getLapCount(now)
 	if self.active then
 		model.Parent = self:_resolveContainer()
 	end
@@ -269,7 +291,9 @@ function Runner.configure(
 	self:setSelectedTrail(selectedTrail)
 
 	if shouldResetDistance then
-		self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+		local now = workspace:GetServerTimeNow()
+		self.prevDistance = self:getDistance(now)
+		self.prevLap = self:getLapCount(now)
 	end
 end
 
@@ -282,8 +306,10 @@ function Runner.updateLevel(self: Runner, newRunnerLevel: number): ()
 	self:_refreshSpeed()
 	self.incomePerLap = RunnerUtils.getRunnerIncomePerLap(newRunnerLevel)
 
+	local now = workspace:GetServerTimeNow()
 	self:_createModel()
-	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	self.prevDistance = self:getDistance(now)
+	self.prevLap = self:getLapCount(now)
 end
 
 function Runner.destroy(self: Runner): ()
@@ -323,6 +349,7 @@ export type Runner = typeof(setmetatable(
 		selectedTrail: number?,
 		travelTime: number,
 		prevDistance: number,
+		prevLap: number,
 		isOwner: boolean,
 		carSpeedMultiplier: number,
 		active: boolean,

@@ -12,6 +12,7 @@ local Charm = require(ReplicatedStorage.Packages.Charm)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
@@ -55,6 +56,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self:setupStarterPack()
 	self:setupGroupRewardsChest()
 	self:setupRoutes()
+	self:setupBlocks()
 	self:_updateMergeButtonState()
 	self:_updateRunnerButtonPrices()
 	self:_updateUpgradeButtonPrices()
@@ -77,8 +79,8 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	end))
 
 	self.janitor:Add(
-		DataService:getChangedSignal({ "runners" }):Connect(function(newRunners)
-			self:_onRunnersChanged(newRunners)
+		DataService:getChangedSignal({ "runners" }):Connect(function()
+			self:_updateMergeButtonState()
 		end),
 		"Disconnect"
 	)
@@ -351,6 +353,80 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 		setupUpgradeFrame(upgradeFrame, upgradeId)
 	end
+end
+
+function Plot.setupBlocks(self: Plot)
+	local blockInQueue = GetDataSource({ "luckyBlockInQueue" })
+	local lapsLeftToAcquire = GetDataSource({ "lapsLeftToAcquire" })
+
+	local previousBlock
+	local previousBlockId
+
+	local function buildBlock(blockId: number?)
+		if previousBlock then
+			previousBlock:Destroy()
+			previousBlock = nil
+		end
+
+		if blockId == nil then
+			return
+		end
+
+		local blockTemplate = ReplicatedStorage.Assets.Blocks:FindFirstChild(`{blockId}`)
+		if not blockTemplate then
+			return
+		end
+
+		local blockPreview: Model = blockTemplate:Clone()
+		blockPreview:ScaleTo(0.649)
+
+		blockPreview.Parent = self.plotModel.LuckyBlock
+		previousBlock = blockPreview
+
+		blockPreview:PivotTo(self.plotModel.LuckyBlock.CrateSpawn.WorldCFrame)
+	end
+
+	local function updateUIState(blockId: number?, lapsLeft: number?)
+		if blockId == nil then
+			previousBlockId = blockId
+
+			-- Name and progress
+
+			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.TextLabel.Text = ""
+			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.TextLabel.Text = "0/0 Laps"
+			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.Bar.Size = UDim2.fromScale(0, 0)
+
+			return
+		end
+
+		local blockInfo = Blocks.getBlock(blockId)
+
+		if blockId ~= previousBlockId then
+			previousBlockId = blockId
+			-- Name
+			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.TextLabel.Text = blockInfo.blockName
+		end
+
+		self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.TextLabel.Text =
+			`{blockInfo.lapsRequirement - lapsLeft}/{blockInfo.lapsRequirement} Laps`
+		self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.Bar.Size =
+			UDim2.fromScale(math.clamp((blockInfo.lapsRequirement - lapsLeft) / blockInfo.lapsRequirement, 0, 1), 1)
+	end
+
+	local function getBlockState()
+		return {
+			blockId = blockInQueue(),
+			lapsLeft = lapsLeftToAcquire(),
+		}
+	end
+
+	self.janitor:Add(Charm.listen(getBlockState, function(state, prevState)
+		if state.blockId ~= (prevState and prevState.blockId) then
+			buildBlock(state.blockId)
+		end
+
+		updateUIState(state.blockId, state.lapsLeft)
+	end))
 end
 
 function Plot.setupRoutes(self: Plot)
@@ -827,10 +903,6 @@ function Plot._updateMergeButtonState(self: Plot): ()
 			self:_setMergeButtonColor(buttonTop, canMerge)
 		end
 	end
-end
-
-function Plot._onRunnersChanged(self: Plot, _newRunners: any): ()
-	self:_updateMergeButtonState()
 end
 
 function Plot.destroy(self: Plot): ()

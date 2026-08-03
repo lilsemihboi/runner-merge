@@ -2,6 +2,9 @@
 --          Player Data Template
 -- ============================================
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
+
 export type DataSchema = {
 	cash: number,
 	cashMultiplier: number,
@@ -22,6 +25,9 @@ export type DataSchema = {
 	inventory: { number },
 
 	selectedTrail: number?,
+
+	luckyBlockInQueue: number,
+	lapsLeftToAcquire: number?,
 
 	offlineEarnings: number?,
 	offlineEarningsPaid: boolean?,
@@ -69,6 +75,9 @@ return {
 	inventory = {},
 
 	selectedTrail = nil,
+
+	luckyBlockInQueue = 1,
+	lapsLeftToAcquire = Blocks.getBlock(1).lapsRequirement,
 
 	offlineEarnings = nil,
 

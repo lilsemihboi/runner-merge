@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local PathData = require(ReplicatedStorage.Shared.Classes.Runner.PathData)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 local RunnersFolder = ReplicatedStorage.Assets.Entities
 
@@ -34,6 +35,7 @@ function Runner.new(config: RunnerConfig): Runner
 		startClock = config.startClock,
 		phase = config.phase,
 		gateCount = config.gateCount,
+		selectedTrail = config.selectedTrail,
 		isOwner = config.isOwner,
 		active = config.active,
 		visible = true,
@@ -87,12 +89,32 @@ function Runner._createModel(self: Runner): ()
 	local model = template:Clone()
 	self.model = model
 	self.janitor:Add(model, "Destroy", "model")
+	self:_applySelectedTrail()
 
 	local position, direction = PathData.sample(self.path, self:getDistance(workspace:GetServerTimeNow()))
 	model:PivotTo(CFrame.lookAt(position, position + direction))
 
 	if self.active and self.visible then
 		model.Parent = self:_resolveContainer()
+	end
+end
+
+function Runner._applySelectedTrail(self: Runner): ()
+	local model = self.model
+	if not model then
+		return
+	end
+
+	local trail = model:FindFirstChild("Trail", true)
+	if not trail or not trail:IsA("Trail") then
+		return
+	end
+
+	local trailInfo = if self.selectedTrail then Trails[self.selectedTrail] else nil
+	trail.Enabled = trailInfo ~= nil
+
+	if trailInfo then
+		trail.Color = trailInfo.trailColorSequence
 	end
 end
 
@@ -204,13 +226,22 @@ function Runner.setVisible(self: Runner, visible: boolean): ()
 	end
 end
 
--- Re-syncs the deterministic parameters after a roster/upgrade change.
--- Resets prevDistance so phase/speed shifts never produce phantom gate crossings.
+function Runner.setSelectedTrail(self: Runner, selectedTrail: number?): ()
+	if self.selectedTrail == selectedTrail then
+		return
+	end
+
+	self.selectedTrail = selectedTrail
+	self:_applySelectedTrail()
+end
+
 function Runner._refreshSpeed(self: Runner): ()
 	self.speed = RunnerUtils.getRunnerSpeed(self.level, self.runnerSpeedLevel)
 	self:_refreshTravelTime()
 end
 
+-- Re-syncs deterministic parameters after a roster or upgrade change.
+-- Only movement or gate changes reset prevDistance to avoid phantom crossings.
 function Runner.configure(
 	self: Runner,
 	startClock: number,
@@ -218,8 +249,16 @@ function Runner.configure(
 	gateCount: number,
 	runnerSpeedLevel: number,
 	carSpeedMultiplier: number,
-	path: PathData.Path
+	path: PathData.Path,
+	selectedTrail: number?
 ): ()
+	local shouldResetDistance = self.startClock ~= startClock
+		or self.phase ~= phase
+		or self.path ~= path
+		or self.carSpeedMultiplier ~= carSpeedMultiplier
+		or self.gateCount ~= gateCount
+		or self.runnerSpeedLevel ~= runnerSpeedLevel
+
 	self.startClock = startClock
 	self.phase = phase
 	self.path = path
@@ -227,7 +266,11 @@ function Runner.configure(
 	self.gateCount = gateCount
 	self.runnerSpeedLevel = runnerSpeedLevel
 	self:_refreshSpeed()
-	self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	self:setSelectedTrail(selectedTrail)
+
+	if shouldResetDistance then
+		self.prevDistance = self:getDistance(workspace:GetServerTimeNow())
+	end
 end
 
 function Runner.updateLevel(self: Runner, newRunnerLevel: number): ()
@@ -260,6 +303,7 @@ export type RunnerConfig = {
 	runnerSpeedLevel: number,
 	isOwner: boolean,
 	active: boolean,
+	selectedTrail: number?,
 }
 
 export type Runner = typeof(setmetatable(
@@ -276,6 +320,7 @@ export type Runner = typeof(setmetatable(
 		startClock: number,
 		phase: number,
 		gateCount: number,
+		selectedTrail: number?,
 		travelTime: number,
 		prevDistance: number,
 		isOwner: boolean,

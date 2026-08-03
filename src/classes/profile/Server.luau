@@ -253,16 +253,22 @@ function Profile.giveTrail(self: Profile, trailId: number): ()
 	DataService:arrayInsert(self.player, "inventory", trailId)
 end
 
-function Profile.selectTrail(self: Profile, trailId: number): ()
-	if not Trails[trailId] then
-		return
+function Profile.hasTrail(self: Profile, trailId: number): boolean
+	return table.find(DataService:get(self.player, "inventory"), trailId) ~= nil
+end
+
+function Profile.selectTrail(self: Profile, trailId: number?): boolean
+	if trailId == nil then
+		DataService:set(self.player, { "selectedTrail" }, nil)
+		return true
 	end
 
-	if not DataService:get(self.player, { "inventory", tostring(trailId) }) then
-		return
+	if not Trails[trailId] or not self:hasTrail(trailId) then
+		return false
 	end
 
 	DataService:set(self.player, { "selectedTrail" }, trailId)
+	return true
 end
 
 function Profile.getSelectedTrail(self: Profile): number?

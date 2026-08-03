@@ -9,6 +9,7 @@ local CodeServiceServer = require(ServerScriptService.Services.CodeService.CodeS
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local FriendServiceServer = require(ServerScriptService.Services.FriendService.FriendServiceServer)
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
+local InventoryServiceServer = require(ServerScriptService.Services.InventoryService.InventoryServiceServer)
 local LeaderboardServiceServer = require(ServerScriptService.Services.LeaderboardService.LeaderboardServiceServer)
 local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local NotificationServiceServer = require(ServerScriptService.Services.NotificationService.NotificationServiceServer)
@@ -38,6 +39,7 @@ MonetizationServiceServer:init({
 	products = Products :: any,
 })
 ProfileServiceServer:init()
+InventoryServiceServer:init()
 CodeServiceServer:init(ServerCallbacks :: any)
 --CodeServiceServer:add("mantle2026", {active = true,expiration = 1798675200, reward = "currency", params = {15_000}})
 FriendServiceServer:init()

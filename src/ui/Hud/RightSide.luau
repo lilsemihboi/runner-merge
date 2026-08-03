@@ -114,7 +114,7 @@ return function()
 	local sidebarPositionTarget = Vide.derive(function()
 		if Menu.openedMenu() == nil then
 			-- Ekranda
-			return usePx.udim2(0.95, 0, 500 / 1080, 0)()
+			return usePx.udim2(0.9, 0, 500 / 1080, 0)()
 		else
 			return UDim2.fromScale(1, 500 / 1080)
 		end
@@ -123,7 +123,7 @@ return function()
 
 	return Frame({
 		Size = usePx.offset(156, 412),
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		AnchorPoint = Vector2.new(0, 0.5),
 		Position = sidebarPosition,
 		BackgroundTransparency = 1,
 		Visible = function()

@@ -10,6 +10,7 @@ Profile.__index = Profile
 
 -- Service References
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
@@ -236,6 +237,36 @@ function Profile.giveSpawnLevel(self: Profile): ()
 	DataService:update(self.player, { "runnerSpawnLevel" }, function(currentAmt)
 		return currentAmt + 1
 	end)
+end
+
+--[=[
+	Gives player trail to earn more money $$.
+
+	@param trailId number
+	@return () -- No return value
+]=]
+function Profile.giveTrail(self: Profile, trailId: number): ()
+	if not Trails[trailId] then
+		return
+	end
+
+	DataService:arrayInsert(self.player, "inventory", trailId)
+end
+
+function Profile.selectTrail(self: Profile, trailId: number): ()
+	if not Trails[trailId] then
+		return
+	end
+
+	if not DataService:get(self.player, { "inventory", tostring(trailId) }) then
+		return
+	end
+
+	DataService:set(self.player, { "selectedTrail" }, trailId)
+end
+
+function Profile.getSelectedTrail(self: Profile): number?
+	return DataService:get(self.player, { "selectedTrail" })
 end
 
 --[=[

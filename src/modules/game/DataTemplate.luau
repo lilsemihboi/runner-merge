@@ -19,6 +19,9 @@ export type DataSchema = {
 	runnerSpawnLevel: number,
 
 	index: { number },
+	inventory: { number },
+
+	selectedTrail: number?,
 
 	offlineEarnings: number?,
 	offlineEarningsPaid: boolean?,
@@ -63,6 +66,9 @@ return {
 	runnerSpawnLevel = 1,
 
 	index = {},
+	inventory = {},
+
+	selectedTrail = nil,
 
 	offlineEarnings = nil,
 

@@ -88,6 +88,14 @@ return function()
 			menuId = "Index",
 		}),
 
+		-- Inventory Button
+
+		SideButton({
+			layoutOrder = nextOrder(),
+			icon = "rbxassetid://115230651228881",
+			menuId = "Inventory",
+		}),
+
 		-- Rebirth Button
 		SideButton({
 			layoutOrder = nextOrder(),

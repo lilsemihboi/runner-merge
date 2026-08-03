@@ -13,6 +13,7 @@ local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotS
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 local OFFLINE_EARNINGS_MULTIPLIER = 0.7
 
@@ -114,6 +115,9 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
+	local selectedTrail = profile:getSelectedTrail()
+	local trailInfo = if selectedTrail then Trails[selectedTrail] else nil
+	local trailMultiplier = if trailInfo then trailInfo.trailMultiplier else 1
 
 	local path = PathData.get(plot.plotId, 1)
 	if not path or path.length <= 0 then
@@ -144,7 +148,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		earnings += gateCrossings * incomePerGate
 	end
 
-	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier * vipMultiplier)
+	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier * vipMultiplier * trailMultiplier)
 end
 
 function OfflineEarnings.requestBegin(_self: OfflineEarnings, player: Player)

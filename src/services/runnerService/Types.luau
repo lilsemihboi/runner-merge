@@ -7,6 +7,7 @@ export type RunnerPlotSnapshot = {
 	runnerSpeedLevel: number,
 	carSpeedMultiplier: number,
 	routeId: number,
+	selectedTrail: number?,
 }
 
 export type MergeSource = {

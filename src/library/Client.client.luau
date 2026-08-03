@@ -8,6 +8,7 @@ local CodeServiceClient = require(ReplicatedStorage.Shared.Services.CodeService.
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
+local InventoryServiceClient = require(ReplicatedStorage.Shared.Services.InventoryService.InventoryServiceClient)
 local LeaderboardServiceClient = require(ReplicatedStorage.Shared.Services.LeaderboardService.LeaderboardServiceClient)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
@@ -27,6 +28,7 @@ local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleServic
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
+InventoryServiceClient:init()
 MonetizationServiceClient:init(Products)
 CodeServiceClient:init()
 OfflineEarningsServiceClient:init()

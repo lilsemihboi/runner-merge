@@ -30,6 +30,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 -- a reported gate must have been passed within the last N seconds (covers ping + frame time)
 local GATE_TOLERANCE_SECONDS = 2
@@ -39,6 +40,11 @@ local MERGE_INPUT_DURATION = 0.28
 local MERGE_RESULT_DURATION = 0.42
 local MERGE_ROOT_STAGGER = 0.12
 local MERGE_EFFECT_TRAIL_DURATION = 0.2
+
+local function getTrailMultiplier(trailId: number?): number
+	local trail = if trailId then Trails[trailId] else nil
+	return if trail then trail.trailMultiplier else 1
+end
 
 local function getMergeEffectDuration(operations: { RunnerServiceTypes.MergeOperation }): number
 	local completionTimes: { [number]: number } = {}
@@ -80,6 +86,8 @@ end
 function RunnerService.registerPlot(self: RunnerService, player: Player, plotId: number)
 	self:unregisterPlot(player)
 
+	local profile = ProfileServiceServer.getProfile(player)
+	local selectedTrail = profile:getSelectedTrail()
 	local state: PlotState = {
 		plotId = plotId,
 		player = player,
@@ -92,6 +100,9 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		vipOwned = false,
 		doubleCashOwned = false,
 		doubleSpeedOwned = false,
+		selectedTrail = selectedTrail,
+		trailMultiplier = getTrailMultiplier(selectedTrail),
+		clearGateAwardsOnBroadcast = false,
 	}
 	self.plots[plotId] = state
 
@@ -126,6 +137,15 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 	state.janitor:Add(
 		DataService:getChangedSignal(player, { "upgrades", "runnerSpeed" }):Connect(function()
 			self:_scheduleBroadcast(state)
+		end),
+		"Disconnect"
+	)
+
+	state.janitor:Add(
+		DataService:getChangedSignal(player, { "selectedTrail" }):Connect(function(newTrailId)
+			state.selectedTrail = newTrailId
+			state.trailMultiplier = getTrailMultiplier(newTrailId)
+			self:_scheduleBroadcast(state, false)
 		end),
 		"Disconnect"
 	)
@@ -192,16 +212,21 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
 		routeId = profile:getRoute(),
+		selectedTrail = state.selectedTrail,
 	}
 end
 
 -- merge() rewrites the whole array (many remove/insert signals in one frame);
 -- defer so a burst collapses into a single broadcast.
-function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState)
+function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState, clearGateAwards: boolean?)
 	if state.mergeEffectActive or state.broadcastScheduled then
+		if clearGateAwards ~= false then
+			state.clearGateAwardsOnBroadcast = true
+		end
 		return
 	end
 
+	state.clearGateAwardsOnBroadcast = clearGateAwards ~= false
 	state.broadcastScheduled = true
 	task.defer(function()
 		state.broadcastScheduled = false
@@ -209,7 +234,9 @@ function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState)
 			return
 		end
 
-		self:_broadcastPlot(state)
+		local shouldClearGateAwards = state.clearGateAwardsOnBroadcast
+		state.clearGateAwardsOnBroadcast = false
+		self:_broadcastPlot(state, shouldClearGateAwards)
 	end)
 end
 
@@ -223,13 +250,15 @@ function RunnerService.resetForRouteChange(self: RunnerService, player: Player)
 	end
 end
 
-function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
+function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, clearGateAwards: boolean?)
 	if state.mergeEffectActive then
 		return
 	end
 
 	-- roster changed -> indices/phases are re-assigned; old award history is stale
-	table.clear(state.gateAwards)
+	if clearGateAwards ~= false then
+		table.clear(state.gateAwards)
+	end
 
 	local snapshot = self:_snapshot(state)
 	self.networker:fireAll(
@@ -241,7 +270,8 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState)
 		snapshot.gateCount,
 		snapshot.runnerSpeedLevel,
 		snapshot.carSpeedMultiplier,
-		snapshot.routeId
+		snapshot.routeId,
+		snapshot.selectedTrail
 	)
 end
 
@@ -367,6 +397,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 				* DataService:get(player, { "customMultiplier" })
 				* vipMultiplier
 				* doubleCashMultiplier
+				* state.trailMultiplier
 		)
 	)
 
@@ -385,6 +416,9 @@ type PlotState = {
 	vipOwned: boolean,
 	doubleCashOwned: boolean,
 	doubleSpeedOwned: boolean,
+	selectedTrail: number?,
+	trailMultiplier: number,
+	clearGateAwardsOnBroadcast: boolean,
 }
 
 type RunnerService = typeof(RunnerService) & {

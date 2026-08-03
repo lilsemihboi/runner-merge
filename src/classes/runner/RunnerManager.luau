@@ -7,7 +7,7 @@
 	simulates every car locally inside ONE Heartbeat loop.
 
 	Server -> client (Networker dispatch):
-		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId)
+		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId, selectedTrail)
 		removePlot(plotId)
 	Client -> server:
 		fetch("requestState") -- late-join sync
@@ -41,12 +41,19 @@ local RunnerClient = require(ReplicatedStorage.Shared.Classes.Runner.RunnerClien
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(script.Parent.RunnerUtils)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
 local INCOME_INDICATOR_TWEEN_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
 
+local function getTrailMultiplier(trailId: number?): number
+	local trail = if trailId then Trails[trailId] else nil
+	return if trail then trail.trailMultiplier else 1
+end
+
 function RunnerManager.new(): RunnerManager
+	local selectedTrailAtom = GetDataSource("selectedTrail")
 	local self = setmetatable({
 		runners = {},
 		plots = {},
@@ -55,6 +62,8 @@ function RunnerManager.new(): RunnerManager
 		janitor = Janitor.new(),
 		cashMultiplierAtom = GetDataSource("cashMultiplier"),
 		customMultiplierAtom = GetDataSource("customMultiplier"),
+		selectedTrailAtom = selectedTrailAtom,
+		trailMultiplier = getTrailMultiplier(selectedTrailAtom()),
 		vipMultiplier = 1,
 		doubleCashMultiplier = 1,
 	}, RunnerManager) :: RunnerManager
@@ -74,6 +83,10 @@ function RunnerManager.new(): RunnerManager
 		updateMultiplier(new)
 	end))
 
+	self.janitor:Add(Charm.subscribe(selectedTrailAtom, function(newTrailId)
+		self.trailMultiplier = getTrailMultiplier(newTrailId)
+	end))
+
 	task.spawn(function()
 		local snapshots: { RunnerServiceTypes.RunnerPlotSnapshot } = self.networker:fetch("requestState")
 		if typeof(snapshots) ~= "table" then
@@ -91,7 +104,8 @@ function RunnerManager.new(): RunnerManager
 					snapshot.gateCount,
 					snapshot.runnerSpeedLevel,
 					snapshot.carSpeedMultiplier,
-					snapshot.routeId
+					snapshot.routeId,
+					snapshot.selectedTrail
 				)
 			end
 		end
@@ -128,7 +142,8 @@ function RunnerManager.setRunners(
 	gateCount: number,
 	runnerSpeedLevel: number,
 	carSpeedMultiplier: number,
-	routeId: number
+	routeId: number,
+	selectedTrail: number?
 ): ()
 	local state = self.plots[plotId]
 	if not state then
@@ -142,6 +157,7 @@ function RunnerManager.setRunners(
 			carSpeedMultiplier = carSpeedMultiplier,
 			active = owner == Players.LocalPlayer,
 			routeId = routeId,
+			selectedTrail = selectedTrail,
 		}
 		self.plots[plotId] = state
 		self.runners[plotId] = {}
@@ -153,6 +169,7 @@ function RunnerManager.setRunners(
 		state.gateCount = gateCount
 		state.runnerSpeedLevel = runnerSpeedLevel
 		state.routeId = routeId
+		state.selectedTrail = selectedTrail
 	end
 
 	local laneCount = PathData.getLaneCount(plotId)
@@ -186,7 +203,7 @@ function RunnerManager.setRunners(
 		if car then
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
-			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path)
+			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path, selectedTrail)
 			car:setVisible(true)
 		else
 			cars[index] = RunnerClient.new({
@@ -201,6 +218,7 @@ function RunnerManager.setRunners(
 				isOwner = isOwner,
 				active = state.active,
 				carSpeedMultiplier = carSpeedMultiplier,
+				selectedTrail = selectedTrail,
 			})
 		end
 	end
@@ -270,7 +288,8 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			state.gateCount,
 			state.runnerSpeedLevel,
 			state.carSpeedMultiplier,
-			state.routeId
+			state.routeId,
+			state.selectedTrail
 		)
 	end)
 end
@@ -376,6 +395,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 					* self.customMultiplierAtom()
 					* self.vipMultiplier
 					* self.doubleCashMultiplier
+					* self.trailMultiplier
 			)
 		),
 		false
@@ -486,6 +506,7 @@ type PlotState = {
 	runnerSpeedLevel: number,
 	active: boolean,
 	carSpeedMultiplier: number,
+	selectedTrail: number?,
 	boundsCf: CFrame?,
 	boundsSize: Vector3?,
 	pathRetryScheduled: boolean?,
@@ -502,6 +523,8 @@ export type RunnerManager = typeof(setmetatable(
 		multiplier: number,
 		cashMultiplierAtom: Charm.Atom<number>,
 		customMultiplierAtom: Charm.Atom<number>,
+		selectedTrailAtom: Charm.Atom<number?>,
+		trailMultiplier: number,
 		vipMultiplier: number,
 		doubleCashMultiplier: number,
 	},

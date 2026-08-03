@@ -81,11 +81,11 @@ local function trailButton(trailId: number, quantity: () -> number)
 		}),
 
 		TextLabel({
-			Size = usePx.offset(48, 26),
+			Size = usePx.offset(96, 52),
 			Text = function()
 				return `x{quantity()}`
 			end,
-			Position = UDim2.fromScale(0.82, 0.15),
+			Position = UDim2.fromScale(1, -0.05),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			Stroke = { Thickness = usePx(3) },

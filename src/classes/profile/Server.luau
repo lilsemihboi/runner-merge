@@ -263,7 +263,11 @@ function Profile.selectTrail(self: Profile, trailId: number?): boolean
 		return true
 	end
 
-	if not Trails[trailId] or not self:hasTrail(trailId) then
+	if not Trails[trailId] then
+		return false
+	end
+
+	if not self:hasTrail(trailId) then
 		return false
 	end
 

@@ -13,7 +13,7 @@ function InventoryService.init(self: InventoryService)
 end
 
 function InventoryService.selectTrail(_self: InventoryService, player: Player, trailId: number?)
-	if trailId ~= nil and (typeof(trailId) ~= "number" or trailId % 1 ~= 0) then
+	if not (typeof(trailId) == "number" or typeof(trailId) == "nil") then
 		return false, "ERROR"
 	end
 

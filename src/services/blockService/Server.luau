@@ -12,8 +12,6 @@ local Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 const ANNOUNCED_RARITIES: { [keyof<typeof(Rarities)>]: true } = {
-	["Common"] = true,
-	["Rare"] = true,
 	["Epic"] = true,
 	["Legendary"] = true,
 	["Mythic"] = true,

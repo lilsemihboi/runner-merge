@@ -184,4 +184,23 @@ function Blocks.rollTrail(crateId: number, rng: number): number?
 	return lastEligible
 end
 
+function Blocks.getOdds(crateId: number, selectedTrailId: number): number
+	local crate = Blocks.getBlock(crateId)
+	local out = {}
+	if crate == nil or crate.loot == nil then
+		return 0
+	end
+	local total = totalWeight(crate.loot)
+	if total <= 0 then
+		return 0
+	end
+	for trailId, weight in crate.loot do
+		local w = math.max(0, weight or 0)
+		if w > 0 then
+			out[trailId] = w / total * 100
+		end
+	end
+	return out[selectedTrailId]
+end
+
 return Blocks

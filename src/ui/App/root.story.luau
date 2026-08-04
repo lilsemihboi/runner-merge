@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CratesSlice = require(ReplicatedStorage.Shared.UI.Crates.CratesSlice)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
@@ -23,6 +24,8 @@ return function(parent)
 	SettingsServiceClient:init()
 	SettingsInitializer()
 	local destroy = Vide.mount(RootUI, parent)
+
+	CratesSlice.actions.beginRolling({ crateId = 5, trailId = 3 })
 
 	return function()
 		destroy()

@@ -5,6 +5,7 @@ local BlockService = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
+local CratesSlice = require(ReplicatedStorage.Shared.UI.Crates.CratesSlice)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local InfoEnums = require(ReplicatedStorage.Shared.Modules.Utils.InfoEnums)
@@ -42,8 +43,8 @@ function BlockService.openCrate(self: BlockService): ()
 		return
 	end
 
-	print(rewardData)
-	--TODO: Pass the reward data to ui component
+	CratesSlice.actions.beginRolling(rewardData)
+	return
 end
 
 type BlockService = typeof(BlockService) & {

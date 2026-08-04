@@ -14,6 +14,7 @@ local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 local BlockServiceClient = require(ReplicatedStorage.Shared.Services.BlockService.BlockServiceClient)
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
+local CratesSlice = require(ReplicatedStorage.Shared.UI.Crates.CratesSlice)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
@@ -363,7 +364,8 @@ function Plot.setupBlocks(self: Plot)
 	local promptEnabled = Charm.computed(function()
 		local blockId = blockInQueue()
 		local lapsLeft = lapsLeftToAcquire()
-		return blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0)
+		local isRollScreenOn = CratesSlice.states.cratesScreenOpen()
+		return blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0) and not isRollScreenOn
 	end)
 
 	local previousBlock

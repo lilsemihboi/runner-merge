@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CratesScreen = require(ReplicatedStorage.Shared.UI.Crates.CratesScreen)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local NotificationMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.NotificationMessage)
 local Notifications = require(ReplicatedStorage.Shared.UI.App.Components.Notifications)
@@ -43,5 +44,6 @@ return function()
 		ErrorMessage.Component(),
 		NotificationMessage.Component(),
 		Notifications.Screen(),
+		CratesScreen.Component(),
 	})
 end

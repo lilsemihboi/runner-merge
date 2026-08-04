@@ -3,6 +3,7 @@ return {
 	WRONG_UPGRADE_ID = "This upgrade does not exist.",
 	NOT_ENOUGH_CASH = "You don't have enough cash.",
 	NOT_ENOUGH_REBIRTHS = "You don't have enough rebirths.",
+	NOT_ENOUGH_LAPS = "You don't have enough laps.",
 	NO_VIP = "You don't have VIP gamepass.",
 	BUY_GATES_FIRST = "You should buy all cash gates first.",
 	ALREADY_BOUGHT_EXTRAS = "You have been already bought all extra gate slots.",

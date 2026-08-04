@@ -138,14 +138,20 @@ function Blocks.rollBlock(rng: number): number?
 
 	local random = rng * total
 	local acc = 0
+	local lastEligible: number? = nil
+
 	for blockId, entry in Blocks.blocks do
-		acc += math.max(0, entry.blockWeight or 0)
-		if random <= acc then
-			return blockId
+		local weight = math.max(0, entry.blockWeight or 0)
+		if weight > 0 then
+			acc += weight
+			lastEligible = blockId
+			if random <= acc then
+				return blockId
+			end
 		end
 	end
 
-	return #Blocks.blocks
+	return lastEligible
 end
 
 function Blocks.rollTrail(crateId: number, rng: number): number?
@@ -162,14 +168,20 @@ function Blocks.rollTrail(crateId: number, rng: number): number?
 
 	local random = rng * total
 	local acc = 0
+	local lastEligible: number? = nil
+
 	for trailId, entry in crate.loot do
-		acc += math.max(0, entry or 0)
-		if random <= acc then
-			return trailId
+		local weight = math.max(0, entry or 0)
+		if weight > 0 then
+			acc += weight
+			lastEligible = trailId
+			if random <= acc then
+				return trailId
+			end
 		end
 	end
 
-	return #crate.loot
+	return lastEligible
 end
 
 return Blocks

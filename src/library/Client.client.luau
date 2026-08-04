@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
 local AutoRejoinServiceClient = require(ReplicatedStorage.Shared.Services.AutoRejoinService.AutoRejoinServiceClient)
+local BlockServiceClient = require(ReplicatedStorage.Shared.Services.BlockService.BlockServiceClient)
 local CodeServiceClient = require(ReplicatedStorage.Shared.Services.CodeService.CodeServiceClient)
 local Feedback = require(ReplicatedStorage.Shared.Modules.Game.Feedback)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
@@ -29,6 +30,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
 InventoryServiceClient:init()
+BlockServiceClient:init()
 MonetizationServiceClient:init(Products)
 CodeServiceClient:init()
 OfflineEarningsServiceClient:init()

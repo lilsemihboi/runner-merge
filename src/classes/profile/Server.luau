@@ -10,6 +10,7 @@ Profile.__index = Profile
 
 -- Service References
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
@@ -226,6 +227,26 @@ function Profile.getActiveGateCount(self: Profile, routeId: number?): number
 	local extraGateCount = if cashGateCount >= route.cashGateCap then math.clamp(self:getExtraGateCount(), 0, route.gateCap - route.cashGateCap) else 0
 
 	return cashGateCount + extraGateCount
+end
+
+function Profile.getCrateInQueue(self: Profile)
+	return DataService:get(self.player, { "luckyBlockInQueue" })
+end
+
+function Profile.getLapsLeftToAcquire(self: Profile)
+	return DataService:get(self.player, { "lapsLeftToAcquire" })
+end
+
+function Profile.setCrateInQueue(self: Profile, crateId: number?): ()
+	DataService:set(self.player, { "luckyBlockInQueue" }, crateId)
+	if crateId == nil then
+		return
+	end
+
+	local crateInfo = Blocks.getBlock(crateId)
+
+	DataService:set(self.player, { "lapsLeftToAcquire" }, crateInfo.lapsRequirement)
+	return
 end
 
 --[=[

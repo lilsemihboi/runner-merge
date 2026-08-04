@@ -1,8 +1,11 @@
+local _Rarities = require(script.Parent.Rarities)
+
 return {
 	[1] = {
 		trailMultiplier = 1.15,
 		trailName = "Green",
 		trailColorSequence = ColorSequence.new(Color3.fromRGB(60, 255, 0)),
+		trailRarity = "Common",
 	},
 
 	[2] = {
@@ -13,6 +16,7 @@ return {
 			ColorSequenceKeypoint.new(0.275, Color3.fromRGB(13, 13, 13)),
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
 		}),
+		trailRarity = "Epic",
 	},
 	[3] = {
 		trailMultiplier = 1.50,
@@ -24,5 +28,6 @@ return {
 			ColorSequenceKeypoint.new(0.621, Color3.fromRGB(32, 230, 10)),
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 204, 1)),
 		}),
+		trailRarity = "Secret",
 	},
-} :: { [number]: { trailMultiplier: number, trailName: string, trailColorSequence: ColorSequence } }
+} :: { [number]: { trailMultiplier: number, trailName: string, trailColorSequence: ColorSequence, trailRarity: keyof<typeof(_Rarities)> } }

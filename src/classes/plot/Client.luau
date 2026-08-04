@@ -12,6 +12,7 @@ local Charm = require(ReplicatedStorage.Packages.Charm)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local BlockServiceClient = require(ReplicatedStorage.Shared.Services.BlockService.BlockServiceClient)
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
@@ -359,6 +360,12 @@ function Plot.setupBlocks(self: Plot)
 	local blockInQueue = GetDataSource({ "luckyBlockInQueue" })
 	local lapsLeftToAcquire = GetDataSource({ "lapsLeftToAcquire" })
 
+	local promptEnabled = Charm.computed(function()
+		local blockId = blockInQueue()
+		local lapsLeft = lapsLeftToAcquire()
+		return blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0)
+	end)
+
 	local previousBlock
 	local previousBlockId
 
@@ -419,6 +426,22 @@ function Plot.setupBlocks(self: Plot)
 			lapsLeft = lapsLeftToAcquire(),
 		}
 	end
+
+	self.janitor:Add(Charm.subscribe(promptEnabled, function(enabled: boolean)
+		self.plotModel.LuckyBlock.CrateSpawn.ProximityPrompt.Enabled = enabled
+	end))
+	self.plotModel.LuckyBlock.CrateSpawn.ProximityPrompt.Enabled = promptEnabled()
+
+	self.janitor:Add(
+		self.plotModel.LuckyBlock.CrateSpawn.ProximityPrompt.Triggered:Connect(function(player: Player)
+			if player ~= Players.LocalPlayer then
+				return
+			end
+
+			BlockServiceClient:openCrate()
+		end),
+		"Disconnect"
+	)
 
 	self.janitor:Add(Charm.listen(getBlockState, function(state, prevState)
 		if state.blockId ~= (prevState and prevState.blockId) then

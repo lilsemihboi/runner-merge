@@ -1,10 +1,10 @@
 local Rarities = {
-	["Common"] = Color3.fromRGB(0, 255, 0),
+	["Common"] = Color3.fromRGB(200, 200, 200),
 	["Rare"] = Color3.fromRGB(85, 170, 255),
-	["Epic"] = Color3.fromRGB(164, 0, 170),
-	["Legendary"] = Color3.fromRGB(255, 255, 0),
-	["Mythic"] = Color3.fromRGB(255, 30, 0),
-	["Secret"] = Color3.fromRGB(95, 95, 95),
+	["Epic"] = Color3.fromRGB(170, 85, 255),
+	["Legendary"] = Color3.fromRGB(255, 180, 40),
+	["Mythic"] = Color3.fromRGB(255, 80, 80),
+	["Secret"] = Color3.fromRGB(255, 90, 200),
 }
 
 return Rarities

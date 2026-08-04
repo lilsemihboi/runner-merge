@@ -6,6 +6,7 @@ local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local InventoryServiceClient = require(ReplicatedStorage.Shared.Services.InventoryService.InventoryServiceClient)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -29,6 +30,7 @@ end)
 
 local function trailButton(trailId: number, quantity: () -> number)
 	local trailInfo = Trails[trailId]
+	local rarityColorForTrail = Rarities[trailInfo.trailRarity]
 
 	return Button({
 		LayoutOrder = trailId,
@@ -45,7 +47,7 @@ local function trailButton(trailId: number, quantity: () -> number)
 		Vide.create("UIStroke", {
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 			BorderStrokePosition = Enum.BorderStrokePosition.Inner,
-			Color = Color3.fromRGB(255, 255, 255),
+			Color = rarityColorForTrail,
 			LineJoinMode = Enum.LineJoinMode.Round,
 			Thickness = usePx(6),
 			Transparency = 0.5,
@@ -81,10 +83,11 @@ local function trailButton(trailId: number, quantity: () -> number)
 		}),
 
 		TextLabel({
-			Size = usePx.offset(96, 52),
+			Size = usePx.offset(64, 42),
 			Text = function()
 				return `x{quantity()}`
 			end,
+			Rotation = 5,
 			Position = UDim2.fromScale(1, -0.05),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -123,8 +126,8 @@ local function trailButton(trailId: number, quantity: () -> number)
 		}),
 
 		Frame({
-			Size = usePx.udim2(1, 6, 0, 30),
-			Position = UDim2.fromScale(0.5, -0.205),
+			Size = usePx.udim2(1, 6, 0, 40),
+			Position = UDim2.fromScale(0.5, -0.34),
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 0.5,
@@ -180,7 +183,7 @@ local function inventoryMenuContainer()
 		BorderSizePixel = 0,
 
 		Vide.create("UIPadding", {
-			PaddingTop = usePx.udim(0, 60),
+			PaddingTop = usePx.udim(0, 72),
 			PaddingBottom = usePx.udim(0, 25),
 			PaddingLeft = usePx.udim(0, 18),
 			PaddingRight = usePx.udim(0, 18),
@@ -188,7 +191,7 @@ local function inventoryMenuContainer()
 
 		Vide.create("UIGridLayout", {
 			CellSize = usePx.offset(190, 190),
-			CellPadding = usePx.offset(30, 28),
+			CellPadding = usePx.offset(45, 28),
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Top,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,

@@ -14,6 +14,10 @@ return function(parent)
 	DataService:set("cash", 40000)
 	DataService:set("rebirths", 1)
 	DataService:set({ "index", "40" }, true)
+	DataService:arrayInsert("inventory", 1)
+	DataService:arrayInsert("inventory", 3)
+
+	DataService:set({ "selectedTrail" }, 1)
 
 	MonetizationServiceClient:init(Products :: any)
 	SettingsServiceClient:init()

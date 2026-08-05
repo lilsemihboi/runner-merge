@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
+local HudSlice = require(script.Parent.HudSlice)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
@@ -70,10 +71,12 @@ local function component()
 		if isShowing then
 			prevMenu = Vide.untrack(Menu.openedMenu)
 			Menu.setOpenedMenu(nil)
+			HudSlice.showEverything(false)
 		elseif not firstRun then
 			if prevMenu ~= "OfflineRewards" then
 				Menu.setOpenedMenu(prevMenu)
 			end
+			HudSlice.showEverything(true)
 		end
 
 		firstRun = false

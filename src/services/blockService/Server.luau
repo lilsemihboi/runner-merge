@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
+local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNameWithIcons)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
@@ -54,7 +55,7 @@ function BlockService._announceDrop(self: BlockService, player: Player, crateId:
 	local text = string.format(
 		"<font color='%s'>[SYSTEM] <b>%s (@%s)</b> unboxed %s [<b>%s</b>] from the <b>%s</b>!</font>",
 		rarityHex(rarityColor),
-		player.DisplayName,
+		FormatNameWithIcons(player),
 		player.Name,
 		trailName,
 		trailRarity,

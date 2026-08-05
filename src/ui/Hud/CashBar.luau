@@ -11,6 +11,7 @@ local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local FriendServiceClient = require(ReplicatedStorage.Shared.Services.FriendService.FriendServiceClient)
 local HudSlice = require(script.Parent.HudSlice)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
+local ShopMenu = require(ReplicatedStorage.Shared.UI.Shop.ShopMenu)
 local StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -141,6 +142,19 @@ function CashBar.Component()
 			},
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 		}),
+
+		StudButton({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0, 355, 0, 90),
+			Size = usePx.offset(72, 72),
+
+			Colors = ButtonColors.Green,
+			Text = "+",
+			TextSize = usePx(84),
+			OnClick = function()
+				ShopMenu.openCashProducts()
+			end,
+		} :: StudButton.StudButton),
 	})
 end
 

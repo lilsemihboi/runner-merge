@@ -358,10 +358,9 @@ end
 	
 	@return () -- No return value
 ]=]
-function Profile.stepTutorial(self: Profile): ()
-	DataService:update(self.player, { "tutorial", "step" }, function(current)
-		return current + 1 -- Move to next tutorial step
-	end)
+function Profile.stepTutorial(self: Profile, stage: number): ()
+	DataService:set(self.player, { "tutorial", "step" }, stage)
+	return
 end
 
 --[=[

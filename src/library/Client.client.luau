@@ -26,6 +26,7 @@ local SettingsServiceClient = require(ReplicatedStorage.Shared.Services.Settings
 local ShopSlice = require(ReplicatedStorage.Shared.UI.Shop.ShopSlice)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
+local TutorialServiceClient = require(ReplicatedStorage.Shared.Services.TutorialService.TutorialServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
 
 DataService:init()
@@ -48,6 +49,7 @@ SettingsServiceClient:init()
 SettingsInitializer()
 SoundService:WaitForChild("Music"):Play()
 TitleServiceClient:init()
+TutorialServiceClient:init()
 MountUI()
 GeneralNotificationsServiceClient:init()
 

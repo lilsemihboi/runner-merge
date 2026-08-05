@@ -26,6 +26,7 @@ local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.R
 local SettingsServiceServer = require(ServerScriptService.Services.SettingsService.SettingsServiceServer)
 local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
 local TitleServiceServer = require(ServerScriptService.Services.TitleService.TitleServiceServer)
+local TutorialServiceServer = require(ServerScriptService.Services.TutorialService.TutorialServiceServer)
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 
@@ -55,5 +56,6 @@ AutoRejoinServiceServer:init()
 NotificationServiceServer:init()
 SoundServiceServer:init()
 SettingsServiceServer:init()
+TutorialServiceServer:init()
 TitleServiceServer:init()
 GeneralNotificationsServiceServer:init()

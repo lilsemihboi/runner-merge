@@ -11,7 +11,7 @@ local SideButtons = require(script.Parent.SideButtons)
 return function()
 	return {
 		Navigator(),
-		SideButtons(),
+		SideButtons.Component(),
 		RightSide(),
 
 		Notice.Component(),

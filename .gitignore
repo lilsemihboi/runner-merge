@@ -9,3 +9,4 @@ package-lock.json
 *.lock.*
 .DS_Store
 node_modules/
+docs/

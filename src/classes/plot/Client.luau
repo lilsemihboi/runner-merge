@@ -30,9 +30,13 @@ local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
+const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
 
 local RUNNER_ENABLED_COLOR = Color3.fromRGB(11, 138, 20)
 local BUTTON_DISABLED_COLOR = Color3.fromRGB(136, 136, 136)
+
+const isTutorialFinished = TutorialSlice.states.isTutorialFinished
+const localTutorialStage = TutorialSlice.states.localTutorialStage
 
 type RunnerButton = {
 	buttonTop: BasePart,
@@ -365,7 +369,11 @@ function Plot.setupBlocks(self: Plot)
 		local blockId = blockInQueue()
 		local lapsLeft = lapsLeftToAcquire()
 		local isRollScreenOn = CratesSlice.states.cratesScreenOpen()
-		return blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0) and not isRollScreenOn
+
+		local baseCondition = blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0) and not isRollScreenOn
+		local tutorialAllows = isTutorialFinished() or localTutorialStage() >= 7
+
+		return baseCondition and tutorialAllows
 	end)
 
 	local previousBlock
@@ -653,6 +661,20 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 				return
 			end
 			lastTrigger = now
+
+			if not isTutorialFinished() then
+				if buttonType == "Runner" then
+					if runnerAmount == 1 and localTutorialStage() < 2 then
+						return
+					elseif runnerAmount >= 5 and localTutorialStage() < 4 then
+						return
+					end
+				elseif buttonType == "Merge" then
+					if localTutorialStage() < 5 then
+						return
+					end
+				end
+			end
 
 			if buttonType == "Runner" then
 				local result = self.networker:fetch("addRunner", runnerAmount)

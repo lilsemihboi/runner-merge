@@ -15,6 +15,7 @@ export type Props = {
 	notify: Vide.Source<boolean> | nil,
 	onNotifyClick: (() -> ())?,
 	notificationStyle: "badge" | "dot"?,
+	visible: (() -> boolean | boolean)?,
 }
 
 local customRotations = {

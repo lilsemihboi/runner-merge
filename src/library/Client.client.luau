@@ -28,6 +28,7 @@ local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundServic
 local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
 local TutorialServiceClient = require(ReplicatedStorage.Shared.Services.TutorialService.TutorialServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+print("hi")
 
 DataService:init()
 InventoryServiceClient:init()

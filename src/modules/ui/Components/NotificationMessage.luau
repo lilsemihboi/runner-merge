@@ -6,6 +6,7 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
+const GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local messages = Vide.source({})
@@ -114,6 +115,9 @@ local function Component()
 end
 
 local function add(props: TextLabel.TextLabelProps)
+	if GetDataSource({ "tutorial", "finished" }) ~= true then
+		return
+	end
 	id += 1
 
 	local current = table.clone(messages())

@@ -18,6 +18,7 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local VideCharm = require(ReplicatedStorage.Packages.VideCharm)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
 
 local CashBar = {}
 local hiddenReward = Vide.source(0)
@@ -53,6 +54,9 @@ function CashBar.Component()
 		return UDim2.fromScale(-1, 1)
 	end)
 	local cashBarPosition = Vide.spring(cashBarPositionTarget, 0.35, 0.8)
+
+	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
+	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
 
 	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
@@ -153,6 +157,9 @@ function CashBar.Component()
 			TextSize = usePx(84),
 			OnClick = function()
 				ShopMenu.openCashProducts()
+			end,
+			Visible = function()
+				return isTutorialFinished() or localTutorialStage() >= 10
 			end,
 		} :: StudButton.StudButton),
 	})

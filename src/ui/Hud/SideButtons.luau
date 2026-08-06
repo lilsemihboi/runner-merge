@@ -9,13 +9,27 @@ local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
 local SideButton = require(ReplicatedStorage.Shared.UI.App.Components.SideButton)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+const VideCharm = require(ReplicatedStorage.Packages.VideCharm)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local useOrder = require(ReplicatedStorage.Shared.UI.App.Hooks.useOrder)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
 
 local rebirthToastShown = Vide.source(false)
 
-return function()
+-- Tutorial button refs (exposed for tutorial navigation)
+const tutorialButtonRefs = {
+	inventory = Vide.source(nil),
+	rebirth = Vide.source(nil),
+}
+
+--- Stores `instance` in `ref` and returns it, for capturing a child inline.
+const function captureRef(ref: (any) -> (), instance: Instance): Instance
+	ref(instance)
+	return instance
+end
+
+const function SideButtonsComponent()
 	local nextOrder = useOrder()
 	local shopNotify = Vide.source(true)
 	local cash = getVideDataSource("cash")
@@ -23,6 +37,9 @@ return function()
 	local canRebirth = Vide.derive(function()
 		return (cash() or 0) >= RebirthServiceUtils.calculateCashRequirement((rebirths()) + 1)
 	end)
+
+	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
+	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
 
 	Vide.effect(function()
 		local isEligible = canRebirth()
@@ -79,6 +96,9 @@ return function()
 			onNotifyClick = function()
 				shopNotify(false)
 			end,
+			visible = function()
+				return isTutorialFinished() or localTutorialStage() >= 10
+			end,
 		}),
 
 		-- Index Button
@@ -89,19 +109,39 @@ return function()
 		}),
 
 		-- Inventory Button
-
-		SideButton({
-			layoutOrder = nextOrder(),
-			icon = "rbxassetid://115230651228881",
-			menuId = "Inventory",
-		}),
+		-- The ref is taken from the returned instance rather than a
+		-- `Vide.action` child: SideButton builds its own props table for Button
+		-- and never forwards array children, so an action passed here would be
+		-- dropped and the ref would stay empty.
+		captureRef(
+			tutorialButtonRefs.inventory,
+			SideButton({
+				layoutOrder = nextOrder(),
+				icon = "rbxassetid://115230651228881",
+				menuId = "Inventory",
+				visible = function()
+					return isTutorialFinished() or localTutorialStage() >= 8
+				end,
+			})
+		),
 
 		-- Rebirth Button
-		SideButton({
-			layoutOrder = nextOrder(),
-			icon = "rbxassetid://137794920489098",
-			menuId = "Rebirth",
-			notify = canRebirth,
-		}),
+		captureRef(
+			tutorialButtonRefs.rebirth,
+			SideButton({
+				layoutOrder = nextOrder(),
+				icon = "rbxassetid://137794920489098",
+				menuId = "Rebirth",
+				notify = canRebirth,
+				visible = function()
+					return isTutorialFinished() or localTutorialStage() >= 11
+				end,
+			})
+		),
 	})
 end
+
+return {
+	Component = SideButtonsComponent,
+	tutorialButtonRefs = tutorialButtonRefs,
+}

@@ -13,8 +13,10 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local RemoveKeys = require(ReplicatedStorage.Shared.Modules.Utils.RemoveKeys)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+const VideCharm = require(ReplicatedStorage.Packages.VideCharm)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
 
 type ProductIndex = {
 	title: string,
@@ -106,6 +108,9 @@ return function()
 	local ownsStarterPack = Vide.source(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 	local starterPackPrice = Vide.source(MonetizationServiceClient:getProductCostString(Products.starterPack))
 
+	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
+	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
+
 	MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()
 		ownsStarterPack(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 		starterPackPrice(MonetizationServiceClient:getProductCostString(Products.starterPack))
@@ -127,7 +132,7 @@ return function()
 		Position = sidebarPosition,
 		BackgroundTransparency = 1,
 		Visible = function()
-			if HudSlice.showEverything() then
+			if HudSlice.showEverything() and (isTutorialFinished() or localTutorialStage() >= 10) then
 				return true
 			else
 				return false

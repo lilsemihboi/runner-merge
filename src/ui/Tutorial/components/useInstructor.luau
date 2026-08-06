@@ -50,6 +50,7 @@ return function(instructorText: Vide.Source<string>)
 				Font = Enum.Font.BuilderSansExtraBold,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextScaled = true,
+				RichText = true,
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.5, 0.5),
 				Stroke = {

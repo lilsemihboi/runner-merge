@@ -62,10 +62,10 @@ local SPRING_PERIOD = 0.15
 local SPRING_DAMPING = 1
 
 local CURSOR_PLACEMENTS: { [CursorSide]: { rotation: number, position: UDim2 } } = {
-	bottom = { rotation = 0, position = UDim2.fromScale(0.2, 0.8) },
-	top = { rotation = 180, position = UDim2.fromScale(0.2, -1.25) },
-	left = { rotation = 90, position = UDim2.fromScale(-0.5, -0.25) },
-	right = { rotation = -90, position = UDim2.fromScale(1, -0.25) },
+	bottom = { rotation = 0, position = UDim2.fromScale(0, 0.8) },
+	top = { rotation = 180, position = UDim2.fromScale(0, -1.25) },
+	left = { rotation = 90, position = UDim2.fromScale(-0.5, 0) },
+	right = { rotation = -90, position = UDim2.fromScale(1, 0) },
 }
 
 --- Returns `target` rewritten to the revolution nearest `current`.

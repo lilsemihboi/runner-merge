@@ -8,6 +8,7 @@ const Networker = require(ReplicatedStorage.Packages.Networker)
 function TutorialService.init(self: TutorialService)
 	self.networker = Networker.server.new("TutorialService", self, {
 		self.saveStage,
+		self.finishTutorial,
 	})
 end
 

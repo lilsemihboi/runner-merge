@@ -265,7 +265,7 @@ tutorialSteps = {
 			return
 		end
 
-		instructorTextSource("Let your cars complete laps to unlock a Lucky Block!")
+		instructorTextSource("Let your cars complete laps to unlock a Crate!")
 
 		clearNavigators()
 
@@ -288,7 +288,7 @@ tutorialSteps = {
 	-- Step 7: Open Lucky Block
 	[7] = function()
 		TutorialSlice.states.localTutorialStage(7)
-		instructorTextSource("Open the Lucky Block!")
+		instructorTextSource("Open the Crate!")
 
 		local luckyBlockSpawn = plotModel.LuckyBlock.CrateSpawn
 		local att = getOrCreateAttachment("luckyBlock", luckyBlockSpawn)
@@ -442,7 +442,7 @@ tutorialSteps = {
 			return
 		end
 
-		instructorTextSource("Save up $1,000!")
+		instructorTextSource(`Save up <font color="rgb(0,255,0)">$1,000</font>!`)
 
 		Menu.closeCurrentMenu()
 		clearNavigators()

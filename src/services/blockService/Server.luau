@@ -53,7 +53,7 @@ function BlockService._announceDrop(self: BlockService, player: Player, crateId:
 	local rarityColor = Rarities[trailRarity]
 
 	local text = string.format(
-		"<font color='%s'>[SYSTEM] <b>%s (@%s)</b> unboxed %s [<b>%s</b>] from the <b>%s</b>!</font>",
+		"<font color='%s'><b>[SYSTEM]</b> <b>%s (@%s)</b> unboxed %s [<b>%s</b>] from the <b>%s</b>!</font>",
 		rarityHex(rarityColor),
 		FormatNameWithIcons(player),
 		player.Name,

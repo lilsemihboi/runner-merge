@@ -191,7 +191,7 @@ local function inventoryMenuContainer()
 
 		Vide.create("UIGridLayout", {
 			CellSize = usePx.offset(190, 190),
-			CellPadding = usePx.offset(45, 28),
+			CellPadding = usePx.offset(45, 72),
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Top,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,

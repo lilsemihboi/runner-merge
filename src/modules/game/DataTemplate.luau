@@ -54,6 +54,7 @@ export type DataSchema = {
 	settings: {
 		sounds: number,
 		music: number,
+		trails: boolean,
 	},
 }
 
@@ -103,5 +104,6 @@ return {
 	settings = {
 		sounds = 100,
 		music = 100,
+		trails = true,
 	},
 } :: DataSchema

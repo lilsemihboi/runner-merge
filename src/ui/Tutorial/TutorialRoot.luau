@@ -1,3 +1,5 @@
+--!nonstrict
+
 const ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 const Charm = require(ReplicatedStorage.Packages.Charm)
@@ -23,7 +25,6 @@ const instructorTextSource: Vide.Source<string> = Vide.source("") :: Vide.Source
 
 local plotModel: Model = nil :: any
 local arrowNav = nil :: any
-local uiNav = nil :: any
 local currentAttachments = {
 	upgradeTable = nil :: Attachment?,
 	runnerButton = nil :: Attachment?,
@@ -551,7 +552,7 @@ return function(): any
 	plotModel = plot.plotModel
 
 	arrowNav = useArrowNavigator()
-	uiNav = UINavigator({
+	UINavigator({
 		Target = uiTarget,
 		Cursor = true,
 		CursorSide = cursorSide,

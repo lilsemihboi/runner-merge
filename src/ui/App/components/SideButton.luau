@@ -80,6 +80,7 @@ return function(props: Props)
 		Size = usePx.offset(145, 145),
 		BackgroundTransparency = 1,
 		LayoutOrder = props.layoutOrder,
+		Visible = if props.visible ~= nil then props.visible else true,
 
 		OnClick = function()
 			if props.onNotifyClick then

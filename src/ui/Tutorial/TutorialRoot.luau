@@ -535,7 +535,6 @@ tutorialSteps = {
 }
 
 return function(): any
-	print("hiiii")
 	DataService:waitForData()
 
 	local savedStage = DataService:get({ "tutorial", "step" })

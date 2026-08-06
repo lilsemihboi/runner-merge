@@ -58,6 +58,14 @@ function CashBar.Component()
 	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
 	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
 
+	-- The cash text sits beside the "+" button while it is shown and slides
+	-- back to the bar's left edge once it is hidden.
+	local isCashButtonVisible = Vide.derive(function()
+		return isTutorialFinished() or localTutorialStage() >= 10
+	end)
+	local cashTextPositionBesideButton = usePx.udim2(0, 90, 0, 45)
+	local cashTextPositionAtEdge = usePx.udim2(0, 4, 0, 45)
+
 	local appliedHiddenReward = 0
 	local canSendFriendInvites = SocialService:CanSendGameInviteAsync(Players.LocalPlayer)
 
@@ -123,8 +131,26 @@ function CashBar.Component()
 			} :: StudButton.StudButton),
 		}),
 
+		-- Plus Icon Cash Products
+		-- sits at the left edge; the cash text starts right after it so the
+		-- left-aligned text never leaves a gap between itself and the button
+		StudButton({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0, 40, 0, 90),
+			Size = usePx.offset(54, 54),
+			Colors = ButtonColors.Green,
+			Text = "+",
+			TextSize = usePx(64),
+			OnClick = function()
+				ShopMenu.openCashProducts()
+			end,
+			Visible = isCashButtonVisible,
+		} :: StudButton.StudButton),
+
 		TextLabel({
-			Position = usePx.udim2(0, 4, 0, 45),
+			Position = function()
+				return if isCashButtonVisible() then cashTextPositionBesideButton() else cashTextPositionAtEdge()
+			end,
 			TextScaled = true,
 			Size = usePx.offset(309, 90),
 			Text = function()
@@ -146,22 +172,6 @@ function CashBar.Component()
 			},
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 		}),
-
-		StudButton({
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = usePx.udim2(0, 355, 0, 90),
-			Size = usePx.offset(72, 72),
-
-			Colors = ButtonColors.Green,
-			Text = "+",
-			TextSize = usePx(84),
-			OnClick = function()
-				ShopMenu.openCashProducts()
-			end,
-			Visible = function()
-				return isTutorialFinished() or localTutorialStage() >= 10
-			end,
-		} :: StudButton.StudButton),
 	})
 end
 

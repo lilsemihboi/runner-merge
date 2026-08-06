@@ -94,7 +94,7 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		player = player,
 		startClock = workspace:GetServerTimeNow(),
 		gateAwards = {},
-		lapCounts = {},
+		lapClocks = {},
 		janitor = Janitor.new(),
 		broadcastScheduled = false,
 		mergeEffectActive = false,
@@ -218,6 +218,63 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 	}
 end
 
+-- The single source of truth for a runner's deterministic movement, shared by
+-- gate validation and lap accounting so both always agree with the client.
+function RunnerService._getRunnerTiming(
+	_self: RunnerService,
+	state: PlotState,
+	levels: { number },
+	runnerIndex: number,
+	runnerSpeedLevel: number
+): RunnerTiming?
+	local level = levels[runnerIndex]
+	if not level then
+		return nil
+	end
+
+	local laneCount = PathData.getLaneCount(state.plotId)
+	local lane = RunnerUtils.getRunnerLane(state.plotId, runnerIndex, laneCount)
+	local path = PathData.get(state.plotId, lane)
+	if not path or path.length <= 0 then
+		return nil
+	end
+
+	local doubleSpeedMultiplier = if state.doubleSpeedOwned then 2 else 1
+	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel) * doubleSpeedMultiplier
+
+	return {
+		path = path,
+		speed = speed,
+		travelTime = path.length / math.max(1, speed),
+		phase = (runnerIndex - 1) / #levels,
+	}
+end
+
+-- Anchors every runner to the lap boundary it has most recently passed.
+-- Laps are credited from this anchor forward, so a roster/speed change can
+-- never retroactively re-price the time already spent running: without this,
+-- a faster travelTime would make the whole session recount as dozens of laps.
+function RunnerService._anchorLapClocks(self: RunnerService, state: PlotState)
+	local profile = ProfileServiceServer.getProfile(state.player)
+	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local now = workspace:GetServerTimeNow()
+	local lapClocks: { [number]: number } = {}
+
+	for runnerIndex = 1, #levels do
+		local timing = self:_getRunnerTiming(state, levels, runnerIndex, runnerSpeedLevel)
+		if not timing then
+			continue
+		end
+
+		-- keep the fraction of the current lap already run, drop nothing
+		local lapProgress = ((now - state.startClock) / timing.travelTime + timing.phase) % 1
+		lapClocks[runnerIndex] = now - lapProgress * timing.travelTime
+	end
+
+	state.lapClocks = lapClocks
+end
+
 -- merge() rewrites the whole array (many remove/insert signals in one frame);
 -- defer so a burst collapses into a single broadcast.
 function RunnerService._scheduleBroadcast(self: RunnerService, state: PlotState, clearGateAwards: boolean?)
@@ -260,7 +317,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, cle
 	-- roster changed -> indices/phases are re-assigned; old award history is stale
 	if clearGateAwards ~= false then
 		table.clear(state.gateAwards)
-		table.clear(state.lapCounts)
+		self:_anchorLapClocks(state)
 	end
 
 	local snapshot = self:_snapshot(state)
@@ -331,37 +388,35 @@ function RunnerService.reportLap(self: RunnerService, player: Player, plotId: nu
 		return
 	end
 
+	-- roster is mid-rewrite; indices are meaningless until the next broadcast
+	if state.mergeEffectActive then
+		return
+	end
+
 	local profile = ProfileServiceServer.getProfile(player)
 	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
-	local level = levels[runnerIndex]
-	if not level then
+	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	if not timing or timing.travelTime <= 0 then
 		return
 	end
-
-	local laneCount = PathData.getLaneCount(plotId)
-	local lane = RunnerUtils.getRunnerLane(plotId, runnerIndex, laneCount)
-	local path = PathData.get(plotId, lane)
-	if not path or path.length <= 0 then
-		return
-	end
-
-	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
-	local doubleSpeedMultiplier = state.doubleSpeedOwned and 2 or 1
-	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel) * doubleSpeedMultiplier
-	local travelTime = path.length / math.max(1, speed)
-	local phase = (runnerIndex - 1) / #levels
 
 	local now = workspace:GetServerTimeNow()
-	local totalLaps = math.floor((now - state.startClock) / travelTime + phase)
-
-	local previousLaps = state.lapCounts[runnerIndex] or 0
-	local newLaps = totalLaps - previousLaps
-	if newLaps <= 0 then
+	local lapClock = state.lapClocks[runnerIndex]
+	if not lapClock then
+		-- first report for this runner: anchor now, credit from here on
+		state.lapClocks[runnerIndex] = now
 		return
 	end
-	state.lapCounts[runnerIndex] = totalLaps
 
-	self:_spendLaps(player, newLaps)
+	local lapsCompleted = math.floor((now - lapClock) / timing.travelTime)
+	if lapsCompleted <= 0 then
+		return
+	end
+
+	-- advance by whole laps only, so the leftover fraction carries over
+	state.lapClocks[runnerIndex] = lapClock + lapsCompleted * timing.travelTime
+
+	self:_spendLaps(player, lapsCompleted)
 end
 
 -- Pools laps from every runner on the plot and spends them against
@@ -392,53 +447,41 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local profile = ProfileServiceServer.getProfile(player)
 	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
-	local level = levels[runnerIndex]
-	if not level then
-		return
-	end
 
 	local gateCount = profile:getActiveGateCount()
 	if gateId < 1 or gateId > gateCount then
 		return
 	end
 
-	local laneCount = PathData.getLaneCount(plotId)
-	local lane = RunnerUtils.getRunnerLane(plotId, runnerIndex, laneCount)
-	local path = PathData.get(plotId, lane)
-
-	if not path or path.length <= 0 then
+	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	if not timing then
 		return
 	end
 
+	local path = timing.path
 	local gateDistance = path.gateDistances[gateId]
 	if not gateDistance then
 		return
 	end
 
-	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
-	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel)
-	local doubleSpeedMultiplier = state.doubleSpeedOwned and 2 or 1
-	local actualSpeed = speed * doubleSpeedMultiplier
-	local travelTime = path.length / math.max(1, actualSpeed)
-	local phase = (runnerIndex - 1) / #levels
 	local now = workspace:GetServerTimeNow()
-	local progress = ((now - state.startClock) / travelTime + phase) % 1
+	local progress = ((now - state.startClock) / timing.travelTime + timing.phase) % 1
 	local distance = progress * path.length
 
 	-- distance travelled since passing the gate must be small (just crossed)
 	local delta = (distance - gateDistance) % path.length
-	if delta > actualSpeed * GATE_TOLERANCE_SECONDS then
+	if delta > timing.speed * GATE_TOLERANCE_SECONDS then
 		return
 	end
 
 	local awardKey = `{runnerIndex}_{gateId}`
 	local lastAward = state.gateAwards[awardKey]
-	if lastAward and now - lastAward < travelTime * LAP_COOLDOWN_RATIO then
+	if lastAward and now - lastAward < timing.travelTime * LAP_COOLDOWN_RATIO then
 		return
 	end
 	state.gateAwards[awardKey] = now
 
-	local income = RunnerUtils.getRunnerIncomePerLap(level)
+	local income = RunnerUtils.getRunnerIncomePerLap(levels[runnerIndex])
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
 	local vipMultiplier = if state.vipOwned then 1.5 else 1
 	local doubleCashMultiplier = if state.doubleCashOwned then 2 else 1
@@ -459,12 +502,19 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 	profile:giveCash(income)
 end
 
+type RunnerTiming = {
+	path: PathData.Path,
+	speed: number,
+	travelTime: number,
+	phase: number,
+}
+
 type PlotState = {
 	plotId: number,
 	player: Player,
 	startClock: number,
 	gateAwards: { [string]: number },
-	lapCounts: { [number]: number },
+	lapClocks: { [number]: number },
 	janitor: Janitor.Janitor,
 	broadcastScheduled: boolean,
 	mergeEffectActive: boolean,

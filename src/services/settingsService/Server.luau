@@ -12,14 +12,14 @@ local function validateSlider(_player: Player, n: any)
 	return typeof(n) == "number" and n >= 0 and n <= 100
 end
 
-local function validateBoolean(_player : Player, n: boolean)
+local function validateBoolean(_player: Player, n: boolean)
 	return typeof(n) == "boolean"
 end
 
 local specialSettings = {
 	["sounds"] = validateSlider,
 	["music"] = validateSlider,
-	["trails"] = validateBoolean
+	["trails"] = validateBoolean,
 }
 
 function SettingsServiceServer.init(self: SettingsServiceServer)

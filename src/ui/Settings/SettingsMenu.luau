@@ -16,7 +16,7 @@ type SettingProps = {
 	text: string,
 	icon: string,
 	path: string | { string },
-	type: "slider",
+	type: "slider" | "toggle",
 } & Frame.FrameProps
 
 local activeSlider = Vide.source(nil)
@@ -57,10 +57,8 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-local function settingsEntry(props: SettingProps)
-	local value, setValue = useSetting(props.path)
+local function sliderControl(value, setValue)
 	local clientValueSource = Vide.source(value())
-
 	local dragging = Vide.source(false)
 
 	local slider = nil
@@ -72,9 +70,103 @@ local function settingsEntry(props: SettingProps)
 	end)
 
 	return Frame({
+		Vide.action(function(instance)
+			slider = instance
+		end),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 0.5,
+		Size = usePx.offset(300, 24),
+		Position = usePx.udim2(0.74, 0, 0.5, 0),
+
+		Vide.create("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+			BorderStrokePosition = Enum.BorderStrokePosition.Outer,
+			Color = Color3.fromRGB(0, 0, 0),
+			Transparency = 0.3,
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Thickness = usePx(4.5),
+		}),
+
+		StudButton({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Colors = ButtonColors.Green,
+			Text = Vide.derive(function()
+				return tostring(math.floor(clientValueSource()))
+			end),
+			Size = usePx.offset(48, 48),
+			Position = Vide.derive(function()
+				return UDim2.fromScale(clientValueSource() / 100, 0.5)
+			end),
+			OnDown = function()
+				dragging(true)
+
+				activeSlider({
+					slider = slider,
+					value = clientValueSource,
+					setValue = setValue,
+					dragging = dragging,
+				})
+			end,
+			ZIndex = 2,
+		} :: StudButton.StudButton),
+
+		-- Canvas Group
+		Vide.create("CanvasGroup", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Size = usePx.offset(300, 24),
+			Position = usePx.udim2(0.5, 0, 0.5, 0),
+
+			-- Bar
+			Frame({
+				BackgroundColor3 = Color3.fromRGB(77, 255, 0),
+				BackgroundTransparency = 0,
+				Size = Vide.derive(function()
+					return UDim2.fromScale(clientValueSource() / 100, 1)
+				end),
+
+				Vide.create("UIStroke", {
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+					Color = Color3.fromRGB(171, 255, 102),
+					LineJoinMode = Enum.LineJoinMode.Round,
+					Thickness = usePx(3.5),
+				}),
+			}),
+		}),
+	})
+end
+
+local function toggleControl(value, setValue)
+	local isEnabled = Vide.derive(function()
+		return value() ~= false
+	end)
+
+	return StudButton({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Colors = Vide.derive(function()
+			return if isEnabled() then ButtonColors.Green else ButtonColors.Red
+		end),
+		Text = Vide.derive(function()
+			return if isEnabled() then "ON" else "OFF"
+		end),
+		Size = usePx.offset(140, 64),
+		Position = usePx.udim2(0.85, 0, 0.5, 0),
+		OnClick = function()
+			setValue(not isEnabled())
+		end,
+	} :: StudButton.StudButton)
+end
+
+local function settingsEntry(props: SettingProps)
+	local value, setValue = useSetting(props.path)
+
+	return Frame({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0.5,
+		LayoutOrder = props.LayoutOrder,
 		Size = usePx.offset((1008 * 0.8) - 48, 120),
 
 		-- Inner stroke
@@ -126,75 +218,8 @@ local function settingsEntry(props: SettingProps)
 			},
 		}),
 
-		-- Bar
-		props.type == "slider" and Frame({
-			Vide.action(function(instance)
-				slider = instance
-			end),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-			BackgroundTransparency = 0.5,
-			Size = usePx.offset(300, 24),
-			Position = usePx.udim2(0.74, 0, 0.5, 0),
-
-			Vide.create("UIStroke", {
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-				BorderStrokePosition = Enum.BorderStrokePosition.Outer,
-				Color = Color3.fromRGB(0, 0, 0),
-				Transparency = 0.3,
-				LineJoinMode = Enum.LineJoinMode.Round,
-				Thickness = usePx(4.5),
-			}),
-
-			StudButton({
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				--AutoButtonColor = false
-				Colors = ButtonColors.Green,
-				Text = Vide.derive(function()
-					return tostring(math.floor(clientValueSource()))
-				end),
-				Size = usePx.offset(48, 48),
-				Position = Vide.derive(function()
-					return UDim2.fromScale(clientValueSource() / 100, 0.5)
-				end),
-				OnDown = function()
-					dragging(true)
-
-					activeSlider({
-						slider = slider,
-						value = clientValueSource,
-						setValue = setValue,
-						dragging = dragging,
-					})
-				end,
-				ZIndex = 2,
-			} :: StudButton.StudButton),
-
-			-- Canvas Group
-			Vide.create("CanvasGroup", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundTransparency = 1,
-				Size = usePx.offset(300, 24),
-				Position = usePx.udim2(0.5, 0, 0.5, 0),
-
-				-- Bar
-				Frame({
-					BackgroundColor3 = Color3.fromRGB(77, 255, 0),
-					BackgroundTransparency = 0,
-					Size = Vide.derive(function()
-						return UDim2.fromScale(clientValueSource() / 100, 1)
-					end),
-
-					Vide.create("UIStroke", {
-						ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-						BorderStrokePosition = Enum.BorderStrokePosition.Inner,
-						Color = Color3.fromRGB(171, 255, 102),
-						LineJoinMode = Enum.LineJoinMode.Round,
-						Thickness = usePx(3.5),
-					}),
-				}),
-			}),
-		}),
+		-- Control
+		if props.type == "toggle" then toggleControl(value, setValue) else sliderControl(value, setValue),
 	})
 end
 
@@ -239,6 +264,14 @@ local function settingsContainer()
 			path = "music",
 			type = "slider",
 			LayoutOrder = 2,
+		}),
+
+		settingsEntry({
+			text = "Trails",
+			icon = "rbxassetid://139759022914299",
+			path = "trails",
+			type = "toggle",
+			LayoutOrder = 3,
 		}),
 	})
 end

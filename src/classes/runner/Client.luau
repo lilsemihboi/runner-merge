@@ -36,6 +36,7 @@ function Runner.new(config: RunnerConfig): Runner
 		phase = config.phase,
 		gateCount = config.gateCount,
 		selectedTrail = config.selectedTrail,
+		trailsVisible = config.trailsVisible ~= false,
 		isOwner = config.isOwner,
 		active = config.active,
 		visible = true,
@@ -121,7 +122,7 @@ function Runner._applySelectedTrail(self: Runner): ()
 	end
 
 	local trailInfo = if self.selectedTrail then Trails[self.selectedTrail] else nil
-	trail.Enabled = trailInfo ~= nil
+	trail.Enabled = trailInfo ~= nil and self.trailsVisible
 
 	if trailInfo then
 		trail.Color = trailInfo.trailColorSequence
@@ -257,6 +258,15 @@ function Runner.setSelectedTrail(self: Runner, selectedTrail: number?): ()
 	self:_applySelectedTrail()
 end
 
+function Runner.setTrailsVisible(self: Runner, trailsVisible: boolean): ()
+	if self.trailsVisible == trailsVisible then
+		return
+	end
+
+	self.trailsVisible = trailsVisible
+	self:_applySelectedTrail()
+end
+
 function Runner._refreshSpeed(self: Runner): ()
 	self.speed = RunnerUtils.getRunnerSpeed(self.level, self.runnerSpeedLevel)
 	self:_refreshTravelTime()
@@ -330,6 +340,7 @@ export type RunnerConfig = {
 	isOwner: boolean,
 	active: boolean,
 	selectedTrail: number?,
+	trailsVisible: boolean?,
 }
 
 export type Runner = typeof(setmetatable(
@@ -347,6 +358,7 @@ export type Runner = typeof(setmetatable(
 		phase: number,
 		gateCount: number,
 		selectedTrail: number?,
+		trailsVisible: boolean,
 		travelTime: number,
 		prevDistance: number,
 		prevLap: number,

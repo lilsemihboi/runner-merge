@@ -54,6 +54,7 @@ end
 
 function RunnerManager.new(): RunnerManager
 	local selectedTrailAtom = GetDataSource("selectedTrail")
+	local trailsVisibleAtom = GetDataSource({ "settings", "trails" })
 	local self = setmetatable({
 		runners = {},
 		plots = {},
@@ -63,6 +64,7 @@ function RunnerManager.new(): RunnerManager
 		cashMultiplierAtom = GetDataSource("cashMultiplier"),
 		customMultiplierAtom = GetDataSource("customMultiplier"),
 		selectedTrailAtom = selectedTrailAtom,
+		trailsVisibleAtom = trailsVisibleAtom,
 		trailMultiplier = getTrailMultiplier(selectedTrailAtom()),
 		vipMultiplier = 1,
 		doubleCashMultiplier = 1,
@@ -85,6 +87,14 @@ function RunnerManager.new(): RunnerManager
 
 	self.janitor:Add(Charm.subscribe(selectedTrailAtom, function(newTrailId)
 		self.trailMultiplier = getTrailMultiplier(newTrailId)
+	end))
+
+	self.janitor:Add(Charm.subscribe(trailsVisibleAtom, function(isVisible)
+		for _, cars in self.runners do
+			for _, car in cars do
+				car:setTrailsVisible(isVisible ~= false)
+			end
+		end
 	end))
 
 	task.spawn(function()
@@ -182,6 +192,7 @@ function RunnerManager.setRunners(
 	local isOwner = owner == Players.LocalPlayer
 	local count = #levels
 	local cars = self.runners[plotId]
+	local trailsVisible = self.trailsVisibleAtom() ~= false
 
 	for index, car in cars do
 		if index > count then
@@ -203,6 +214,7 @@ function RunnerManager.setRunners(
 		if car then
 			car.isOwner = isOwner
 			car:updateLevel(levels[index])
+			car:setTrailsVisible(trailsVisible)
 			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path, selectedTrail)
 			car:setVisible(true)
 		else
@@ -219,6 +231,7 @@ function RunnerManager.setRunners(
 				active = state.active,
 				carSpeedMultiplier = carSpeedMultiplier,
 				selectedTrail = selectedTrail,
+				trailsVisible = trailsVisible,
 			})
 		end
 	end
@@ -526,6 +539,7 @@ export type RunnerManager = typeof(setmetatable(
 		cashMultiplierAtom: Charm.Atom<number>,
 		customMultiplierAtom: Charm.Atom<number>,
 		selectedTrailAtom: Charm.Atom<number?>,
+		trailsVisibleAtom: Charm.Atom<boolean>,
 		trailMultiplier: number,
 		vipMultiplier: number,
 		doubleCashMultiplier: number,

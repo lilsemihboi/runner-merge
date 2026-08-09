@@ -87,7 +87,6 @@ local function trailButton(trailId: number, quantity: () -> number)
 			Text = function()
 				return `x{quantity()}`
 			end,
-			Rotation = 5,
 			Position = UDim2.fromScale(1, -0.05),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = Color3.fromRGB(255, 255, 255),

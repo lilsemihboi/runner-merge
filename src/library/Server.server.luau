@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
 local AutoRejoinServiceServer = require(ServerScriptService.Services.AutoRejoinService.AutoRejoinServiceServer)
 local BlockServiceServer = require(ServerScriptService.Services.BlockService.BlockServiceServer)
 local CodeServiceServer = require(ServerScriptService.Services.CodeService.CodeServiceServer)
@@ -50,6 +51,10 @@ MonetizationServiceServer:init({
 MonetizationServiceServer.productProcessed:Connect(function(_player, receiptInfo)
 	StockServiceServer:consumeByProductId(receiptInfo.ProductId)
 end)
+
+-- First: funnel step 1 is logged on PlayerAdded, so this should be listening
+-- before any other service can yield on player setup.
+AnalyticsServiceServer:init()
 
 ProfileServiceServer:init()
 InventoryServiceServer:init()

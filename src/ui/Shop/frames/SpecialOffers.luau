@@ -372,7 +372,7 @@ local function exclusiveCar()
 			HideGift = function()
 				if remaining() <= 0 then
 					return true
-				else 
+				else
 					return false
 				end
 			end,

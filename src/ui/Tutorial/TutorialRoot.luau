@@ -9,6 +9,8 @@ const GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDat
 
 const TutorialServiceClient = require(ReplicatedStorage.Shared.Services.TutorialService.TutorialServiceClient)
 const PlotServiceClient = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceClient)
+const AnalyticsServiceClient = require(ReplicatedStorage.Shared.Services.AnalyticsService.AnalyticsServiceClient)
+const OnboardingFunnel = require(ReplicatedStorage.Shared.Services.AnalyticsService.OnboardingFunnel)
 
 const TutorialSlice = require(script.Parent.TutorialSlice)
 const CratesSlice = require(ReplicatedStorage.Shared.UI.Crates.CratesSlice)
@@ -57,6 +59,32 @@ end
 
 local tutorialSteps: { [number]: () -> () }
 
+--[[
+	Every step ends the same way: report the step the player just finished,
+	persist the new stage, then run it. Routing all of them through one place
+	keeps the analytics event and the saved stage from drifting apart across the
+	many transition points below.
+]]
+const function advanceTo(nextStage: number)
+	AnalyticsServiceClient:logTutorialStage(nextStage - 1)
+	TutorialServiceClient:saveStage(nextStage)
+	tutorialSteps[nextStage]()
+end
+
+const function advanceWithoutSaving(nextStage: number)
+	AnalyticsServiceClient:logTutorialStage(nextStage - 1)
+	tutorialSteps[nextStage]()
+end
+--[[
+	Reached both by finishing stage 13 live and by rejoining while already on it,
+	so the funnel closes either way rather than leaving returning players stuck
+	one step short.
+]]
+const function finishTutorial()
+	AnalyticsServiceClient:logTutorialStage(13)
+	TutorialServiceClient:finishTutorial()
+end
+
 tutorialSteps = {
 	-- Step 1: Buy a Gate Upgrade
 	[1] = function()
@@ -65,8 +93,7 @@ tutorialSteps = {
 		const gateUpgradeSource = GetDataSource({ "upgrades", "gates" })
 
 		if gateUpgradeSource() >= 1 then
-			TutorialServiceClient:saveStage(2)
-			tutorialSteps[2]()
+			advanceTo(2)
 			return
 		end
 
@@ -85,8 +112,7 @@ tutorialSteps = {
 				return
 			end
 			clearNavigators()
-			TutorialServiceClient:saveStage(2)
-			tutorialSteps[2]()
+			advanceTo(2)
 
 			if connection ~= nil then
 				connection()
@@ -102,8 +128,7 @@ tutorialSteps = {
 		const runnersSource = GetDataSource("runners")
 
 		if #runnersSource() >= 1 then
-			TutorialServiceClient:saveStage(3)
-			tutorialSteps[3]()
+			advanceTo(3)
 			return
 		end
 
@@ -121,8 +146,7 @@ tutorialSteps = {
 			end
 
 			clearNavigators()
-			TutorialServiceClient:saveStage(3)
-			tutorialSteps[3]()
+			advanceTo(3)
 
 			if connection ~= nil then
 				connection()
@@ -143,8 +167,7 @@ tutorialSteps = {
 			if state == previous then
 				return
 			end
-			TutorialServiceClient:saveStage(4)
-			tutorialSteps[4]()
+			advanceTo(4)
 
 			if connection ~= nil then
 				connection()
@@ -160,8 +183,7 @@ tutorialSteps = {
 		const runnersSource = GetDataSource("runners")
 
 		if #runnersSource() >= 3 then
-			TutorialServiceClient:saveStage(5)
-			tutorialSteps[5]()
+			advanceTo(5)
 			return
 		end
 
@@ -189,8 +211,7 @@ tutorialSteps = {
 			end
 
 			clearNavigators()
-			TutorialServiceClient:saveStage(5)
-			tutorialSteps[5]()
+			advanceTo(5)
 
 			if connection ~= nil then
 				connection()
@@ -215,8 +236,7 @@ tutorialSteps = {
 		end
 
 		if hasHigherRunner then
-			TutorialServiceClient:saveStage(6)
-			tutorialSteps[6]()
+			advanceTo(6)
 			return
 		end
 
@@ -242,8 +262,7 @@ tutorialSteps = {
 			end
 
 			clearNavigators()
-			TutorialServiceClient:saveStage(6)
-			tutorialSteps[6]()
+			advanceTo(6)
 
 			if connection ~= nil then
 				connection()
@@ -260,8 +279,7 @@ tutorialSteps = {
 
 		local lapsLeft = lapsSource()
 		if lapsLeft == nil or lapsLeft <= 0 then
-			TutorialServiceClient:saveStage(7)
-			tutorialSteps[7]()
+			advanceTo(7)
 			return
 		end
 
@@ -276,8 +294,7 @@ tutorialSteps = {
 				return
 			end
 
-			TutorialServiceClient:saveStage(7)
-			tutorialSteps[7]()
+			advanceTo(7)
 
 			if connection ~= nil then
 				connection()
@@ -302,8 +319,7 @@ tutorialSteps = {
 			end
 
 			clearNavigators()
-			TutorialServiceClient:saveStage(8)
-			tutorialSteps[8]()
+			advanceTo(8)
 
 			if connection ~= nil then
 				connection()
@@ -341,7 +357,7 @@ tutorialSteps = {
 
 		-- Already satisfied? (menu already open on Inventory)
 		if Menu.openedMenu() == "Inventory" then
-			tutorialSteps[9]()
+			advanceWithoutSaving(9)
 			return
 		end
 
@@ -376,7 +392,7 @@ tutorialSteps = {
 				end
 
 				clearNavigators()
-				tutorialSteps[9]()
+				advanceWithoutSaving(9)
 
 				if screenConnection ~= nil then
 					screenConnection()
@@ -404,8 +420,7 @@ tutorialSteps = {
 		const selectedTrailSource = GetDataSource("selectedTrail")
 
 		if selectedTrailSource() ~= nil then
-			TutorialServiceClient:saveStage(10)
-			tutorialSteps[10]()
+			advanceTo(10)
 			return
 		end
 
@@ -420,8 +435,7 @@ tutorialSteps = {
 				return
 			end
 
-			TutorialServiceClient:saveStage(10)
-			tutorialSteps[10]()
+			advanceTo(10)
 
 			if connection ~= nil then
 				connection()
@@ -437,8 +451,7 @@ tutorialSteps = {
 		const cashSource = GetDataSource("cash")
 
 		if cashSource() >= 1000 then
-			TutorialServiceClient:saveStage(11)
-			tutorialSteps[11]()
+			advanceTo(11)
 			return
 		end
 
@@ -454,8 +467,7 @@ tutorialSteps = {
 				return
 			end
 
-			TutorialServiceClient:saveStage(11)
-			tutorialSteps[11]()
+			advanceTo(11)
 
 			if connection ~= nil then
 				connection()
@@ -486,7 +498,7 @@ tutorialSteps = {
 				end
 
 				clearNavigators()
-				tutorialSteps[12]()
+				advanceWithoutSaving(12)
 
 				if destroyScope ~= nil then
 					destroyScope()
@@ -513,8 +525,7 @@ tutorialSteps = {
 				return
 			end
 
-			TutorialServiceClient:saveStage(13)
-			tutorialSteps[13]()
+			advanceTo(13)
 
 			if connection ~= nil then
 				connection()
@@ -528,7 +539,7 @@ tutorialSteps = {
 		instructorTextSource("Great job! Keep earning, upgrading, and rebirthing!")
 
 		task.delay(3, function()
-			TutorialServiceClient:finishTutorial()
+			finishTutorial()
 			instructorTextSource("")
 		end)
 	end,
@@ -540,7 +551,12 @@ return function(): any
 	local savedStage = DataService:get({ "tutorial", "step" })
 
 	TutorialSlice.states.localTutorialStage(savedStage)
-	if TutorialSlice.states.isTutorialFinished() then
+
+	-- Read straight from DataService rather than TutorialSlice's atom. That atom
+	-- is mirrored by a separate task that also waits on data, so its value is not
+	-- guaranteed to have landed by the time this runs. Trusting it can let a
+	-- finished player fall through and replay the tutorial.
+	if DataService:get({ "tutorial", "finished" }) then
 		return
 	end
 
@@ -561,8 +577,12 @@ return function(): any
 	-- via DisplayOrder, so it is deliberately not returned as a RootUI child.
 	useInstructor(instructorTextSource)
 
+	-- Logged only once the plot exists, so the early return above stays
+	-- distinguishable from a player who simply ignored the tutorial.
+	AnalyticsServiceClient:logOnboardingStep(OnboardingFunnel.tutorialStarted)
+
 	if savedStage == 13 then
-		TutorialServiceClient:finishTutorial()
+		finishTutorial()
 	else
 		tutorialSteps[savedStage]()
 	end

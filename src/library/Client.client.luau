@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
+local AnalyticsServiceClient = require(ReplicatedStorage.Shared.Services.AnalyticsService.AnalyticsServiceClient)
 local AutoRejoinServiceClient = require(ReplicatedStorage.Shared.Services.AutoRejoinService.AutoRejoinServiceClient)
 local BlockServiceClient = require(ReplicatedStorage.Shared.Services.BlockService.BlockServiceClient)
 local CodeServiceClient = require(ReplicatedStorage.Shared.Services.CodeService.CodeServiceClient)
@@ -32,6 +33,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).client
 print("hi")
 
 DataService:init()
+AnalyticsServiceClient:init()
 InventoryServiceClient:init()
 BlockServiceClient:init()
 -- Before monetization: product cost text reads stock as soon as it initialises.

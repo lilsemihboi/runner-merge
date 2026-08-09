@@ -22,7 +22,7 @@ type MonetizationProduct = MonetizationServiceUtils.MonetizationProduct
 
 export type RobuxButtonProps = StudButton.StudButton & {
 	product: MonetizationProduct,
-	HideGift: boolean?,
+	HideGift: (boolean | () -> boolean)?,
 	OnPurchaseRequested: (() -> boolean?)?,
 }
 
@@ -38,7 +38,20 @@ local CUSTOM_PROPS = {
 
 return function(props: RobuxButtonProps)
 	local product = useProduct(props.product)
-	local giftId = if props.HideGift then nil else product().giftId
+
+	local giftId = derive(function()
+		local hideGifts = props.HideGift
+
+		if typeof(hideGifts) == "function" then
+			hideGifts = hideGifts()
+		end
+
+		if hideGifts ~= true then
+			return product().giftId
+		end
+
+		return nil
+	end)
 
 	local cost = derive(function()
 		return MonetizationServiceClient:getProductCostString(product())
@@ -46,12 +59,13 @@ return function(props: RobuxButtonProps)
 
 	local buttonProps = RemoveKeys(props, CUSTOM_PROPS)
 	buttonProps.LayoutOrder = 2
+
 	buttonProps.Text = function()
 		if props.Text then
 			return `{props.Text} ({cost()})`
-		else
-			return cost()
 		end
+
+		return cost()
 	end
 
 	buttonProps.OnClick = function()
@@ -65,7 +79,7 @@ return function(props: RobuxButtonProps)
 	local wrapperSize = derive(function()
 		local size = read(props.Size)
 
-		if not giftId then
+		if giftId() == nil then
 			return size
 		end
 
@@ -87,26 +101,30 @@ return function(props: RobuxButtonProps)
 			Padding = usePx.udim(0, 16),
 		}),
 
-		giftId and StudButton({
-			LayoutOrder = 1,
-			AutoButtonColor = false,
-			Colors = ButtonColors.Blue,
-			Text = "",
-			Size = usePx.offset(52.5, 52.5),
+		Vide.show(function()
+			return giftId() ~= nil
+		end, function()
+			return StudButton({
+				LayoutOrder = 1,
+				AutoButtonColor = false,
+				Colors = ButtonColors.Blue,
+				Text = "",
+				Size = usePx.offset(52.5, 52.5),
 
-			OnClick = function()
-				ShopSlice.state.giftingProduct(props.product)
-				Menu.setOpenedMenu("GiftingMenu")
-			end,
+				OnClick = function()
+					ShopSlice.state.giftingProduct(props.product)
+					Menu.setOpenedMenu("GiftingMenu")
+				end,
 
-			ImageLabel({
-				Size = UDim2.fromScale(0.725, 0.725),
-				Image = "rbxassetid://103954741835714",
-				Position = UDim2.fromScale(0.5, 0.5),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				ZIndex = 5,
-			}),
-		}) or nil,
+				ImageLabel({
+					Size = UDim2.fromScale(0.725, 0.725),
+					Image = "rbxassetid://103954741835714",
+					Position = UDim2.fromScale(0.5, 0.5),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					ZIndex = 5,
+				}),
+			})
+		end),
 
 		StudButton(buttonProps),
 	})

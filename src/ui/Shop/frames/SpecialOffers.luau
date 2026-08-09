@@ -369,6 +369,13 @@ local function exclusiveCar()
 
 				return ButtonColors.Green
 			end,
+			HideGift = function()
+				if remaining() <= 0 then
+					return true
+				else 
+					return false
+				end
+			end,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = usePx.udim2(0.84, 0, 0.78, 0),
 			product = Products.exclusiveCar,

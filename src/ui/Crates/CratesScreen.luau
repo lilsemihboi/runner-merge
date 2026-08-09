@@ -313,7 +313,7 @@ const function rollScreen()
 			Visible = function()
 				return not isRolling()
 			end,
-			Text = "Okay",
+			Text = "Claim",
 			OnClick = function()
 				CratesSlice.states.cratesScreenOpen(false)
 			end,

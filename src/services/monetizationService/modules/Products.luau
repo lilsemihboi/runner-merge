@@ -67,6 +67,13 @@ local products = {
 		id = 3609857146,
 	} :: MonetizationProduct,
 
+	-- Exclusive Stocked Products
+	exclusiveCar = {
+		id = 3637359531,
+		stock = 1_000,
+		giftId = 3675691634,
+	} :: MonetizationProduct,
+
 	--------------------------------
 	-- 	  --     PASSES    --     --
 	--------------------------------

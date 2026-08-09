@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ServerScriptService = game:GetService("ServerScriptService")
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
@@ -188,6 +189,14 @@ Products.cashPack4.callback = function(player: Player)
 
 	--One billion
 	profile:giveCash(1_000_000_000)
+
+	return
+end
+
+Products.exclusiveCar.callback = function(player: Player)
+	local profile = ProfileServiceServer.getProfile(player)
+
+	profile:giveExclusiveRunner(ExclusiveCars.ids.exclusiveCar)
 
 	return
 end

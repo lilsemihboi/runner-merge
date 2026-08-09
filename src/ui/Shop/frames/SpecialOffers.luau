@@ -13,6 +13,8 @@ local ShopContentFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.Sho
 local ShopFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.ShopFrame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+const ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
+const useStock = require(ReplicatedStorage.Shared.Services.StockService.Hooks.useStock)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 local function carBundle()
@@ -230,6 +232,146 @@ local function carBundle()
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = usePx.udim2(0.84, 0, 0.78, 0),
 			product = Products.carBundle1,
+			Size = usePx.offset(200, 70),
+		}),
+	})
+end
+
+local PRODUCT_KEY = "exclusiveCar"
+
+local function exclusiveCar()
+	local carInfo = ExclusiveCars.get(ExclusiveCars.ids.exclusiveCar)
+	local remaining = useStock(PRODUCT_KEY)
+	local limit = Products.exclusiveCar.stock
+
+	local isSoldOut = Vide.derive(function()
+		return remaining() <= 0
+	end)
+
+	return ShopFrame.Gold({
+		Size = usePx.offset(1008, 250),
+		LayoutOrder = 1,
+
+		--Title
+		TextLabel({
+			Text = "Limited Car",
+			Size = UDim2.fromScale(1, 0.2),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Position = usePx.udim2(0, 0, 0, 10),
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		-- Stock counter. Turns red once it runs out.
+		TextLabel({
+			Text = function()
+				if isSoldOut() then
+					return "SOLD OUT"
+				end
+
+				return `{remaining()} / {limit} left`
+			end,
+			TextColor3 = function()
+				if isSoldOut() then
+					return Color3.fromRGB(255, 64, 64)
+				end
+
+				return Color3.fromRGB(255, 236, 150)
+			end,
+			Size = usePx.offset(260, 45),
+			Position = usePx.udim2(0, 728, 0, 20),
+			TextScaled = true,
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(87, 47, 0) },
+			ZIndex = 3,
+		}),
+
+		-- CONTENT
+		Frame({
+			Size = usePx.offset(700, 160),
+			Position = usePx.udim2(0, 380, 0, 150),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+
+			Vide.create("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = usePx.udim(0, 20),
+			}),
+
+			ShopFrame.Grey({
+				Size = UDim2.fromScale(0.9, 0.9),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 1,
+
+				TextLabel({
+					Text = carInfo.name,
+					Size = UDim2.fromScale(1, 0.25),
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					Position = UDim2.fromScale(0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Stroke = { Thickness = usePx(2) },
+					ZIndex = 99,
+				}),
+
+				ImageLabel({
+					BackgroundTransparency = 1,
+					Image = carInfo.imageId,
+					Size = UDim2.fromScale(1, 1),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.45, 0.45),
+				}),
+
+				TextLabel({
+					Text = `${Abbreviate(carInfo.incomePerLap)}/lap`,
+					Size = UDim2.fromScale(1.1, 0.25),
+					Position = UDim2.fromScale(0.5, 1.1),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Stroke = { Thickness = usePx(2) },
+					ZIndex = 99,
+					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
+				}),
+			}),
+		}),
+
+		TextLabel({
+			Text = "Cannot be merged",
+			TextScaled = true,
+			Size = usePx.offset(260, 40),
+			Position = usePx.udim2(0, 728, 0, 72),
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		RobuxButton({
+			Colors = function()
+				-- The click is already refused in promptProduct; this just stops
+				-- the button from looking purchasable.
+				if isSoldOut() then
+					return ButtonColors.Red
+				end
+
+				return ButtonColors.Green
+			end,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0.84, 0, 0.78, 0),
+			product = Products.exclusiveCar,
 			Size = usePx.offset(200, 70),
 		}),
 	})
@@ -498,5 +640,6 @@ return function()
 
 		starterPack(),
 		carBundle(),
+		exclusiveCar(),
 	})
 end

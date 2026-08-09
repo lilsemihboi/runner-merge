@@ -16,6 +16,7 @@ local BlockServiceClient = require(ReplicatedStorage.Shared.Services.BlockServic
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 local CratesSlice = require(ReplicatedStorage.Shared.UI.Crates.CratesSlice)
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local FormatCurrency = require(ReplicatedStorage.Shared.Modules.Ui.FormatCurrency)
 local GeneralNotificationsServiceClient = require(ReplicatedStorage.Shared.Services.GeneralNotificationsService.GeneralNotificationsServiceClient)
 local GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
@@ -28,12 +29,14 @@ local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
+local StockSlice = require(ReplicatedStorage.Shared.Services.StockService.StockSlice)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
 
 local RUNNER_ENABLED_COLOR = Color3.fromRGB(11, 138, 20)
 local BUTTON_DISABLED_COLOR = Color3.fromRGB(136, 136, 136)
+local LIMITED_CAR_PRODUCT_KEY = "exclusiveCar"
 
 const isTutorialFinished = TutorialSlice.states.isTutorialFinished
 const localTutorialStage = TutorialSlice.states.localTutorialStage
@@ -60,6 +63,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self:setupButtons()
 	self:setupUpgradeBoard()
 	self:setupStarterPack()
+	self:setupLimitedCar()
 	self:setupGroupRewardsChest()
 	self:setupRoutes()
 	self:setupBlocks()
@@ -624,6 +628,102 @@ function Plot.setupStarterPack(self: Plot)
 	)
 end
 
+--[=[
+	Plot-side storefront for the limited exclusive car.
+
+	The model ships without a hitbox because its child models are visual only,
+	so one is generated from the model bounds. Touching it prompts the purchase,
+	and the display is destroyed for good once the global stock is exhausted.
+]=]
+function Plot.setupLimitedCar(self: Plot)
+	local limitedCarModel = self.plotModel:FindFirstChild("LimitedCar")
+	if not limitedCarModel then
+		return
+	end
+
+	local product = Products.exclusiveCar
+	local stockLimit = product.stock
+
+	local function isSoldOut(): boolean
+		return StockSlice.isSoldOut(LIMITED_CAR_PRODUCT_KEY)
+	end
+
+	if isSoldOut() then
+		limitedCarModel:Destroy()
+		return
+	end
+
+	local billboard = limitedCarModel:WaitForChild("UIAttachment"):WaitForChild("BillboardGui")
+	local priceLabel = billboard:WaitForChild("price") :: TextLabel
+	local stockLabel = billboard:WaitForChild("stock") :: TextLabel
+
+	local function updatePrice()
+		if priceLabel.Parent then
+			priceLabel.Text = MonetizationServiceClient:getProductCostString(product)
+		end
+	end
+
+	local function updateStock()
+		if not stockLabel.Parent then
+			return
+		end
+
+		local remaining = StockSlice.getRemaining(LIMITED_CAR_PRODUCT_KEY)
+		stockLabel.Text = if stockLimit then `{math.max(0, remaining)}/{stockLimit}` else ""
+	end
+
+	updatePrice()
+	updateStock()
+
+	self.janitor:Add(MonetizationServiceClient:getProductInfoChangedSignal(product):Connect(updatePrice), "Disconnect")
+
+	self.janitor:Add(Charm.subscribe(StockSlice.states.soldCounts, function()
+		if isSoldOut() then
+			limitedCarModel:Destroy()
+			return
+		end
+
+		updateStock()
+	end))
+
+	local hitbox = Instance.new("Part")
+	local boundsCFrame, boundsSize = limitedCarModel:GetBoundingBox()
+	hitbox.Name = "Hitbox"
+	hitbox.Size = boundsSize
+	hitbox.CFrame = boundsCFrame
+	hitbox.Anchored = true
+	hitbox.CanCollide = false
+	hitbox.Transparency = 1
+	hitbox.CastShadow = false
+	hitbox.CanQuery = false
+	hitbox.Parent = limitedCarModel
+
+	self.janitor:Add(hitbox, "Destroy")
+
+	self.janitor:Add(
+		hitbox.Touched:Connect(function(hit: BasePart)
+			local character = self.player.Character
+			if not character or not hit:IsDescendantOf(character) then
+				return
+			end
+
+			if not character:FindFirstChildOfClass("Humanoid") then
+				return
+			end
+
+			-- The server revalidates stock before granting, so this only avoids
+			-- showing a purchase prompt that is guaranteed to be refused.
+			if isSoldOut() then
+				ErrorMessage.add(InfoEnums.OUT_OF_STOCK)
+				return
+			end
+
+			MonetizationServiceClient:promptProduct(product)
+		end),
+		"Disconnect"
+	)
+end
+
 function Plot.teleportToBase(self: Plot): ()
 	self.networker:fire("teleportToBase")
 	return
@@ -927,8 +1027,10 @@ function Plot._hasMergeableRunners(_self: Plot, runners: { number? }?): boolean
 
 	table.sort(sortedLevels)
 
+	-- Must mirror the pairing rule in `Plot.merge` on the server, otherwise the
+	-- merge button lights up for a merge that will never happen.
 	for index = 1, #sortedLevels - 1 do
-		if sortedLevels[index] == sortedLevels[index + 1] then
+		if sortedLevels[index] == sortedLevels[index + 1] and not ExclusiveCars.isExclusive(sortedLevels[index]) then
 			return true
 		end
 	end

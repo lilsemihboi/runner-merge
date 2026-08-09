@@ -91,7 +91,7 @@ function Runner._createModel(self: Runner): ()
 	self.janitor:Remove("model")
 	self.model = nil
 
-	local template = RunnersFolder:FindFirstChild(tostring(math.min(40, self.level)))
+	local template = RunnersFolder:FindFirstChild(RunnerUtils.getModelName(self.level))
 	if not template or not template:IsA("Model") then
 		warn(`No runner model for level {self.level}`)
 		return

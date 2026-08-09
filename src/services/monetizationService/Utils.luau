@@ -13,6 +13,9 @@ export type MonetizationProduct = {
 	purchaseCooldown: number?,
 	random: boolean?,
 	disabled: boolean?,
+	-- Lifetime purchase limit shared across every server. Enforced by
+	-- StockService, which gates the purchase prompt rather than the receipt.
+	stock: number?,
 	callback: ((Player) -> ())?,
 }
 

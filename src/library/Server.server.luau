@@ -25,6 +25,7 @@ local RouteServiceServer = require(ServerScriptService.Services.RouteService.Rou
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 local SettingsServiceServer = require(ServerScriptService.Services.SettingsService.SettingsServiceServer)
 local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
+local StockServiceServer = require(ServerScriptService.Services.StockService.StockServiceServer)
 local TitleServiceServer = require(ServerScriptService.Services.TitleService.TitleServiceServer)
 local TutorialServiceServer = require(ServerScriptService.Services.TutorialService.TutorialServiceServer)
 
@@ -37,9 +38,19 @@ DataService:init({
 	profileStoreIndex = RunService:IsStudio() and "__test__" or "__production__",
 })
 
+StockServiceServer:init({
+	products = Products :: any,
+})
 MonetizationServiceServer:init({
 	products = Products :: any,
 })
+
+-- Wired here rather than inside either service: monetization reads stock to
+-- gate purchase prompts, so stock must not require monetization back.
+MonetizationServiceServer.productProcessed:Connect(function(_player, receiptInfo)
+	StockServiceServer:consumeByProductId(receiptInfo.ProductId)
+end)
+
 ProfileServiceServer:init()
 InventoryServiceServer:init()
 BlockServiceServer:init()

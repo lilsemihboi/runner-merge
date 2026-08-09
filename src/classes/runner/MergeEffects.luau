@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 
 local RunnersFolder = ReplicatedStorage.Assets.Entities
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 
 local INPUT_TWEEN = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local RESULT_TWEEN = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -56,7 +57,7 @@ local function prepareGhost(model: Model)
 end
 
 local function createGhost(container: Folder, level: number, cframe: CFrame): Model?
-	local template = RunnersFolder:FindFirstChild(tostring(math.min(40, level)))
+	local template = RunnersFolder:FindFirstChild(RunnerUtils.getModelName(level))
 	if not template or not template:IsA("Model") then
 		return nil
 	end

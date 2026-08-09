@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNameWithIcons)
 local GateServer = require(ServerScriptService.Classes.Gate.GateServer)
 local GetPlayerPortaitImage = require(ReplicatedStorage.Shared.Modules.Ui.GetPlayerPortaitImage)
@@ -303,7 +304,10 @@ function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
 	local newLevels: { number } = {}
 	for _, runnerLevel in ipairs(runnerLevels) do
 		if typeof(runnerLevel) == "number" then
-			if runnerLevel < minLevel then
+			-- Exclusives sit in a reserved high id band, so they are already
+			-- above any minLevel today. The guard keeps a future low-band
+			-- exclusive from being silently flattened away on rebirth.
+			if runnerLevel < minLevel and not ExclusiveCars.isExclusive(runnerLevel) then
 				changedAny = true
 				newLevels[#newLevels + 1] = minLevel
 			else
@@ -376,7 +380,9 @@ function Plot.merge(self: Plot, player: Player)
 			local currentRunner = sortedLevels[index]
 			local nextRunner = sortedLevels[index + 1]
 
-			if nextRunner and nextRunner.level == currentRunner.level then
+			-- Exclusive cars are never mergeable, so they fall through to the
+			-- carry-forward branch even when a player owns two of the same one.
+			if nextRunner and nextRunner.level == currentRunner.level and not ExclusiveCars.isExclusive(currentRunner.level) then
 				local newLevel = currentRunner.level + 1
 				local operationId = #mergeOperations + 1
 				mergedLevels[#mergedLevels + 1] = {

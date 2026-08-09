@@ -11,6 +11,7 @@ Profile.__index = Profile
 -- Service References
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
@@ -336,6 +337,31 @@ end
 ]=]
 function Profile.hasUnlockedRunner(self: Profile, runnerLevel: number): boolean
 	return DataService:get(self.player, { "index", tostring(runnerLevel) }) == true
+end
+
+--[=[
+	Grants an exclusive car, which cannot be obtained by merging.
+
+	Deliberately does not touch `runnerPurchases`. That counter feeds
+	`calculateRunnerBatchPrice`, so routing a paid exclusive through
+	`giveRunner` would permanently inflate the player's regular runner prices
+	as a side effect of paying us.
+
+	@param carId number -- Exclusive car id, must exist in `ExclusiveCars`
+	@return boolean -- false when the id is not a known exclusive car
+]=]
+function Profile.giveExclusiveRunner(self: Profile, carId: number): boolean
+	if not ExclusiveCars.isExclusive(carId) then
+		return false
+	end
+
+	if not self:hasUnlockedRunner(carId) then
+		DataService:set(self.player, { "index", tostring(carId) }, true)
+	end
+
+	DataService:arrayInsert(self.player, "runners", carId)
+
+	return true
 end
 
 --[=[

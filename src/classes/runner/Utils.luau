@@ -1,12 +1,37 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
+
+local MAX_REGULAR_CAR_ID = 40
+
 local RunnerUtils = {}
 
 function RunnerUtils.getRunnerSpeed(runnerLevel: number, runnerSpeedLevel: number?)
-	local level = math.max(1, math.floor(runnerLevel))
 	local speedUpgradeLevel = if typeof(runnerSpeedLevel) == "number" then runnerSpeedLevel else 0
-	local baseSpeed = 8
-	local speed = baseSpeed + math.floor((level - 1) ^ 1.35 * 0.8)
+	local exclusiveCar = ExclusiveCars.get(runnerLevel)
+	local speed
+
+	if exclusiveCar then
+		speed = exclusiveCar.speed
+	else
+		local level = math.max(1, math.floor(runnerLevel))
+		local baseSpeed = 8
+		speed = baseSpeed + math.floor((level - 1) ^ 1.35 * 0.8)
+	end
 
 	return speed * RunnerUtils.getRunnerSpeedMultiplier(speedUpgradeLevel)
+end
+
+-- Runner models live in `ReplicatedStorage.Assets.Entities` keyed by id. Regular
+-- ids clamp to the highest authored model; exclusives are looked up verbatim.
+function RunnerUtils.getModelName(runnerLevel: number): string
+	if ExclusiveCars.isExclusive(runnerLevel) then
+		return tostring(runnerLevel)
+	end
+
+	local level = math.max(1, math.floor(runnerLevel))
+
+	return tostring(math.min(MAX_REGULAR_CAR_ID, level))
 end
 
 function RunnerUtils.getRunnerLane(plotId: number, index: number, laneCount: number): number
@@ -22,6 +47,11 @@ function RunnerUtils.getRunnerLane(plotId: number, index: number, laneCount: num
 end
 
 function RunnerUtils.getRunnerIncomePerLap(runnerLevel: number)
+	local exclusiveCar = ExclusiveCars.get(runnerLevel)
+	if exclusiveCar then
+		return exclusiveCar.incomePerLap
+	end
+
 	local level = math.max(1, math.floor(runnerLevel))
 
 	if level <= 2 then

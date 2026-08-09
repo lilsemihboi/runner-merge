@@ -11,6 +11,7 @@ local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.Monet
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local ServicePlayerData = require(ReplicatedStorage.Packages.ServicePlayerData)
 local Signal = require(ReplicatedStorage.Packages.Signal)
+local StockServiceServer = require(ServerScriptService.Services.StockService.StockServiceServer)
 
 type GiftData = MonetizationServiceUtils.GiftData
 type MonetizationProduct = MonetizationServiceUtils.MonetizationProduct
@@ -236,6 +237,10 @@ function MonetizationServiceServer.promptGift(self: MonetizationService, player:
 		return false, "Receiver cannot buy this product yet"
 	end
 
+	if product.stock and product.key and StockServiceServer:isSoldOut(product.key) then
+		return false, "Product is sold out"
+	end
+
 	playerData.giftingTo = userId
 	MarketplaceService:PromptProductPurchase(player, product.giftId)
 	return true
@@ -255,6 +260,10 @@ function MonetizationServiceServer.promptProduct(self: MonetizationService, play
 
 		if product.purchaseCooldown and not self:canBuyCooldownProduct(player, product) then
 			return false, "Cannot buy this product yet"
+		end
+
+		if product.stock and product.key and StockServiceServer:isSoldOut(product.key) then
+			return false, "Product is sold out"
 		end
 
 		MarketplaceService:PromptProductPurchase(player, product.id)

@@ -25,6 +25,7 @@ local SettingsInitializer = require(ReplicatedStorage.Shared.Services.SettingsSe
 local SettingsServiceClient = require(ReplicatedStorage.Shared.Services.SettingsService.SettingsServiceClient)
 local ShopSlice = require(ReplicatedStorage.Shared.UI.Shop.ShopSlice)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
+local StockServiceClient = require(ReplicatedStorage.Shared.Services.StockService.StockServiceClient)
 local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
 local TutorialServiceClient = require(ReplicatedStorage.Shared.Services.TutorialService.TutorialServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
@@ -33,6 +34,8 @@ print("hi")
 DataService:init()
 InventoryServiceClient:init()
 BlockServiceClient:init()
+-- Before monetization: product cost text reads stock as soon as it initialises.
+StockServiceClient:init()
 MonetizationServiceClient:init(Products)
 CodeServiceClient:init()
 OfflineEarningsServiceClient:init()

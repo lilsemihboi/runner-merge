@@ -7,11 +7,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local Charm = require(ReplicatedStorage.Packages.Charm)
 local FormatTime = require(ReplicatedStorage.Shared.Modules.Ui.FormatTime)
 local MonetizationServiceUtils = require(script.Parent.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local Purchasing = require(ReplicatedStorage.Shared.UI.Hud.Purchasing)
 local Signal = require(ReplicatedStorage.Packages.Signal)
+local StockSlice = require(ReplicatedStorage.Shared.Services.StockService.StockSlice)
 
 type GiftData = MonetizationServiceUtils.GiftData
 type Product = MonetizationServiceUtils.MonetizationProduct
@@ -123,6 +125,8 @@ function MonetizationServiceClient._initProduct(self: MonetizationServiceClient,
 		local function update()
 			if (productData.isPass and self:ownsGamepass(productData)) or (productData.oneTimePurchase and self:ownsOneTimePurchase(productData)) then
 				productData._productInfo.CostText = "Owned"
+			elseif productData.stock and StockSlice.isSoldOut(key) then
+				productData._productInfo.CostText = "Sold Out"
 			elseif productData.purchaseCooldown and self:isProductOnCooldown(productData) then
 				local timeRemaining = self:getProductCooldownRemaining(productData)
 				productData._productInfo.CostText = "Cooldown: " .. FormatTime(timeRemaining)
@@ -144,6 +148,10 @@ function MonetizationServiceClient._initProduct(self: MonetizationServiceClient,
 
 		DataService:getChangedSignal(ONE_TIME_PURCHASES_DATA_KEY):Connect(update)
 		DataService:getChangedSignal(PURCHASE_COOLDOWNS_KEY):Connect(update)
+
+		if productData.stock then
+			Charm.subscribe(StockSlice.states.soldCounts, update)
+		end
 
 		if productData.purchaseCooldown and productData.purchaseCooldown > 0 then
 			while true do
@@ -277,6 +285,11 @@ function MonetizationServiceClient.promptProduct(self: MonetizationServiceClient
 		return
 	end
 
+	if product.stock and StockSlice.isSoldOut(product.key) then
+		warn("Product is sold out:", product.key)
+		return
+	end
+
 	Purchasing.DisplayPurchasing(true)
 	if product.isPass then
 		MarketplaceService:PromptGamePassPurchase(player, product.id)
@@ -286,6 +299,12 @@ function MonetizationServiceClient.promptProduct(self: MonetizationServiceClient
 end
 
 function MonetizationServiceClient.promptGift(self: MonetizationServiceClient, userId: number, product: MonetizationProduct): (boolean, string?)
+	-- The server re-checks this; failing fast here just avoids a pointless round
+	-- trip and gives the player an immediate reason.
+	if product.stock and StockSlice.isSoldOut(product.key) then
+		return false, "Out of stock"
+	end
+
 	local s, e = self.networker:fetch("promptGift", userId, product.giftId)
 	if s == true then
 		Purchasing.DisplayPurchasing(true)

@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local CarIds = require(ReplicatedStorage.Shared.Modules.Items.CarIds)
+local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
@@ -128,20 +129,37 @@ local function runnerIndex(props: IndexProps)
 end
 
 local function allRunners()
-	return Sift.Array.map(CarIds, function(carInfo: { imageId: string, name: string }, carLevel: number)
+	local entries = Sift.Array.map(CarIds, function(carInfo: { imageId: string, name: string }, carLevel: number)
 		return runnerIndex({
 			runnerLevel = carLevel,
 			runnerName = carInfo.name,
 			runnerImage = carInfo.imageId,
 		})
 	end)
+
+	-- Exclusives use a reserved high id band, so they are not part of the
+	-- dense CarIds array and have to be appended explicitly.
+	for carId, carInfo in ExclusiveCars.cars do
+		table.insert(
+			entries,
+			runnerIndex({
+				runnerLevel = carId,
+				runnerName = carInfo.name,
+				runnerImage = carInfo.imageId,
+			})
+		)
+	end
+
+	return entries
 end
+
+local totalCarCount = #CarIds + Sift.Dictionary.count(ExclusiveCars.cars)
 
 local function topInfoText()
 	return TextLabel({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Text = function()
-			return `{Sift.Dictionary.count(ownedCars())}/{#CarIds}`
+			return `{Sift.Dictionary.count(ownedCars())}/{totalCarCount}`
 		end,
 		Position = usePx.udim2(0, 730, 0, 46),
 		Size = usePx.offset(100, 90),

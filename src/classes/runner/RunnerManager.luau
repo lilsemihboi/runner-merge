@@ -63,6 +63,7 @@ function RunnerManager.new(): RunnerManager
 		janitor = Janitor.new(),
 		cashMultiplierAtom = GetDataSource("cashMultiplier"),
 		customMultiplierAtom = GetDataSource("customMultiplier"),
+		shouldShowIndicator = GetDataSource({ "settings", "moneyIndicator" }),
 		selectedTrailAtom = selectedTrailAtom,
 		trailsVisibleAtom = trailsVisibleAtom,
 		trailMultiplier = getTrailMultiplier(selectedTrailAtom()),
@@ -489,7 +490,9 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			local crossedGates, lapsCompleted = car:update(now)
 			if crossedGates then
 				for _, gateId in crossedGates do
-					self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
+					if self.shouldShowIndicator() then
+						self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
+					end
 					SoundServiceClient:play("moneyPickup")
 					self.networker:fire("reportGate", plotId, index, gateId)
 				end
@@ -537,6 +540,7 @@ export type RunnerManager = typeof(setmetatable(
 		janitor: Janitor.Janitor,
 		multiplier: number,
 		cashMultiplierAtom: Charm.Atom<number>,
+		shouldShowIndicator: Charm.Atom<boolean>,
 		customMultiplierAtom: Charm.Atom<number>,
 		selectedTrailAtom: Charm.Atom<number?>,
 		trailsVisibleAtom: Charm.Atom<boolean>,

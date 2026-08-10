@@ -206,6 +206,7 @@ local function settingsEntry(props: SettingProps)
 			Text = props.text,
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			Size = usePx.offset(250, 75),
+			TextWrapped = false,
 			Position = usePx.udim2(0.325, 0, 0.5, 0),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextScaled = true,
@@ -272,6 +273,14 @@ local function settingsContainer()
 			path = "trails",
 			type = "toggle",
 			LayoutOrder = 3,
+		}),
+
+		settingsEntry({
+			text = "Indicators",
+			icon = "rbxassetid://127468751750111",
+			path = "moneyIndicator",
+			type = "toggle",
+			LayoutOrder = 4,
 		}),
 	})
 end

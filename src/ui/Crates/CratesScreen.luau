@@ -17,11 +17,15 @@ const VideCharm = require(ReplicatedStorage.Packages.VideCharm)
 const ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
 const Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 const Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
+const SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 const usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
 const STRIP_LENGTH = 50
 const WINNER_INDEX = 46
 const SPIN_INFO = TweenInfo.new(Blocks.rollTime, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+-- At the start of the Quint ease-out a tile crosses the marker every frame. `play` restarts one
+-- shared Sound instance, so ticking that fast only ever plays the attack transient and buzzes.
+const MIN_TICK_INTERVAL = 0.045
 
 const function getTrailIds(loot: { [number]: number }): { number }
 	local ids = {}
@@ -132,11 +136,41 @@ const function rollScreen()
 				local winnerCenterX = winnerTile.AbsolutePosition.X + winnerTile.AbsoluteSize.X * 0.5
 				local targetOffset = frameCenterX - winnerCenterX
 
+				-- Centre-to-centre tile spacing, measured from two adjacent tiles so it stays correct
+				-- across resolutions rather than assuming the usePx tile size plus layout padding.
+				local cellWidth = math.max(1, winnerTile.AbsoluteSize.X)
+				local firstTile = container:FindFirstChild("Reel1")
+				local secondTile = container:FindFirstChild("Reel2")
+				if firstTile and secondTile then
+					cellWidth = math.max(1, math.abs(secondTile.AbsolutePosition.X - firstTile.AbsolutePosition.X))
+				end
+
 				container.Position = UDim2.fromScale(0, 0.5)
 				local tween = TweenService:Create(container, SPIN_INFO, {
 					Position = UDim2.new(0, targetOffset, 0.5, 0),
 				})
+
+				-- Decelerating slot ticks: fire once per tile crossing the centre marker. The Quint
+				-- ease-out spaces the crossings further apart over time, so the ticks slow to a stop.
+				local isTicking = true
+				task.spawn(function()
+					local lastIndex
+					local lastTickClock = 0
+					while isTicking and container.Parent do
+						local index = math.floor(-container.Position.X.Offset / cellWidth + 0.5)
+						local clock = os.clock()
+						if lastIndex and index ~= lastIndex and clock - lastTickClock >= MIN_TICK_INTERVAL then
+							SoundServiceClient:play("caseTick")
+							lastTickClock = clock
+						end
+						lastIndex = index
+						RunService.RenderStepped:Wait()
+					end
+				end)
+
 				tween.Completed:Connect(function()
+					isTicking = false
+					SoundServiceClient:play("caseReveal")
 					CratesSlice.actions.finishRolling()
 				end)
 				tween:Play()

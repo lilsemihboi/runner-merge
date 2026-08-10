@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).client
+local AnalyticsServiceClient = require(ReplicatedStorage.Shared.Services.AnalyticsService.AnalyticsServiceClient)
 local Charm = require(ReplicatedStorage.Packages.Charm)
 local FormatTime = require(ReplicatedStorage.Shared.Modules.Ui.FormatTime)
 local MonetizationServiceUtils = require(script.Parent.MonetizationServiceUtils)
@@ -173,14 +174,16 @@ function MonetizationServiceClient.init(self: MonetizationServiceClient, product
 	self.networker = Networker.client.new("MonetizationService", self)
 	self:_initProducts(products :: any)
 
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(_player)
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(_player, _gamePassId, wasPurchased)
 		if _player == Players.LocalPlayer then
 			Purchasing.DisplayPurchasing(false)
+			self:_reportPurchaseFinished(wasPurchased)
 		end
 	end)
 
-	MarketplaceService.PromptProductPurchaseFinished:Connect(function()
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(_userId, _productId, wasPurchased)
 		Purchasing.DisplayPurchasing(false)
+		self:_reportPurchaseFinished(wasPurchased)
 	end)
 
 	task.spawn(function()
@@ -202,6 +205,29 @@ end
 function MonetizationServiceClient._receivedGift(self: MonetizationServiceClient, giftData: GiftData): ()
 	local product = self.products[giftData.productKey]
 	self.giftReceived:Fire(product, giftData)
+end
+
+--[[
+	Reports the outcome of a purchase prompt closing.
+
+	Only the abandonment case is reported. A successful purchase is reported by
+	the server from the receipt, because these signals cannot be trusted for
+	revenue -- the Gamebeast SDK disables its own use of
+	`PromptProductPurchaseFinished` for exactly this reason ("Too many false
+	positives").
+
+	The pending key is cleared either way, so a stale product can never be
+	attributed to a later prompt.
+]]
+function MonetizationServiceClient._reportPurchaseFinished(self: MonetizationServiceClient, wasPurchased: boolean?): ()
+	local productKey = self.pendingPurchaseKey
+	self.pendingPurchaseKey = nil
+
+	if not productKey or wasPurchased then
+		return
+	end
+
+	AnalyticsServiceClient:logPurchaseDeclined(productKey, AnalyticsServiceClient.failureReasons.declined)
 end
 
 function MonetizationServiceClient:getProductInfoChangedSignal(product: Product): Signal.Signal<>
@@ -267,30 +293,45 @@ function MonetizationServiceClient:ownsGamepass(product: MonetizationProduct): b
 end
 
 function MonetizationServiceClient.promptProduct(self: MonetizationServiceClient, product: MonetizationProduct): ()
+	-- Reported before the guards below, so the gap between `productViewed` and
+	-- `purchaseStarted` measures demand the game refused to serve.
+	AnalyticsServiceClient:logProductViewed(product.key)
+
 	if product.disabled then
 		warn("Product is disabled:", product.key)
+		AnalyticsServiceClient:logPurchaseDeclined(product.key, AnalyticsServiceClient.failureReasons.disabled)
 		return
 	end
 
 	if product.random and self.policyInfo.ArePaidRandomItemsRestricted then
 		warn("Cannot purchase random items due to policy restrictions")
+		AnalyticsServiceClient:logPurchaseDeclined(product.key, AnalyticsServiceClient.failureReasons.policyBlocked)
 		return
 	end
 
 	if product.oneTimePurchase and self:ownsOneTimePurchase(product) then
+		AnalyticsServiceClient:logPurchaseDeclined(product.key, AnalyticsServiceClient.failureReasons.alreadyOwned)
 		return
 	end
 
 	if product.purchaseCooldown and self:isProductOnCooldown(product) then
+		AnalyticsServiceClient:logPurchaseDeclined(product.key, AnalyticsServiceClient.failureReasons.cooldown)
 		return
 	end
 
 	if product.stock and StockSlice.isSoldOut(product.key) then
 		warn("Product is sold out:", product.key)
+		AnalyticsServiceClient:logPurchaseDeclined(product.key, AnalyticsServiceClient.failureReasons.soldOut)
 		return
 	end
 
+	-- Remembered so the prompt's outcome can be attributed back to a product;
+	-- the finished events do not carry enough to identify it on their own.
+	self.pendingPurchaseKey = product.key
+
 	Purchasing.DisplayPurchasing(true)
+	AnalyticsServiceClient:logPurchaseStarted(product.key)
+
 	if product.isPass then
 		MarketplaceService:PromptGamePassPurchase(player, product.id)
 	else
@@ -318,6 +359,7 @@ type MonetizationServiceClient = typeof(MonetizationServiceClient) & {
 	giftReceived: Signal.Signal<(product: MonetizationProduct, giftData: GiftData) -> ()>,
 	policyInfo: PolicyInfo,
 	policyInfoChanged: Signal.Signal<>,
+	pendingPurchaseKey: string?,
 }
 
 return MonetizationServiceClient :: MonetizationServiceClient

@@ -6,7 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
+local Markers = require(ReplicatedStorage.Shared.Services.AnalyticsService.Markers)
 local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local ServicePlayerData = require(ReplicatedStorage.Packages.ServicePlayerData)
@@ -41,6 +43,21 @@ local ONE_TIME_PURCHASES_DATA_KEY = "__oneTimePurchases"
 local PURCHASE_COOLDOWNS_KEY = "__purchaseCooldowns"
 local GIFT_RECEIVER_DATA_KEY = "__giftReceiver"
 local GIFT_GLOBAL_CALLBACK_KEY = "gift"
+local PROCESSED_PURCHASES_DATA_KEY = "__processedPurchases"
+
+--[[
+	How many recent `PurchaseId`s to remember per player for replay protection.
+
+	Roblox re-delivers a receipt until the game acknowledges it, and can deliver
+	an already-granted receipt again if that acknowledgement is lost. Without
+	this, repeatable products (the cash packs, the spins, `doubleOfflineEarnings`)
+	would be granted once per delivery.
+
+	Bounded because this rides along in player data: purchases are rare per
+	player, so a short window covers every realistic redelivery while keeping
+	the profile from growing without limit.
+]]
+local MAX_PROCESSED_PURCHASE_RECORDS = 50
 
 local MonetizationServiceServer = {
 	gamePassAwarded = Signal.new(),
@@ -74,6 +91,14 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		if player then
 			self.playerData:get(player).giftingTo = nil
 		end
+
+		-- Reported only on the granted path. Roblox retries a receipt until it
+		-- is granted, so reporting alongside `NotProcessedYet` would inflate
+		-- revenue once per retry for as long as the receipt keeps failing.
+		if result == Enum.ProductPurchaseDecision.PurchaseGranted then
+			AnalyticsServiceServer:sendPurchaseGranted(receiptInfo)
+		end
+
 		return result
 	end
 
@@ -315,20 +340,102 @@ function MonetizationServiceServer.canBuyCooldownProduct(_self: MonetizationServ
 	return timeSincePurchase >= product.purchaseCooldown
 end
 
+--[[
+	True when this exact receipt has already been granted to this player.
+
+	Guards against Roblox re-delivering a receipt whose acknowledgement was
+	lost. It does NOT protect against a callback that grants an item and then
+	errors: that path returns `NotProcessedYet` without recording, so the retry
+	grants again. Closing that window would require each product callback to be
+	individually idempotent.
+]]
+function MonetizationServiceServer._isPurchaseAlreadyProcessed(_self: MonetizationService, player: Player, purchaseId: string): boolean
+	if typeof(purchaseId) ~= "string" then
+		return false
+	end
+
+	local processed = DataService:get(player, PROCESSED_PURCHASES_DATA_KEY)
+	if type(processed) ~= "table" then
+		return false
+	end
+
+	return table.find(processed, purchaseId) ~= nil
+end
+
+--[[
+	Records a granted receipt, trimming the oldest entries past the cap.
+]]
+function MonetizationServiceServer._recordProcessedPurchase(_self: MonetizationService, player: Player, purchaseId: string): ()
+	if typeof(purchaseId) ~= "string" then
+		return
+	end
+
+	-- Not replicated: this is server-only bookkeeping the client has no use for.
+	if not DataService:get(player, PROCESSED_PURCHASES_DATA_KEY) then
+		DataService:set(player, PROCESSED_PURCHASES_DATA_KEY, {}, true)
+	end
+
+	DataService:update(player, PROCESSED_PURCHASES_DATA_KEY, function(current)
+		local processed = if type(current) == "table" then current else {}
+
+		table.insert(processed, purchaseId)
+
+		while #processed > MAX_PROCESSED_PURCHASE_RECORDS do
+			table.remove(processed, 1)
+		end
+
+		return processed
+	end, true)
+end
+
+--[[
+	Emits a `purchaseFailed` marker for a receipt the game refused to grant.
+
+	`player` may be nil when the buyer left before the receipt arrived, in which
+	case there is nobody to attribute the marker to and only the reason is
+	recorded server-wide.
+]]
+function MonetizationServiceServer._reportPurchaseFailure(self: MonetizationService, player: Player?, receiptInfo: ReceiptInfo, reason: string): ()
+	local product = self:getProductFromId(receiptInfo.ProductId)
+
+	local value = {
+		offerId = product and product.key or "unknown",
+		productId = receiptInfo.ProductId,
+		reason = reason,
+	}
+
+	if player then
+		AnalyticsServiceServer:sendPlayerMarker(player, Markers.purchaseFailed, value)
+		return
+	end
+
+	AnalyticsServiceServer:sendMarker(Markers.purchaseFailed, value)
+end
+
 function MonetizationServiceServer._processDeveloperProduct(self: MonetizationService, receiptInfo: ReceiptInfo): Enum.ProductPurchaseDecision
 	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
 	if not player then
+		self:_reportPurchaseFailure(nil, receiptInfo, Markers.failureReasons.noPlayer)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
 	if not DataService:waitForData(player) then
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.dataLoadFailed)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	-- Checked after data is loaded, since the record lives in player data. A
+	-- redelivered receipt is acknowledged rather than retried forever.
+	if self:_isPurchaseAlreadyProcessed(player, receiptInfo.PurchaseId) then
+		warn("Ignoring already-processed purchase", receiptInfo.PurchaseId)
+		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
 	local id = receiptInfo.ProductId
 	local product = self:getProductFromId(id)
 	if not product then
 		warn("No product for productId", id)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.unknownProduct)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
@@ -336,17 +443,20 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 	local oneTimePurchase = product.oneTimePurchase
 	if not isGift and oneTimePurchase and self:ownsOneTimePurchase(player, product) then
 		warn("Player has already purchased one-time product", product.id)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.alreadyOwned)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
 	local hasCooldown = product.purchaseCooldown and product.purchaseCooldown > 0
 	if not isGift and hasCooldown and not self:canBuyCooldownProduct(player, product) then
 		warn("Player has already purchased time-limited product", product.id)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.cooldown)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
 	if product.disabled then
 		warn("Product is disabled", id)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.disabled)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
@@ -362,6 +472,7 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 		callback = product.callback
 		if not callback then
 			warn("No callback for developer product", product.key)
+			self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.noCallback)
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
 	end
@@ -369,11 +480,17 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 	local success, result = pcall(callback, player)
 	if not success then
 		warn("Failed to process developer product", result)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.callbackError)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
 	--true or nil is fine
 	if result == false then
+		-- Deliberate soft fail: the receipt is granted so Roblox stops retrying,
+		-- but the player received nothing. Recorded so the dashboard can surface
+		-- how often players are charged for a no-op.
+		self:_recordProcessedPurchase(player, receiptInfo.PurchaseId)
+		self:_reportPurchaseFailure(player, receiptInfo, Markers.failureReasons.grantRejected)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
@@ -391,7 +508,18 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 		DataService:set(player, { PURCHASE_COOLDOWNS_KEY, tostring(product.id) }, os.time())
 	end
 
+	self:_recordProcessedPurchase(player, receiptInfo.PurchaseId)
+
 	self.productProcessed:Fire(player, receiptInfo)
+
+	AnalyticsServiceServer:sendPlayerMarker(player, Markers.purchaseSuccess, {
+		offerId = product.key,
+		productId = receiptInfo.ProductId,
+		-- Authoritative spend straight from the receipt, rather than a
+		-- client-fetched price that can be stale or unresolved.
+		robuxSpent = receiptInfo.CurrencySpent,
+		isGift = isGift,
+	})
 
 	GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 

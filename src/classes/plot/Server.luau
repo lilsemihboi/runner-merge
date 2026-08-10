@@ -6,11 +6,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
 local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNameWithIcons)
 local GateServer = require(ServerScriptService.Classes.Gate.GateServer)
 local GetPlayerPortaitImage = require(ReplicatedStorage.Shared.Modules.Ui.GetPlayerPortaitImage)
 local Janitor = require(ReplicatedStorage.Packages.Janitor)
+local Markers = require(ReplicatedStorage.Shared.Services.AnalyticsService.Markers)
 local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
@@ -442,6 +444,23 @@ function Plot.merge(self: Plot, player: Player)
 
 	self._isApplyingRunnerMerge = false
 	RunnerServiceServer:playMergeEffect(self.plotId, mergeOperations)
+
+	-- One marker per cascade rather than per pairing: auto-merge at 20 runners
+	-- can chain dozens of operations from a single player action, and counting
+	-- those individually would drown out the shape we actually care about.
+	local highestResultLevel = 0
+	for _, operation in mergeOperations do
+		if operation.resultLevel > highestResultLevel then
+			highestResultLevel = operation.resultLevel
+		end
+	end
+
+	AnalyticsServiceServer:sendPlayerMarker(self.player, Markers.runnerMerged, {
+		mergeCount = #mergeOperations,
+		highestResultLevel = highestResultLevel,
+		runnerCountBefore = #runnerLevels,
+		runnerCountAfter = #mergedRunnerLevels,
+	})
 
 	return "SUCCESS"
 end

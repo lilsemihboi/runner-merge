@@ -118,7 +118,7 @@ local function Component()
 			barSizeTarget(BAR_FULL_SIZE)
 		elseif not firstRun then
 			if prevMenu ~= "OfflineRewards" then
-				Menu.setOpenedMenu(prevMenu)
+				Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
 			end
 			HudSlice.showEverything(true)
 

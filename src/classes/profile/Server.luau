@@ -10,8 +10,11 @@ Profile.__index = Profile
 
 -- Service References
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
+local Markers = require(ReplicatedStorage.Shared.Services.AnalyticsService.Markers)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
@@ -314,7 +317,7 @@ function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?)
 		amount = 1
 	end
 
-	DataService:update(self.player, "runnerPurchases", function(current)
+	local totalPurchases = DataService:update(self.player, "runnerPurchases", function(current)
 		return current + amount
 	end)
 
@@ -327,6 +330,13 @@ function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?)
 	for _ = 1, amount :: number, 1 do
 		DataService:arrayInsert(self.player, "runners", runnerLevel)
 	end
+
+	AnalyticsServiceServer:sendPlayerMarker(self.player, Markers.runnerPurchased, {
+		runnerLevel = runnerLevel,
+		amount = amount,
+		totalPurchases = totalPurchases,
+		isFirstUnlock = not hasObtained,
+	})
 end
 
 --[=[

@@ -3,6 +3,7 @@
 local AvatarEditorService = game:GetService("AvatarEditorService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local AnalyticsServiceClient = require(ReplicatedStorage.Shared.Services.AnalyticsService.AnalyticsServiceClient)
 local ButtonColors = require(ReplicatedStorage.Shared.Modules.Ui.ButtonColors)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
 local ImageLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.ImageLabel)
@@ -21,8 +22,13 @@ local CUSTOM_PROPS = {
 	"Scale",
 }
 local CLOSE_RENDER_DURATION = 0.5
+local SHOP_MENU_ID = "Shop"
 local openedMenuSource = Vide.source(nil)
 local hasPromptedFavorite = false
+
+export type MenuOpenOptions = {
+	isRestoringPreviousMenu: boolean?,
+}
 
 local activeCloseFn
 local activeMenuId
@@ -217,7 +223,18 @@ return {
 	end,
 
 	openedMenu = openedMenuSource,
-	setOpenedMenu = function(menuId: string?)
+	--[[
+		Opens a menu, or closes it when it is already the open one.
+
+		`options.isRestoringPreviousMenu` marks an open that is putting back UI
+		state the game itself took away, rather than one the player asked for.
+		The purchase overlay closes the current menu and reopens it afterwards,
+		so without this every purchase would look like a second shop visit.
+
+		`options` is tolerated rather than trusted: at least one existing caller
+		passes a stale positional argument here.
+	]]
+	setOpenedMenu = function(menuId: string?, options: MenuOpenOptions?)
 		local current = Vide.untrack(openedMenuSource)
 
 		if menuId == current then
@@ -226,6 +243,12 @@ return {
 		end
 
 		openedMenuSource(menuId)
+
+		if menuId == SHOP_MENU_ID then
+			local isRestoring = type(options) == "table" and options.isRestoringPreviousMenu == true
+
+			AnalyticsServiceClient:logStoreOpened(if isRestoring then AnalyticsServiceClient.storeSources.restore else AnalyticsServiceClient.storeSources.menu)
+		end
 
 		if menuId == "GroupRewards" and RunService:IsRunning() and not hasPromptedFavorite then
 			hasPromptedFavorite = true

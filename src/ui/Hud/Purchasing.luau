@@ -74,7 +74,7 @@ local function component()
 			HudSlice.showEverything(false)
 		elseif not firstRun then
 			if prevMenu ~= "OfflineRewards" then
-				Menu.setOpenedMenu(prevMenu)
+				Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
 			end
 			HudSlice.showEverything(true)
 		end

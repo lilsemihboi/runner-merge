@@ -39,6 +39,12 @@ DataService:init({
 	profileStoreIndex = RunService:IsStudio() and "__test__" or "__production__",
 })
 
+-- First after data: funnel step 1 is logged on PlayerAdded, so this must be
+-- listening before any other service can yield on player setup. It also owns
+-- the Gamebeast handle every other service sends markers through, which has to
+-- exist before those services can fire anything.
+AnalyticsServiceServer:init()
+
 StockServiceServer:init({
 	products = Products :: any,
 })
@@ -51,10 +57,6 @@ MonetizationServiceServer:init({
 MonetizationServiceServer.productProcessed:Connect(function(_player, receiptInfo)
 	StockServiceServer:consumeByProductId(receiptInfo.ProductId)
 end)
-
--- First: funnel step 1 is logged on PlayerAdded, so this should be listening
--- before any other service can yield on player setup.
-AnalyticsServiceServer:init()
 
 ProfileServiceServer:init()
 InventoryServiceServer:init()

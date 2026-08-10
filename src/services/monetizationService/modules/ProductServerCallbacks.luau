@@ -117,10 +117,6 @@ Products.skipRebirth.callback = function(player: Player)
 	local playerRebirths = profile:getRebirths()
 	local nextRebirth = playerRebirths + 1
 
-	profile:resetCash()
-	profile:setExtraGateCount(0)
-	profile:resetUpgrades()
-
 	-- Award
 	profile:giveRebirth()
 	profile:setMultiplier(RebirthServiceUtils.getCashMultiplierForRebirth(nextRebirth))

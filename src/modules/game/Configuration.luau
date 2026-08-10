@@ -5,7 +5,7 @@ export type ConfigurationSchema = {
 }
 
 return {
-	PLOT_COUNT = 1,
+	PLOT_COUNT = 8,
 	-- extra studs around a plot's runway bounding box that still count as
 	-- "inside" for runner replication culling (see RunnerManager)
 	RUNNER_BOUNDS_PADDING = 12,

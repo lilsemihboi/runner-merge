@@ -119,6 +119,38 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	return self
 end
 
+--[=[
+	Resolves the character `hit` belongs to, and only when that character is this
+	plot's owner. Returns nil for anything else.
+
+	This deliberately avoids reading `Player.Character`. That property is
+	replicated, so on the client it is still nil or still the *previous* character
+	for a few frames after a respawn, while the new character's parts are already
+	generating Touched events. Any touch landing in that window fails the check and
+	is dropped, and because Touched only fires on a fresh contact the trigger then
+	stays dead until the player physically steps off and back on. The server
+	teleports the character onto the plot on every CharacterAdded, so landing on a
+	hitbox inside that exact window is common enough to explain the intermittency.
+
+	Walking up from the touching part sidesteps the property entirely, and also
+	resolves parts nested in accessories and tools, which `hit.Parent` alone misses.
+]=]
+function Plot._getTouchingCharacter(self: Plot, hit: BasePart): Model?
+	local instance: Instance? = hit
+
+	while instance and instance ~= workspace do
+		if instance:IsA("Model") and instance:FindFirstChildOfClass("Humanoid") then
+			-- Character models are named after their player, and usernames are
+			-- unique, so this identifies the owner without the replication race.
+			return if instance.Name == self.player.Name then instance else nil
+		end
+
+		instance = instance.Parent
+	end
+
+	return nil
+end
+
 function Plot._setupUpgradeButtonFX(
 	_self: Plot,
 	button: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates.UpgradeButton)
@@ -512,8 +544,7 @@ function Plot.setupRoutes(self: Plot)
 
 	self.janitor:Add(
 		self.plotModel.Routes.Hitbox.Touched:Connect(function(hit: BasePart)
-			local character = self.player.Character
-			if not character or not hit:IsDescendantOf(character) then
+			if not self:_getTouchingCharacter(hit) then
 				return
 			end
 
@@ -557,8 +588,7 @@ function Plot.setupGroupRewardsChest(self: Plot)
 
 	self.janitor:Add(
 		self.plotModel.GroupChest.Hitbox.Touched:Connect(function(hit: BasePart)
-			local character = self.player.Character
-			if not character or not hit:IsDescendantOf(character) then
+			if not self:_getTouchingCharacter(hit) then
 				return
 			end
 
@@ -616,13 +646,11 @@ function Plot.setupStarterPack(self: Plot)
 
 	self.janitor:Add(
 		self.plotModel.StarterPack.Hitbox.Touched:Connect(function(hit: BasePart)
-			if hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid") then
-				local player = Players:GetPlayerFromCharacter(hit.Parent)
-
-				if player == Players.LocalPlayer then
-					MonetizationServiceClient:promptProduct(Products.starterPack)
-				end
+			if not self:_getTouchingCharacter(hit) then
+				return
 			end
+
+			MonetizationServiceClient:promptProduct(Products.starterPack)
 		end),
 		"Disconnect"
 	)
@@ -702,12 +730,7 @@ function Plot.setupLimitedCar(self: Plot)
 
 	self.janitor:Add(
 		hitbox.Touched:Connect(function(hit: BasePart)
-			local character = self.player.Character
-			if not character or not hit:IsDescendantOf(character) then
-				return
-			end
-
-			if not character:FindFirstChildOfClass("Humanoid") then
+			if not self:_getTouchingCharacter(hit) then
 				return
 			end
 
@@ -747,12 +770,7 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 
 	self.janitor:Add(
 		buttonTop.Touched:Connect(function(hit: BasePart)
-			local character = self.player.Character
-			if not character or not hit:IsDescendantOf(character) then
-				return
-			end
-
-			if not character:FindFirstChildOfClass("Humanoid") then
+			if not self:_getTouchingCharacter(hit) then
 				return
 			end
 
@@ -760,7 +778,6 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 			if now - lastTrigger < 0.75 then
 				return
 			end
-			lastTrigger = now
 
 			if not isTutorialFinished() then
 				if buttonType == "Runner" then
@@ -775,6 +792,10 @@ function Plot._registerTypeButton(self: Plot, buttonTop: BasePart, buttonType: "
 					end
 				end
 			end
+
+			-- Armed only once the touch is actually going to act, so a touch that the
+			-- tutorial gate above rejects cannot swallow the next valid one.
+			lastTrigger = now
 
 			if buttonType == "Runner" then
 				local result = self.networker:fetch("addRunner", runnerAmount)

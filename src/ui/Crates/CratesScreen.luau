@@ -27,6 +27,12 @@ const SPIN_INFO = TweenInfo.new(Blocks.rollTime, Enum.EasingStyle.Quint, Enum.Ea
 -- shared Sound instance, so ticking that fast only ever plays the attack transient and buzzes.
 const MIN_TICK_INTERVAL = 0.045
 
+const CENTERED_POSITION = UDim2.fromScale(0.5, 0.5)
+-- Anchor is centred, so -0.5 scale parks the whole frame above the top edge regardless of height.
+const ABOVE_SCREEN_POSITION = UDim2.fromScale(0.5, -0.5)
+const SLIDE_IN_PERIOD = 0.35
+const SLIDE_IN_DAMPING = 0.8
+
 const function getTrailIds(loot: { [number]: number }): { number }
 	local ids = {}
 	for trailId in loot do
@@ -178,10 +184,18 @@ const function rollScreen()
 		end)
 	end)
 
+	-- `Vide.show` rebuilds this whole tree per open, so the spring starts above the screen and is
+	-- retargeted on the next frame. Retargeting immediately would let the spring settle before it
+	-- ever renders, and the frame would just appear at the centre.
+	local slideTarget = Vide.source(ABOVE_SCREEN_POSITION)
+	local slidePosition = Vide.spring(slideTarget, SLIDE_IN_PERIOD, SLIDE_IN_DAMPING)
+
+	Vide.cleanup(task.defer(slideTarget, CENTERED_POSITION))
+
 	return Frame({
 		Size = usePx.offset(1358, 361),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
+		Position = slidePosition,
 		BackgroundColor3 = Color3.fromRGB(7, 15, 24),
 		BackgroundTransparency = 0.5,
 

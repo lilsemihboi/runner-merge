@@ -9,6 +9,7 @@ local Janitor = require(ReplicatedStorage.Packages.Janitor)
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
+local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local GetBestRoute = require(ReplicatedStorage.Shared.Services.RouteService.GetBestRoute)
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
@@ -55,7 +56,9 @@ end
 	Whenever their rebirth count changes, the strongest route that the new count
 	unlocks is resolved. If the player was riding the previously-best route, they
 	are moved up automatically; if they had manually selected a different route,
-	that choice is preserved.
+	that choice is preserved. Reaching a stronger route than before also notifies
+	the player, since route ownership is derived from rebirths rather than stored,
+	so this is the only moment an unlock can be observed.
 
 	@param player Player -- The player to watch
 	@return () -- No return value
@@ -86,6 +89,11 @@ function RouteService._watchRebirths(self: RouteService, player: Player)
 				return
 			end
 
+			-- Compared by requirement rather than by id to match how GetBestRoute
+			-- ranks routes, so a rebirth count that drops (moving the best route
+			-- back down) is not announced as an unlock.
+			local unlockedNewRoute = RouteServiceUtils[newBestRoute].rebirthRequirement > RouteServiceUtils[previousBestRoute].rebirthRequirement
+
 			-- Only auto-switch when the player's selection is the previous best;
 			-- a manually chosen route below it stays untouched.
 			if profile:getRoute() == previousBestRoute then
@@ -93,6 +101,12 @@ function RouteService._watchRebirths(self: RouteService, player: Player)
 			end
 
 			self.bestRouteWhenLastChecked[player] = newBestRoute
+
+			-- Announced even when the player stays on a manually chosen lower
+			-- route, because the new route is unlocked either way.
+			if unlockedNewRoute then
+				GeneralNotificationsServiceServer:sendNotification(player, `You unlocked Route {newBestRoute}! 🎉`)
+			end
 		end),
 		"Disconnect"
 	)

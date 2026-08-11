@@ -18,6 +18,7 @@
 local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 -- Read shape images from ImageLabel children (set via instance properties, not code)
 local SHAPE_IMAGES = {}
@@ -48,6 +49,24 @@ end
 
 local function easeInQuad(t: number): number
 	return t * t
+end
+
+-- ── Origin ─────────────────────────────────────────────────────
+
+local function originPoint(origin: string, screenWidth: number, screenHeight: number): (number, number)
+	if origin == "Center" then
+		return screenWidth / 2, screenHeight / 2
+	elseif origin == "TopLeft" then
+		return 0, 0
+	end
+	return screenWidth, screenHeight
+end
+
+-- Largest horizontal and vertical reach from the origin to a screen edge. A shape
+-- centered on the origin must span twice this to clear the whole screen.
+local function originReach(origin: string, screenWidth: number, screenHeight: number): (number, number)
+	local x, y = originPoint(origin, screenWidth, screenHeight)
+	return math.max(x, screenWidth - x), math.max(y, screenHeight - y)
 end
 
 -- ── GridEffect ─────────────────────────────────────────────────
@@ -136,7 +155,7 @@ function GridEffect:Prepare(origin: string)
 		return
 	end
 
-	local ox, oy = self:_getOriginPoint(origin)
+	local ox, oy = originPoint(origin, self._screenWidth, self._screenHeight)
 	local maxDist = 0
 	for _, cell in self._cells do
 		local dx = cell.x - ox
@@ -213,15 +232,6 @@ function GridEffect:Destroy()
 		cell.element:Destroy()
 	end
 	self._cells = {}
-end
-
-function GridEffect:_getOriginPoint(origin: string): (number, number)
-	if origin == "Center" then
-		return self._screenWidth / 2, self._screenHeight / 2
-	elseif origin == "TopLeft" then
-		return 0, 0
-	end
-	return self._screenWidth, self._screenHeight
 end
 
 -- ── Grid helpers ───────────────────────────────────────────────
@@ -442,7 +452,8 @@ function ShapeEffect.new(mode: string)
 	return setmetatable({
 		_mode = mode,
 		_element = nil :: GuiObject?,
-		_maxSize = 0,
+		_coverWidth = 0,
+		_coverHeight = 0,
 		_originX = 0,
 		_originY = 0,
 		_screenWidth = 0,
@@ -453,10 +464,8 @@ end
 function ShapeEffect:Build(gui: ScreenGui, screenWidth: number, screenHeight: number, color: Color3)
 	self._screenWidth = screenWidth
 	self._screenHeight = screenHeight
-	local diagonal = math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight)
 
 	if self._mode == "box" then
-		self._maxSize = math.max(screenWidth, screenHeight)
 		local frame = Instance.new("Frame")
 		frame.BackgroundColor3 = color
 		frame.BorderSizePixel = 0
@@ -465,7 +474,6 @@ function ShapeEffect:Build(gui: ScreenGui, screenWidth: number, screenHeight: nu
 		frame.Parent = gui
 		self._element = frame
 	elseif self._mode == "diamond" then
-		self._maxSize = diagonal
 		local frame = Instance.new("Frame")
 		frame.BackgroundColor3 = color
 		frame.BorderSizePixel = 0
@@ -475,7 +483,6 @@ function ShapeEffect:Build(gui: ScreenGui, screenWidth: number, screenHeight: nu
 		frame.Parent = gui
 		self._element = frame
 	else
-		self._maxSize = diagonal
 		local image = Instance.new("ImageLabel")
 		image.Image = SHAPE_IMAGES.Circle or ""
 		image.ImageColor3 = color
@@ -486,39 +493,37 @@ function ShapeEffect:Build(gui: ScreenGui, screenWidth: number, screenHeight: nu
 		image.Parent = gui
 		self._element = image
 	end
+
+	self:Prepare("Center")
 end
 
 function ShapeEffect:Prepare(origin: string)
-	if origin == "Center" then
-		self._originX = self._screenWidth / 2
-		self._originY = self._screenHeight / 2
-	elseif origin == "TopLeft" then
-		self._originX = 0
-		self._originY = 0
-	else
-		self._originX = self._screenWidth
-		self._originY = self._screenHeight
-	end
+	self._originX, self._originY = originPoint(origin, self._screenWidth, self._screenHeight)
 	self._element.Position = UDim2.fromOffset(self._originX, self._originY)
+
+	local reachX, reachY = originReach(origin, self._screenWidth, self._screenHeight)
+
+	if self._mode == "box" then
+		self._coverWidth = 2 * reachX
+		self._coverHeight = 2 * reachY
+		return
+	end
+
+	-- A centered circle must reach the farthest corner; a 45°-rotated square needs
+	-- its half-diagonal to clear that corner, hence the sqrt(2) factor.
+	local size = if self._mode == "diamond" then math.sqrt(2) * (reachX + reachY) else 2 * math.sqrt(reachX * reachX + reachY * reachY)
+	self._coverWidth = size
+	self._coverHeight = size
 end
 
 function ShapeEffect:Update(progress: number, direction: string)
 	local t = if direction == "In" then progress else 1 - progress
-	if self._mode == "box" then
-		self._element.Size = UDim2.fromOffset(math.floor(self._screenWidth * t), math.floor(self._screenHeight * t))
-	else
-		local size = math.floor(self._maxSize * t)
-		self._element.Size = UDim2.fromOffset(size, size)
-	end
+	self._element.Size = UDim2.fromOffset(math.ceil(self._coverWidth * t), math.ceil(self._coverHeight * t))
 	self._element.Visible = t > 0.01
 end
 
 function ShapeEffect:Show()
-	if self._mode == "box" then
-		self._element.Size = UDim2.fromOffset(self._screenWidth, self._screenHeight)
-	else
-		self._element.Size = UDim2.fromOffset(self._maxSize, self._maxSize)
-	end
+	self._element.Size = UDim2.fromOffset(math.ceil(self._coverWidth), math.ceil(self._coverHeight))
 	self._element.Visible = true
 end
 
@@ -806,12 +811,19 @@ function TransitionManager.new(playerGui: PlayerGui, options: { displayOrder: nu
 		_elapsed = 0,
 		_duration = 0,
 		_direction = "In",
+		_builtWidth = 0,
+		_builtHeight = 0,
 		_renderStepName = RENDER_STEP_NAME .. "_" .. tostring(nextId),
 	}, TransitionManager)
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "TransitionOverlay"
-	gui.IgnoreGuiInset = true
+	-- IgnoreGuiInset alone only downgrades ScreenInsets to DeviceSafeInsets, which still
+	-- reserves room for notches and cutouts. None is what actually spans every pixel, and
+	-- it makes the overlay's offset space equal to the camera viewport.
+	gui.ScreenInsets = Enum.ScreenInsets.None
+	-- Nothing here is interactive, so skip the automatic fullscreen-extension transform.
+	gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 	gui.DisplayOrder = (options and options.displayOrder) or 99
 	gui.Enabled = false
 	gui.ResetOnSpawn = false
@@ -906,24 +918,32 @@ function TransitionManager:_onRender(dt: number)
 	end
 end
 
+-- With ScreenInsets.None the overlay spans the fullscreen area, so the viewport is the
+-- offset space every effect is laid out in. Reading it needs no yield and stays correct
+-- while the overlay is disabled.
 function TransitionManager:_getScreenSize(): (number, number)
-	local wasEnabled = self._gui.Enabled
-	if not wasEnabled then
-		self._gui.Enabled = true
-		task.wait()
-	end
-	local sw = self._gui.AbsoluteSize.X
-	local sh = self._gui.AbsoluteSize.Y
-	if not wasEnabled then
-		self._gui.Enabled = false
-	end
-	if sw <= 0 or sh <= 0 then
+	local camera = Workspace.CurrentCamera
+	local viewportSize = camera and camera.ViewportSize
+	if not viewportSize or viewportSize.X <= 0 or viewportSize.Y <= 0 then
 		return DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT
 	end
-	return sw, sh
+	return viewportSize.X, viewportSize.Y
 end
 
 function TransitionManager:_getOrCreateEffect(effectType: string)
+	local screenWidth, screenHeight = self:_getScreenSize()
+
+	-- Effects bake pixel offsets at build time, so a resized window leaves them too small.
+	if screenWidth ~= self._builtWidth or screenHeight ~= self._builtHeight then
+		for _, staleEffect in self._effects do
+			staleEffect:Destroy()
+		end
+		self._effects = {}
+		self._activeEffect = nil
+		self._builtWidth = screenWidth
+		self._builtHeight = screenHeight
+	end
+
 	local effect = self._effects[effectType]
 	if effect then
 		return effect
@@ -935,8 +955,7 @@ function TransitionManager:_getOrCreateEffect(effectType: string)
 	end
 
 	effect = factory()
-	local sw, sh = self:_getScreenSize()
-	effect:Build(self._gui, sw, sh, self._color)
+	effect:Build(self._gui, screenWidth, screenHeight, self._color)
 	self._effects[effectType] = effect
 	return effect
 end

@@ -8,6 +8,6 @@ return {
 	PLOT_COUNT = 8,
 	-- extra studs around a plot's runway bounding box that still count as
 	-- "inside" for runner replication culling (see RunnerManager)
-	RUNNER_BOUNDS_PADDING = 12,
+	RUNNER_BOUNDS_PADDING = 15,
 	FRIENDS_PER_TICK = 10,
 } :: ConfigurationSchema

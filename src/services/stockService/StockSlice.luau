@@ -14,19 +14,33 @@ type StockMap = StockServiceUtils.StockMap
 ]=]
 local soldCounts = Charm.atom({} :: StockMap)
 
+--[=[
+	Whether `soldCounts` reflects the server yet.
+
+	An empty `soldCounts` is ambiguous: it means either "nothing sold" or "not
+	replicated yet". Callers that gate content on stock need to tell those apart,
+	otherwise a sold-out product looks available for the first frames of a join.
+]=]
+local isSynced = Charm.atom(false)
+
 local StockSlice = {
 	actions = {
 		setSoldCounts = function(nextSoldCounts: StockMap)
+			-- Flag first so `soldCounts` subscribers already see a trustworthy
+			-- `isSynced` while they run.
+			isSynced(true)
 			soldCounts(table.clone(nextSoldCounts))
 		end,
 
 		reset = function()
+			isSynced(false)
 			soldCounts({})
 		end,
 	},
 
 	states = {
 		soldCounts = soldCounts,
+		isSynced = isSynced,
 	},
 }
 

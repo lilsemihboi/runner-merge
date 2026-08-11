@@ -8,6 +8,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
+const SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
 local Markers = require(ReplicatedStorage.Shared.Services.AnalyticsService.Markers)
 local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
@@ -521,6 +522,7 @@ function MonetizationServiceServer._processDeveloperProduct(self: MonetizationSe
 		isGift = isGift,
 	})
 
+	SoundServiceServer:play(player, "purchaseSucceded")
 	GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 
 	return Enum.ProductPurchaseDecision.PurchaseGranted

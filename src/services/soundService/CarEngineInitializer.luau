@@ -11,8 +11,8 @@ const ENGINE_SOUND_ID = "carEngineRunning"
 return function()
 	const runnersSource = GetDataSource("runners")
 	local isEngineRunning = false
-			print("HAS CAR")
-			print("HAS CAR")
+	print("HAS CAR")
+	print("HAS CAR")
 
 	const function sync(runners: { number })
 		const hasCar = #runners > 0

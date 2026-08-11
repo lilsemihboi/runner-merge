@@ -8,6 +8,7 @@ local Passes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Passes)
 local SpecialOffers = require(ReplicatedStorage.Shared.UI.Shop.Frames.SpecialOffers)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
+const Crates = require(ReplicatedStorage.Shared.UI.Shop.Frames.Crates)
 
 local scrollingFrame = Vide.source(nil)
 local cashProductsFrame = Vide.source(nil)
@@ -67,6 +68,7 @@ local function shopContent()
 		}),
 
 		SpecialOffers(),
+		Crates(),
 		Passes(),
 		currencySection,
 		Codes(),

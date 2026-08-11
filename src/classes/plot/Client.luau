@@ -156,6 +156,34 @@ function Plot._getTouchingCharacter(self: Plot, hit: BasePart): Model?
 	return nil
 end
 
+--[=[
+	Clones a plot prop from `ReplicatedStorage.Assets.Plot` onto the plot.
+
+	Plots only carry an `Attachment` marker per prop instead of the prop itself,
+	which keeps them out of server replication and lets a prop the player can
+	never use go unbuilt. The marker's `WorldCFrame` carries the authored
+	rotation, which is flipped on the far row of plots, and `PivotTo` reproduces
+	the original placement exactly.
+
+	@param assetName string -- template name, matched by a `{assetName}Spawn` marker
+	@return Model? -- nil when the plot has no marker or the template is missing
+]=]
+function Plot._spawnPlotAsset(self: Plot, assetName: string): Model?
+	local marker = self.plotModel:FindFirstChild(`{assetName}Spawn`)
+	local template = ReplicatedStorage.Assets.Plot:FindFirstChild(assetName)
+
+	if not (marker and marker:IsA("Attachment") and template) then
+		return nil
+	end
+
+	local asset = template:Clone() :: Model
+	-- Place before parenting so the prop never renders at the template's origin.
+	asset:PivotTo(marker.WorldCFrame)
+	asset.Parent = self.plotModel
+
+	return asset
+end
+
 function Plot._setupUpgradeButtonFX(
 	_self: Plot,
 	button: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates.UpgradeButton)
@@ -547,27 +575,41 @@ function Plot.setupBlocks(self: Plot)
 	end))
 end
 
-function Plot.setupRoutes(self: Plot)
-	local selectedRouteSource = GetDataSource({ "selectedRoute" })
+--[=[
+	Plot-side route pedestal.
 
-	local runway = nil
+	The pedestal is cloned from ReplicatedStorage and carries its own
+	`RouteSpawn` marker, so the shrunken preview of the selected route lands in
+	the right spot on every plot without the pedestal being replicated.
+]=]
+function Plot.setupRoutes(self: Plot)
+	local pedestal = self:_spawnPlotAsset("Routes")
+	if not pedestal then
+		return
+	end
+
+	self.janitor:Add(pedestal, "Destroy")
+
+	local selectedRouteSource = GetDataSource({ "selectedRoute" })
+	local runwayPreview: Model? = nil
 
 	local function placeRunwayPreview(routeId: number)
-		if runway then
-			runway:Destroy()
-			runway = nil
+		if runwayPreview then
+			runwayPreview:Destroy()
+			runwayPreview = nil
 		end
+
 		local routeTemplate = ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`)
 
 		if not routeTemplate then
 			return
 		end
 
-		local routePreview: Model = routeTemplate:Clone()
+		local preview: Model = routeTemplate:Clone()
 
-		routePreview:ScaleTo(0.1)
+		preview:ScaleTo(0.1)
 
-		for _, basePart: BasePart in routePreview:GetDescendants() do
+		for _, basePart in preview:GetDescendants() do
 			if not basePart:IsA("BasePart") then
 				continue
 			end
@@ -575,24 +617,17 @@ function Plot.setupRoutes(self: Plot)
 			basePart.CanCollide = false
 		end
 
-		-- Parent it
-
-		routePreview.Parent = self.plotModel.Routes
-		runway = routePreview
-
-		-- Position it
-
-		routePreview:PivotTo(self.plotModel.Routes.RouteSpawn.WorldCFrame)
+		preview:PivotTo(pedestal.RouteSpawn.WorldCFrame)
+		preview.Parent = pedestal
+		runwayPreview = preview
 	end
 
 	placeRunwayPreview(selectedRouteSource())
 
-	self.janitor:Add(Charm.subscribe(selectedRouteSource, function(newSelectedRoute: number)
-		placeRunwayPreview(newSelectedRoute)
-	end))
+	self.janitor:Add(Charm.subscribe(selectedRouteSource, placeRunwayPreview))
 
 	self.janitor:Add(
-		self.plotModel.Routes.Hitbox.Touched:Connect(function(hit: BasePart)
+		pedestal.Hitbox.Touched:Connect(function(hit: BasePart)
 			if not self:_getTouchingCharacter(hit) then
 				return
 			end
@@ -622,21 +657,28 @@ function Plot.claimGroupRewards(self: Plot): boolean
 	return success
 end
 
+--[=[
+	Plot-side group reward chest.
+
+	The chest is cloned from ReplicatedStorage only while the reward is
+	unclaimed, so a claimed reward leaves nothing on the plot to clean up.
+]=]
 function Plot.setupGroupRewardsChest(self: Plot)
-	--[[
-		When you trigger it Menu.setOpenedMenu("GroupRewards")
-		When the data source changed destroy it stuff
-	]]
 	local isGroupRewardClaimed = GetDataSource({ "isGroupRewardClaimed" })
 
 	if isGroupRewardClaimed() then
-		-- Destroy the model
-		self.plotModel.GroupChest:Destroy()
 		return
 	end
 
+	local chest = self:_spawnPlotAsset("GroupChest")
+	if not chest then
+		return
+	end
+
+	self.janitor:Add(chest, "Destroy")
+
 	self.janitor:Add(
-		self.plotModel.GroupChest.Hitbox.Touched:Connect(function(hit: BasePart)
+		chest.Hitbox.Touched:Connect(function(hit: BasePart)
 			if not self:_getTouchingCharacter(hit) then
 				return
 			end
@@ -651,23 +693,36 @@ function Plot.setupGroupRewardsChest(self: Plot)
 
 	self.janitor:Add(Charm.subscribe(isGroupRewardClaimed, function(newState: boolean)
 		if newState == true then
-			self.plotModel.GroupChest:Destroy()
+			chest:Destroy()
 			return
 		end
 	end))
 end
 
-function Plot.setupStarterPack(self: Plot)
-	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+--[=[
+	Plot-side storefront for the starter pack.
 
+	The model is cloned from ReplicatedStorage only while the pack is still
+	available, so an owned pack is never built onto the plot in the first place.
+]=]
+function Plot.setupStarterPack(self: Plot)
+	-- Ownership is data driven, so the first read has to happen after the load.
 	DataService:waitForData()
 
+	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
+
 	if owns() then
-		self.plotModel.StarterPack:Destroy()
 		return
 	end
 
-	local moneyLabel = self.plotModel.StarterPack.Attachment.BillboardGui:WaitForChild("Money")
+	local storefront = self:_spawnPlotAsset("StarterPack")
+	if not storefront then
+		return
+	end
+
+	self.janitor:Add(storefront, "Destroy")
+
+	local moneyLabel = storefront.Attachment.BillboardGui:WaitForChild("Money")
 	moneyLabel.Text = MonetizationServiceClient:getProductCostString(Products.starterPack)
 
 	self.janitor:Add(
@@ -675,12 +730,7 @@ function Plot.setupStarterPack(self: Plot)
 			if moneyLabel.Parent then
 				moneyLabel.Text = MonetizationServiceClient:getProductCostString(Products.starterPack)
 			end
-		end),
-		"Disconnect"
-	)
 
-	self.janitor:Add(
-		MonetizationServiceClient:getProductInfoChangedSignal(Products.starterPack):Connect(function()
 			owns(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 		end),
 		"Disconnect"
@@ -688,13 +738,13 @@ function Plot.setupStarterPack(self: Plot)
 
 	self.janitor:Add(Charm.subscribe(owns, function(state)
 		if state == true then
-			self.plotModel.StarterPack:Destroy()
+			storefront:Destroy()
 			return
 		end
 	end))
 
 	self.janitor:Add(
-		self.plotModel.StarterPack.Hitbox.Touched:Connect(function(hit: BasePart)
+		storefront.Hitbox.Touched:Connect(function(hit: BasePart)
 			if not self:_getTouchingCharacter(hit) then
 				return
 			end
@@ -708,40 +758,25 @@ end
 --[=[
 	Plot-side storefront for the limited exclusive car.
 
-	The model ships without a hitbox because its child models are visual only,
-	so one is generated from the model bounds. Touching it prompts the purchase,
-	and the display is destroyed for good once the global stock is exhausted.
+	The model is cloned from ReplicatedStorage only while stock remains, so a
+	sold-out car is never built onto the plot, and it is torn down again the
+	moment the last unit sells. It ships without a hitbox because its child
+	models are visual only, so one is generated from the model bounds.
 ]=]
 function Plot.setupLimitedCar(self: Plot)
-	local limitedCarModel = self.plotModel:FindFirstChild("LimitedCar")
-	if not limitedCarModel then
-		return
-	end
-
 	local product = Products.exclusiveCar
 	local stockLimit = product.stock
+	local storefrontJanitor = self.janitor:Add(Janitor.new(), "Destroy")
+
+	local isDisplayed = false
+	local stockLabel: TextLabel? = nil
 
 	local function isSoldOut(): boolean
 		return StockSlice.isSoldOut(LIMITED_CAR_PRODUCT_KEY)
 	end
 
-	if isSoldOut() then
-		limitedCarModel:Destroy()
-		return
-	end
-
-	local billboard = limitedCarModel:WaitForChild("UIAttachment"):WaitForChild("BillboardGui")
-	local priceLabel = billboard:WaitForChild("price") :: TextLabel
-	local stockLabel = billboard:WaitForChild("stock") :: TextLabel
-
-	local function updatePrice()
-		if priceLabel.Parent then
-			priceLabel.Text = MonetizationServiceClient:getProductCostString(product)
-		end
-	end
-
 	local function updateStock()
-		if not stockLabel.Parent then
+		if not (stockLabel and stockLabel.Parent) then
 			return
 		end
 
@@ -749,51 +784,89 @@ function Plot.setupLimitedCar(self: Plot)
 		stockLabel.Text = if stockLimit then `{math.max(0, remaining)}/{stockLimit}` else ""
 	end
 
-	updatePrice()
-	updateStock()
-
-	self.janitor:Add(MonetizationServiceClient:getProductInfoChangedSignal(product):Connect(updatePrice), "Disconnect")
-
-	self.janitor:Add(Charm.subscribe(StockSlice.states.soldCounts, function()
-		if isSoldOut() then
-			limitedCarModel:Destroy()
+	local function display()
+		local storefront = self:_spawnPlotAsset("LimitedCar")
+		if not storefront then
 			return
 		end
 
+		isDisplayed = true
+		storefrontJanitor:Add(storefront, "Destroy")
+
+		local billboard = storefront:WaitForChild("UIAttachment"):WaitForChild("BillboardGui")
+		local priceLabel = billboard:WaitForChild("price") :: TextLabel
+		stockLabel = billboard:WaitForChild("stock") :: TextLabel
+
+		local function updatePrice()
+			if priceLabel.Parent then
+				priceLabel.Text = MonetizationServiceClient:getProductCostString(product)
+			end
+		end
+
+		updatePrice()
 		updateStock()
-	end))
 
-	local hitbox = Instance.new("Part")
-	local boundsCFrame, boundsSize = limitedCarModel:GetBoundingBox()
-	hitbox.Name = "Hitbox"
-	hitbox.Size = boundsSize
-	hitbox.CFrame = boundsCFrame
-	hitbox.Anchored = true
-	hitbox.CanCollide = false
-	hitbox.Transparency = 1
-	hitbox.CastShadow = false
-	hitbox.CanQuery = false
-	hitbox.Parent = limitedCarModel
+		storefrontJanitor:Add(MonetizationServiceClient:getProductInfoChangedSignal(product):Connect(updatePrice), "Disconnect")
 
-	self.janitor:Add(hitbox, "Destroy")
+		local hitbox = Instance.new("Part")
+		local boundsCFrame, boundsSize = storefront:GetBoundingBox()
+		hitbox.Name = "Hitbox"
+		hitbox.Size = boundsSize
+		hitbox.CFrame = boundsCFrame
+		hitbox.Anchored = true
+		hitbox.CanCollide = false
+		hitbox.Transparency = 1
+		hitbox.CastShadow = false
+		hitbox.CanQuery = false
+		hitbox.Parent = storefront
 
-	self.janitor:Add(
-		hitbox.Touched:Connect(function(hit: BasePart)
-			if not self:_getTouchingCharacter(hit) then
-				return
-			end
+		storefrontJanitor:Add(
+			hitbox.Touched:Connect(function(hit: BasePart)
+				if not self:_getTouchingCharacter(hit) then
+					return
+				end
 
-			-- The server revalidates stock before granting, so this only avoids
-			-- showing a purchase prompt that is guaranteed to be refused.
-			if isSoldOut() then
-				ErrorMessage.add(InfoEnums.OUT_OF_STOCK)
-				return
-			end
+				-- The server revalidates stock before granting, so this only avoids
+				-- showing a purchase prompt that is guaranteed to be refused.
+				if isSoldOut() then
+					ErrorMessage.add(InfoEnums.OUT_OF_STOCK)
+					return
+				end
 
-			MonetizationServiceClient:promptProduct(product)
-		end),
-		"Disconnect"
-	)
+				MonetizationServiceClient:promptProduct(product)
+			end),
+			"Disconnect"
+		)
+	end
+
+	--[[
+		Sold counts arrive after the plot is built, so the first synced update is
+		what decides whether the car is ever cloned. Later updates keep the stock
+		label current and remove the display once the last unit sells.
+	]]
+	local function syncDisplay()
+		if not StockSlice.states.isSynced() then
+			return
+		end
+
+		if isSoldOut() then
+			isDisplayed = false
+			stockLabel = nil
+			storefrontJanitor:Cleanup()
+			return
+		end
+
+		if isDisplayed then
+			updateStock()
+			return
+		end
+
+		display()
+	end
+
+	syncDisplay()
+
+	self.janitor:Add(Charm.subscribe(StockSlice.states.soldCounts, syncDisplay))
 end
 
 function Plot.teleportToBase(self: Plot): ()

@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ErrorMessage = require(ReplicatedStorage.Shared.Modules.Ui.Components.ErrorMessage)
 local InfoEnums = require(ReplicatedStorage.Shared.Modules.Utils.InfoEnums)
 local Networker = require(ReplicatedStorage.Packages.Networker)
+const SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 
 function RebirthService.init(self: RebirthService)
 	self.networker = Networker.client.new("RebirthService", self)
@@ -15,7 +16,9 @@ end
 function RebirthService.rebirth(self: RebirthService)
 	local result = self.networker:fetch("rebirth")
 
-	if result ~= "SUCCESS" then
+	if result == "SUCCESS" then
+		SoundServiceClient:play("rebirth")
+	else
 		if InfoEnums[result] then
 			ErrorMessage.add(InfoEnums[result])
 		else

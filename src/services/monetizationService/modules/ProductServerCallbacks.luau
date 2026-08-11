@@ -7,6 +7,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local ServerScriptService = game:GetService("ServerScriptService")
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
+const SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
 local RebirthServiceUtils = require(ReplicatedStorage.Shared.Services.RebirthService.RebirthServiceUtils)
 
 Products.doubleOfflineEarnings.callback = function(player: Player)
@@ -124,6 +125,10 @@ Products.skipRebirth.callback = function(player: Player)
 	if nextRebirth <= 80 and nextRebirth % 2 == 0 then
 		profile:giveSpawnLevel()
 	end
+
+	pcall(function()
+		SoundServiceServer:play(player, "rebirth")
+	end)
 
 	return
 end

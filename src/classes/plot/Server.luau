@@ -185,23 +185,24 @@ end
 
 function Plot.buildRunway(self: Plot, routeId: number)
 	-- Destroy the old runway model
-	if self.runwayModel then
-		self.runwayModel:Destroy()
-		self.runwayModel = nil
-	end
+	self.janitor:Remove("runway")
+	self.runwayModel = nil
 
 	-- Build new one
-	local routeTemplate: Model = game.ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`) :: Model
-	if not routeTemplate then
+	local routeTemplate = ReplicatedStorage.Assets.Runways:FindFirstChild(`Runway{routeId}`)
+	if not routeTemplate or not routeTemplate:IsA("Model") then
 		return
 	end
 
-	self.runwayModel = routeTemplate:Clone() :: Model
-	if self.runwayModel then
-		self.runwayModel.Name = "Runway"
-		self.runwayModel.Parent = self.plotModel
-		self.runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
-	end
+	local runwayModel = routeTemplate:Clone()
+	self.runwayModel = runwayModel
+	-- Keyed so a route change replaces the previous runway, and so the plot's
+	-- janitor destroys it when the player leaves.
+	self.janitor:Add(runwayModel, "Destroy", "runway")
+
+	runwayModel.Name = "Runway"
+	runwayModel.Parent = self.plotModel
+	runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
 end
 
 function Plot.setupSign(self: Plot)

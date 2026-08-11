@@ -371,26 +371,18 @@ end
 
 return {
 	Component = function()
-		local prevMenu: string | nil
-		local firstRun = true
-
 		local isScreenOn = VideCharm.useAtom(CratesSlice.states.cratesScreenOpen)
 
 		Vide.effect(function()
 			local screenOn = isScreenOn()
 
 			if screenOn then
-				prevMenu = Vide.untrack(Menu.openedMenu)
-				Menu.setOpenedMenu(nil)
-				HudSlice.showEverything(false)
-			elseif not firstRun then
-				if prevMenu ~= "OfflineRewards" then
-					Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
-				end
-				HudSlice.showEverything(true)
+				Menu.hideOpenMenu("CratesScreen")
+			else
+				Menu.restoreOpenMenu("CratesScreen")
 			end
 
-			firstRun = false
+			HudSlice.showEverything(not screenOn)
 		end)
 		return Vide.show(function()
 			if isScreenOn() then

@@ -47,24 +47,16 @@ end
 local function component()
 	local isMenuOpen = Vide.source(GuiService.MenuIsOpen)
 
-	local prevMenu: string | nil
-	local firstRun = true
-
 	Vide.effect(function()
 		local isOpen = isMenuOpen()
 
 		if isOpen then
-			prevMenu = Vide.untrack(Menu.openedMenu)
-			Menu.setOpenedMenu(nil)
-			HudSlice.showEverything(false)
-		elseif not firstRun then
-			if prevMenu ~= "OfflineRewards" then
-				Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
-			end
-			HudSlice.showEverything(true)
+			Menu.hideOpenMenu("RobloxMenu")
+		else
+			Menu.restoreOpenMenu("RobloxMenu")
 		end
 
-		firstRun = false
+		HudSlice.showEverything(not isOpen)
 	end)
 
 	GuiService.MenuOpened:Connect(function()

@@ -19,7 +19,7 @@ function Client:_openMenuIfNeeded(data)
 	end
 
 	if Menu.openedMenu() ~= "OfflineRewards" then
-		Menu.setOpenedMenu("OfflineRewards", true)
+		Menu.setOpenedMenu("OfflineRewards")
 	end
 
 	self:_beginReward()

@@ -242,14 +242,19 @@ function Profile.getLapsLeftToAcquire(self: Profile)
 end
 
 function Profile.setCrateInQueue(self: Profile, crateId: number?): ()
-	DataService:set(self.player, { "luckyBlockInQueue" }, crateId)
 	if crateId == nil then
+		DataService:set(self.player, { "luckyBlockInQueue" }, nil)
 		return
 	end
 
 	local crateInfo = Blocks.getBlock(crateId)
 
+	-- Laps are written before the crate id because the client mirrors these two
+	-- keys as independent atoms. Writing the id first would briefly pair the new
+	-- crate with the previous crate's spent lap count and make it read as
+	-- rollable at zero laps.
 	DataService:set(self.player, { "lapsLeftToAcquire" }, crateInfo.lapsRequirement)
+	DataService:set(self.player, { "luckyBlockInQueue" }, crateId)
 	return
 end
 

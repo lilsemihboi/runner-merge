@@ -26,6 +26,8 @@ local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 
+local CRATE_SCALE = 0.649
+
 function Plot.new(player: Player, plotId: number): Plot
 	local plot = workspace._PLOTS:FindFirstChild(tostring(plotId))
 	assert(plot and plot:IsA("Model"), "Plot Not Found!!")
@@ -61,6 +63,7 @@ function Plot.new(player: Player, plotId: number): Plot
 	self:onCharacterAdded()
 	self:setupSign()
 	self:buildRunway(self.profile:getRoute())
+	self:_watchCrate()
 	self:_watchRunners()
 	self:_watchRunnerSpawnLevel()
 	self:_checkForGates()
@@ -203,6 +206,50 @@ function Plot.buildRunway(self: Plot, routeId: number)
 	runwayModel.Name = "Runway"
 	runwayModel.Parent = self.plotModel
 	runwayModel:PivotTo(self.plotModel.RouteSpawn.WorldCFrame)
+end
+
+--[=[
+	Builds the crate sitting on the plot's LuckyBlock stand.
+
+	The model is server-owned so every player can see what their neighbours are
+	working toward. Its billboard and prompt stay client-driven, because both
+	only mean anything to the crate's owner: PlotClient hides them on every
+	stand except the local player's own.
+]=]
+function Plot.buildCrate(self: Plot, crateId: number?)
+	-- Keyed so a new crate replaces the previous one, and so the plot's janitor
+	-- destroys it when the player leaves.
+	self.janitor:Remove("crate")
+	self.crateModel = nil
+
+	if crateId == nil then
+		return
+	end
+
+	local crateTemplate = ReplicatedStorage.Assets.Blocks:FindFirstChild(tostring(crateId))
+	if not crateTemplate or not crateTemplate:IsA("Model") then
+		return
+	end
+
+	local crateModel = crateTemplate:Clone()
+	self.crateModel = crateModel
+	self.janitor:Add(crateModel, "Destroy", "crate")
+
+	crateModel.Name = "Crate"
+	crateModel:ScaleTo(CRATE_SCALE)
+	crateModel.Parent = self.plotModel.LuckyBlock
+	crateModel:PivotTo(self.plotModel.LuckyBlock.CrateSpawn.WorldCFrame)
+end
+
+function Plot._watchCrate(self: Plot)
+	self:buildCrate(self.profile:getCrateInQueue())
+
+	self.janitor:Add(
+		DataService:getChangedSignal(self.player, { "luckyBlockInQueue" }):Connect(function(newValue)
+			self:buildCrate(if typeof(newValue) == "number" then newValue else nil)
+		end),
+		"Disconnect"
+	)
 end
 
 function Plot.setupSign(self: Plot)
@@ -516,6 +563,7 @@ export type Plot = typeof(setmetatable(
 		plotId: number,
 		plotModel: typeof(workspace._PLOTS["1"]),
 		runwayModel: Model?,
+		crateModel: Model?,
 		janitor: Janitor.Janitor,
 		networker: Networker.Server,
 		profile: ProfileServer.Profile,

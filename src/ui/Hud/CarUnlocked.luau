@@ -96,9 +96,6 @@ local function CarRewardCard(carId: Vide.Source<number>, index: number)
 end
 
 local function Component()
-	local prevMenu: string | nil
-	local firstRun = true
-
 	local barSizeTarget = Vide.source(UDim2.fromScale(0.05, 0.01))
 	local barSize = Vide.spring(barSizeTarget, 0.45, 0.75)
 
@@ -106,22 +103,26 @@ local function Component()
 	local bgTransparency = Vide.spring(bgTransparencyTarget, 0.3, 1)
 
 	local BAR_FULL_SIZE = UDim2.fromScale(1.5, 0.347)
+	local firstRun = true
+
 	Vide.effect(function()
 		local isOpen = activeCarData() ~= nil
 
 		if isOpen then
-			prevMenu = Vide.untrack(Menu.openedMenu)
-			Menu.setOpenedMenu(nil)
-			HudSlice.showEverything(false)
+			Menu.hideOpenMenu("CarUnlocked")
+		else
+			Menu.restoreOpenMenu("CarUnlocked")
+		end
 
+		HudSlice.showEverything(not isOpen)
+
+		if isOpen then
 			bgTransparencyTarget(0.55)
 			barSizeTarget(BAR_FULL_SIZE)
 		elseif not firstRun then
-			if prevMenu ~= "OfflineRewards" then
-				Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
-			end
-			HudSlice.showEverything(true)
-
+			-- Keep the spring targets at their initial values until the
+			-- overlay has been shown at least once, so a fresh mount starts
+			-- collapsed instead of sliding down.
 			bgTransparencyTarget(1)
 			barSizeTarget(UDim2.new(BAR_FULL_SIZE.X.Scale, BAR_FULL_SIZE.X.Offset, 0, 0))
 		end

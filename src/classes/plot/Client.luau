@@ -47,6 +47,11 @@ type RunnerButton = {
 	moneyText: TextLabel,
 }
 
+type BlockState = {
+	blockId: number?,
+	lapsLeft: number?,
+}
+
 function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	local self = setmetatable({
 		plotId = plotData.plotId,
@@ -397,6 +402,50 @@ function Plot.setupUpgradeBoard(self: Plot)
 	end
 end
 
+--[=[
+	Strips every other plot's crate stand down to just the model.
+
+	The crate model is built on the server so everyone can see what their
+	neighbours are working toward, but the billboard's lap progress and the
+	prompt's open action only mean anything to the plot's owner. PlotClient is
+	only ever constructed for the local player's own plot, so any other stand
+	belongs to somebody else.
+]=]
+function Plot._hideCrateUIOnOtherPlots(self: Plot)
+	local function hideFor(plotModel: Instance)
+		if plotModel == self.plotModel then
+			return
+		end
+
+		local luckyBlock = plotModel:FindFirstChild("LuckyBlock")
+		if not luckyBlock then
+			return
+		end
+
+		-- Addressed by their authored paths rather than a recursive search, so a
+		-- crate model that ships its own gui or prompt is left untouched.
+		local billboard = luckyBlock:FindFirstChild("Billboard")
+		local billboardGui = billboard and billboard:FindFirstChild("BillboardGui")
+		if billboardGui and billboardGui:IsA("BillboardGui") then
+			billboardGui.Enabled = false
+		end
+
+		local crateSpawn = luckyBlock:FindFirstChild("CrateSpawn")
+		local proximityPrompt = crateSpawn and crateSpawn:FindFirstChild("ProximityPrompt")
+		if proximityPrompt and proximityPrompt:IsA("ProximityPrompt") then
+			proximityPrompt.Enabled = false
+		end
+	end
+
+	for _, plotModel in workspace._PLOTS:GetChildren() do
+		hideFor(plotModel)
+	end
+
+	-- Plot models are authored into the place file rather than streamed in, but
+	-- this keeps a late-replicating stand from showing up with its UI intact.
+	self.janitor:Add(workspace._PLOTS.ChildAdded:Connect(hideFor), "Disconnect")
+end
+
 function Plot.setupBlocks(self: Plot)
 	local blockInQueue = GetDataSource({ "luckyBlockInQueue" })
 	local lapsLeftToAcquire = GetDataSource({ "lapsLeftToAcquire" })
@@ -412,32 +461,7 @@ function Plot.setupBlocks(self: Plot)
 		return baseCondition and tutorialAllows
 	end)
 
-	local previousBlock
 	local previousBlockId
-
-	local function buildBlock(blockId: number?)
-		if previousBlock then
-			previousBlock:Destroy()
-			previousBlock = nil
-		end
-
-		if blockId == nil then
-			return
-		end
-
-		local blockTemplate = ReplicatedStorage.Assets.Blocks:FindFirstChild(`{blockId}`)
-		if not blockTemplate then
-			return
-		end
-
-		local blockPreview: Model = blockTemplate:Clone()
-		blockPreview:ScaleTo(0.649)
-
-		blockPreview.Parent = self.plotModel.LuckyBlock
-		previousBlock = blockPreview
-
-		blockPreview:PivotTo(self.plotModel.LuckyBlock.CrateSpawn.WorldCFrame)
-	end
 
 	local function updateUIState(blockId: number?, lapsLeft: number?)
 		if blockId == nil then
@@ -466,12 +490,40 @@ function Plot.setupBlocks(self: Plot)
 			UDim2.fromScale(math.clamp((blockInfo.lapsRequirement - lapsLeft) / blockInfo.lapsRequirement, 0, 1), 1)
 	end
 
-	local function getBlockState()
+	local function getBlockState(): BlockState
 		return {
 			blockId = blockInQueue(),
 			lapsLeft = lapsLeftToAcquire(),
 		}
 	end
+
+	-- Announces a crate once, either when its laps run out or, on the first
+	-- evaluation, because the player joined with it already rollable.
+	--
+	-- Requiring the crate id to be unchanged is what separates "this crate's laps
+	-- ran out" from "a different crate was just queued". The two keys replicate as
+	-- independent atoms, so a newly queued crate can still be observed alongside
+	-- the previous crate's spent lap count of zero. A freshly queued crate always
+	-- carries laps to run, so nothing legitimate is suppressed.
+	local function notifyWhenRollable(state: BlockState, previousState: BlockState?)
+		if state.blockId == nil or state.lapsLeft == nil or state.lapsLeft > 0 then
+			return
+		end
+
+		if previousState and not (previousState.blockId == state.blockId and (previousState.lapsLeft or 0) > 0) then
+			return
+		end
+
+		local blockInfo = Blocks.getBlock(state.blockId)
+		if blockInfo == nil then
+			return
+		end
+
+		task.defer(GeneralNotificationsServiceClient.displayNotification, GeneralNotificationsServiceClient, `You can roll {blockInfo.blockName} now!`)
+	end
+
+	self:_hideCrateUIOnOtherPlots()
+	self.plotModel.LuckyBlock.Billboard.BillboardGui.Enabled = true
 
 	self.janitor:Add(Charm.subscribe(promptEnabled, function(enabled: boolean)
 		self.plotModel.LuckyBlock.CrateSpawn.ProximityPrompt.Enabled = enabled
@@ -490,11 +542,8 @@ function Plot.setupBlocks(self: Plot)
 	)
 
 	self.janitor:Add(Charm.listen(getBlockState, function(state, prevState)
-		if state.blockId ~= (prevState and prevState.blockId) then
-			buildBlock(state.blockId)
-		end
-
 		updateUIState(state.blockId, state.lapsLeft)
+		notifyWhenRollable(state, prevState)
 	end))
 end
 

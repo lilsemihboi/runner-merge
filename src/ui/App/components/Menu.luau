@@ -24,14 +24,61 @@ local CUSTOM_PROPS = {
 local CLOSE_RENDER_DURATION = 0.5
 local SHOP_MENU_ID = "Shop"
 local openedMenuSource = Vide.source(nil)
+local hideReasonsSource = Vide.source({})
 local hasPromptedFavorite = false
+
+local activeCloseFn
+local activeMenuId
 
 export type MenuOpenOptions = {
 	isRestoringPreviousMenu: boolean?,
 }
 
-local activeCloseFn
-local activeMenuId
+--[[
+	Overlays (purchase prompts, cutscenes, the Roblox menu) need the open menu
+	out of the way, but they must not *close* it. Closing is a player intent
+	that menus are allowed to act on -- OfflineRewards claims its reward when it
+	stops being the open menu -- so an overlay that closed and reopened the menu
+	would fire that intent twice and lose the reward.
+
+	Hiding keeps `openedMenu` pointing at the same menu and only suppresses its
+	rendering, so nothing observing the open menu sees a change.
+
+	Reasons are counted by key so overlapping overlays can hide independently;
+	the menu comes back once the last one restores.
+]]
+local function isMenuHidden(): boolean
+	return next(hideReasonsSource()) ~= nil
+end
+
+-- Both writers read the current reasons untracked: they are called from inside
+-- the overlays' own effects, and a tracked read would make those effects depend
+-- on a source they write to.
+local function hideOpenMenu(reason: string)
+	local reasons = Vide.untrack(hideReasonsSource)
+
+	if reasons[reason] then
+		return
+	end
+
+	local nextReasons = table.clone(reasons)
+	nextReasons[reason] = true
+
+	hideReasonsSource(nextReasons)
+end
+
+local function restoreOpenMenu(reason: string)
+	local reasons = Vide.untrack(hideReasonsSource)
+
+	if not reasons[reason] then
+		return
+	end
+
+	local nextReasons = table.clone(reasons)
+	nextReasons[reason] = nil
+
+	hideReasonsSource(nextReasons)
+end
 
 export type MenuProps = Frame.FrameProps & {
 	Title: string,
@@ -45,7 +92,7 @@ export type MenuProps = Frame.FrameProps & {
 return {
 	Component = function(props: MenuProps)
 		local isShown = Vide.derive(function()
-			return openedMenuSource() == props.menuId
+			return openedMenuSource() == props.menuId and not isMenuHidden()
 		end)
 		local isRendered = Vide.source(false)
 		local isOpen = Vide.source(false)
@@ -227,12 +274,14 @@ return {
 		Opens a menu, or closes it when it is already the open one.
 
 		`options.isRestoringPreviousMenu` marks an open that is putting back UI
-		state the game itself took away, rather than one the player asked for.
-		The purchase overlay closes the current menu and reopens it afterwards,
-		so without this every purchase would look like a second shop visit.
+		state the game itself took away, rather than one the player asked for,
+		so analytics can tell it apart from a real store visit. Overlays no
+		longer need it -- they hide the menu instead of closing and reopening
+		it -- but it stays supported for any future caller that genuinely has
+		to reopen a menu on the player's behalf.
 
-		`options` is tolerated rather than trusted: at least one existing caller
-		passes a stale positional argument here.
+		`options` is tolerated rather than trusted: callers have passed a stale
+		positional argument here.
 	]]
 	setOpenedMenu = function(menuId: string?, options: MenuOpenOptions?)
 		local current = Vide.untrack(openedMenuSource)
@@ -268,4 +317,6 @@ return {
 			openedMenuSource(nil)
 		end
 	end,
+	hideOpenMenu = hideOpenMenu,
+	restoreOpenMenu = restoreOpenMenu,
 }

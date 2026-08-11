@@ -62,24 +62,16 @@ local function component()
 		end)
 	end)
 
-	local prevMenu: string | nil
-	local firstRun = true
-
 	Vide.effect(function()
 		local isShowing = isPurchaseShowing()
 
 		if isShowing then
-			prevMenu = Vide.untrack(Menu.openedMenu)
-			Menu.setOpenedMenu(nil)
-			HudSlice.showEverything(false)
-		elseif not firstRun then
-			if prevMenu ~= "OfflineRewards" then
-				Menu.setOpenedMenu(prevMenu, { isRestoringPreviousMenu = true })
-			end
-			HudSlice.showEverything(true)
+			Menu.hideOpenMenu("Purchasing")
+		else
+			Menu.restoreOpenMenu("Purchasing")
 		end
 
-		firstRun = false
+		HudSlice.showEverything(not isShowing)
 	end)
 
 	return Frame({

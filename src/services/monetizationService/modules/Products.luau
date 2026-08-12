@@ -67,6 +67,29 @@ local products = {
 		id = 3609857146,
 	} :: MonetizationProduct,
 
+	--------- Crates
+
+	crate1 = { random = true, id = 3703612993 } :: MonetizationProduct,
+
+	crate2 = { random = true, id = 3703613988 } :: MonetizationProduct,
+
+	crate3 = { random = true, id = 3703614930 } :: MonetizationProduct,
+
+	x3crate1 = {
+		random = true,
+		id = 3703758478,
+	} :: MonetizationProduct,
+
+	x3crate2 = {
+		random = true,
+		id = 3703773886,
+	} :: MonetizationProduct,
+
+	x3crate3 = {
+		random = true,
+		id = 3703775270,
+	} :: MonetizationProduct,
+
 	-- Exclusive Stocked Products
 	exclusiveCar = {
 		id = 3637359531,

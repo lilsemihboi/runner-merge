@@ -31,7 +31,6 @@ local StockServiceClient = require(ReplicatedStorage.Shared.Services.StockServic
 local TitleServiceClient = require(ReplicatedStorage.Shared.Services.TitleService.TitleServiceClient)
 local TutorialServiceClient = require(ReplicatedStorage.Shared.Services.TutorialService.TutorialServiceClient)
 local DataService = require(ReplicatedStorage.Packages.DataService).client
-print("hi")
 
 DataService:init()
 AnalyticsServiceClient:init()

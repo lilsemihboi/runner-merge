@@ -11,8 +11,6 @@ const ENGINE_SOUND_ID = "carEngineRunning"
 return function()
 	const runnersSource = GetDataSource("runners")
 	local isEngineRunning = false
-	print("HAS CAR")
-	print("HAS CAR")
 
 	const function sync(runners: { number })
 		const hasCar = #runners > 0
@@ -25,7 +23,6 @@ return function()
 		isEngineRunning = hasCar
 
 		if hasCar then
-			print("HAS CAR")
 			SoundServiceClient:play(ENGINE_SOUND_ID, true)
 			return
 		end

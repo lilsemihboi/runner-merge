@@ -1,5 +1,8 @@
 local Blocks = {}
 Blocks.rollTime = 4.5
+-- How long a finished roll stays on screen before a queued roll takes over the reel. Shared
+-- so the server can time its drop announcements against the client's reel.
+Blocks.revealHold = 1.6
 
 --[[
 	Loot weights are authored so each crate's entries sum to 100, which makes every
@@ -7,7 +10,8 @@ Blocks.rollTime = 4.5
 
 	1. Rarity hierarchy is preserved. Secret is always the rarest outcome in every
 	   crate, and no crate ever guarantees a top-tier drop. The Secret tier climbs
-	   0.15% (Wood) -> 3% (Void), a 20x improvement that still leaves Secret rare.
+	   0.15% (Wood) -> 3% (Void) across the rollable crates, then 8% -> 17% across
+	   the Robux exclusives, and still never becomes the expected result.
 	2. Loot pools widen with crate tier instead of drop rates exploding. Early
 	   crates draw from a narrow pool; later crates unlock the full 17 trails, so
 	   reaching a rarity gets easier while landing a *specific* trail stays hard.
@@ -243,10 +247,14 @@ Blocks.blocks = {
 		},
 	},
 
-	-- Exclusive crates
+	-- Exclusive crates. blockWeight 0 keeps them out of the random roll; they are
+	-- granted by purchase. Higher id = better crate. Each tier raises the pool
+	-- floor rather than exploding the top rate, so the Secret tier still descends
+	-- last in every table. Expected multiplier: 3.91 -> 4.29 -> 5.35, against 2.61
+	-- for the Void Crate, the strongest crate obtainable without Robux.
+
 	-- Epic 46 | Legendary 30 | Mythic 16 | Secret 8
-	-- Premium pool intentionally drops Common and Rare, but still never guarantees
-	-- a Secret. Rainbow at 2.5% is the best rate in the game and remains a chase.
+	-- Floor is Epic: Common and Rare drop out of the pool entirely.
 	[10] = {
 		lapsRequirement = 200,
 		blockWeight = 0,
@@ -262,6 +270,46 @@ Blocks.blocks = {
 			[15] = 7,
 			[16] = 5.5,
 			[17] = 2.5,
+		},
+	},
+
+	-- Epic 36 | Legendary 33 | Mythic 20 | Secret 11
+	-- Keeps the Epic floor but shifts mass up into Legendary and Mythic.
+	-- Rainbow 4%, up from Spike's 2.5%.
+	[11] = {
+		lapsRequirement = 200,
+		blockWeight = 0,
+		blockName = "Magma Crate",
+		loot = {
+			[8] = 10,
+			[9] = 9.5,
+			[10] = 8.5,
+			[11] = 8,
+			[12] = 18.5,
+			[13] = 14.5,
+			[14] = 11,
+			[15] = 9,
+			[16] = 7,
+			[17] = 4,
+		},
+	},
+
+	-- Legendary 50 | Mythic 33 | Secret 17
+	-- Best crate in the game. The floor rises again and Epic leaves the pool, the
+	-- same way Common and Rare left it for Spike, so Legendary becomes the baseline
+	-- outcome. Rainbow peaks at 7%: roughly 1 in 14, so the top trail stays a chase
+	-- even in the most expensive crate.
+	[12] = {
+		lapsRequirement = 200,
+		blockWeight = 0,
+		blockName = "Robux Crate",
+		loot = {
+			[12] = 27,
+			[13] = 23,
+			[14] = 18,
+			[15] = 15,
+			[16] = 10,
+			[17] = 7,
 		},
 	},
 } :: {

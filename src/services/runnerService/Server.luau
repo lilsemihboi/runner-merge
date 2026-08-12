@@ -31,6 +31,7 @@ local ProfileServiceServer = require(ServerScriptService.Services.ProfileService
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
+const RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
 -- a reported gate must have been passed within the last N seconds (covers ping + frame time)
 local GATE_TOLERANCE_SECONDS = 2
@@ -483,6 +484,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 
 	local income = RunnerUtils.getRunnerIncomePerLap(levels[runnerIndex])
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
+	local route = profile:getRoute()
 	local vipMultiplier = if state.vipOwned then 1.5 else 1
 	local doubleCashMultiplier = if state.doubleCashOwned then 2 else 1
 	income = math.max(
@@ -496,6 +498,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 				* vipMultiplier
 				* doubleCashMultiplier
 				* state.trailMultiplier
+				* RouteServiceUtils[route].cashMultiplier
 		)
 	)
 

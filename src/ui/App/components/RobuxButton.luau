@@ -59,6 +59,7 @@ return function(props: RobuxButtonProps)
 
 	local buttonProps = RemoveKeys(props, CUSTOM_PROPS)
 	buttonProps.LayoutOrder = 2
+	buttonProps.TextWrapped = false
 
 	buttonProps.Text = function()
 		if props.Text then
@@ -90,6 +91,10 @@ return function(props: RobuxButtonProps)
 		ZIndex = props.ZIndex or 1,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
+		-- Forwarded so callers can order the wrapper inside a UIListLayout. The inner
+		-- LayoutOrder below is fixed, because it only orders the gift button and the
+		-- buy button relative to each other.
+		LayoutOrder = props.LayoutOrder,
 		Size = wrapperSize,
 		BackgroundTransparency = 1,
 

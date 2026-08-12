@@ -20,6 +20,20 @@ function BlockService.announceDrop(_self: BlockService, text: string): ()
 	return
 end
 
+--[=[
+	Starts the reel for crates bought with Robux. The server has already rolled and granted
+	every reward, so there is nothing to ask for and no lap requirement to check: the screen
+	opens and starts spinning as soon as the receipt is processed.
+]=]
+function BlockService.beginPurchasedRolls(_self: BlockService, rolls: { CratesSlice.Roll }): ()
+	if type(rolls) ~= "table" or #rolls == 0 then
+		return
+	end
+
+	CratesSlice.actions.beginRollQueue(rolls)
+	return
+end
+
 function BlockService.openCrate(self: BlockService): ()
 	if GetDataSource({ "luckyBlockInQueue" })() == nil then
 		ErrorMessage.add(InfoEnums.INVALID_ACTION)

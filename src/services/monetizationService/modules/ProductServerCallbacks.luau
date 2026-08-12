@@ -5,6 +5,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).server
 local ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local ServerScriptService = game:GetService("ServerScriptService")
+local BlockServiceServer = require(ServerScriptService.Services.BlockService.BlockServiceServer)
 local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 const SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
@@ -200,6 +201,29 @@ Products.exclusiveCar.callback = function(player: Player)
 	profile:giveExclusiveRunner(ExclusiveCars.ids.exclusiveCar)
 
 	return
+end
+
+--[=[
+	Robux crates. Each product maps to one of the crates that cannot be earned on the track
+	(`blockWeight = 0`), and the x3 variants simply grant three rolls of the same crate.
+
+	`grantPurchasedCrate` rolls, grants, and pushes the results to the client, so the reel
+	starts spinning as soon as the receipt clears. It returns false when nothing could be
+	granted, which makes the purchase soft-fail instead of being retried forever.
+]=]
+const CRATE_PRODUCTS: { [string]: { crateId: number, rolls: number } } = {
+	crate1 = { crateId = 10, rolls = 1 },
+	crate2 = { crateId = 11, rolls = 1 },
+	crate3 = { crateId = 12, rolls = 1 },
+	x3crate1 = { crateId = 10, rolls = 3 },
+	x3crate2 = { crateId = 11, rolls = 3 },
+	x3crate3 = { crateId = 12, rolls = 3 },
+}
+
+for productKey, crate in CRATE_PRODUCTS do
+	Products[productKey].callback = function(player: Player): boolean
+		return BlockServiceServer:grantPurchasedCrate(player, crate.crateId, crate.rolls)
+	end
 end
 
 return nil

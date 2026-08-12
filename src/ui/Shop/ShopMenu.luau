@@ -1,5 +1,6 @@
 --!nonstrict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Codes = require(ReplicatedStorage.Shared.UI.Shop.Frames.Codes)
 local Currency = require(ReplicatedStorage.Shared.UI.Shop.Frames.Currency)
@@ -10,36 +11,54 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 const Crates = require(ReplicatedStorage.Shared.UI.Shop.Frames.Crates)
 
-local scrollingFrame = Vide.source(nil)
-local cashProductsFrame = Vide.source(nil)
-local pendingScrollToCash = Vide.source(false)
+-- ScrollingFrame and Currency section of the currently mounted Shop. Plain
+-- references (not sources) because scrolling is a one-shot imperative action, so
+-- nothing should re-render when a new Shop mount replaces them.
+local scrollingFrame = nil
+local cashProductsFrame = nil
 
-Vide.root(function(_destructor)
-	Vide.effect(function()
-		local isMenuOpen = Vide.untrack(Menu.openedMenu) == "Shop"
-		local pending = pendingScrollToCash()
-		local sf = scrollingFrame()
-		local target = cashProductsFrame()
+-- AutomaticCanvasSize needs at least one layout pass before AbsolutePosition and
+-- AbsoluteCanvasSize can be trusted, so poll a bounded number of frames instead
+-- of guessing with a fixed debounce or waiting forever.
+local LAYOUT_READY_MAX_FRAMES = 30
 
-		if not isMenuOpen or not pending or not sf or not target then
+-- Scrolls the Currency section into view. Runs outside any Vide reactive scope
+-- so it is free to yield while waiting for that layout pass.
+local function scrollToCashProducts()
+	for _ = 1, LAYOUT_READY_MAX_FRAMES do
+		local scrollFrame = scrollingFrame
+		local currencyFrame = cashProductsFrame
+		local isLayoutReady = scrollFrame ~= nil and currencyFrame ~= nil and scrollFrame.AbsoluteSize.Y > 0 and scrollFrame.AbsoluteCanvasSize.Y > 0
+
+		if isLayoutReady then
+			-- The player may have closed the Shop or switched menus while we
+			-- waited for the layout, so only scroll while it is still open.
+			if Menu.openedMenu() ~= "Shop" then
+				return
+			end
+
+			-- Convert the on-screen gap into canvas units so the section lands
+			-- correctly even mid open-animation: UIScale multiplies AbsoluteSize
+			-- and AbsolutePosition but not the requested Size or CanvasPosition.
+			local pixelsPerCanvasUnit = scrollFrame.AbsoluteSize.Y / scrollFrame.Size.Y.Offset
+			local screenGap = currencyFrame.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y
+			local canvasOffset = scrollFrame.CanvasPosition.Y + screenGap / pixelsPerCanvasUnit
+
+			TweenService:Create(
+				scrollFrame,
+				TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ CanvasPosition = Vector2.new(0, math.max(0, canvasOffset)) }
+			):Play()
+
 			return
 		end
 
-		task.wait(0.02)
-
-		local relativeY = target.AbsolutePosition.Y - sf.AbsolutePosition.Y + sf.CanvasPosition.Y
-
-		TweenService
-			:Create(sf, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CanvasPosition = Vector2.new(0, math.max(0, relativeY)) })
-			:Play()
-
-		pendingScrollToCash(false) -- reset after scroll
-	end)
-end)
+		RunService.Heartbeat:Wait()
+	end
+end
 
 local function shopContent()
 	local currencySection = Currency()
-	cashProductsFrame(currencySection)
 
 	return Vide.create("ScrollingFrame", {
 		Size = usePx.offset(1008, 686),
@@ -53,9 +72,16 @@ local function shopContent()
 		BorderSizePixel = 0,
 
 		Vide.action(function(inst)
-			scrollingFrame(inst)
+			scrollingFrame = inst
+			cashProductsFrame = currencySection
+
 			Vide.cleanup(function()
-				scrollingFrame(nil)
+				-- Only surrender the references if this mount still owns them; a
+				-- newer mount may have already replaced them.
+				if scrollingFrame == inst then
+					scrollingFrame = nil
+					cashProductsFrame = nil
+				end
 			end)
 		end),
 
@@ -88,7 +114,14 @@ return {
 		})
 	end,
 	openCashProducts = function()
-		pendingScrollToCash(true) -- flag that we want to scroll
-		Menu.setOpenedMenu("Shop")
+		-- Force-open rather than toggle: switch to the Shop when another menu
+		-- (or nothing) is open, and leave it open when it already is.
+		if Menu.openedMenu() ~= "Shop" then
+			Menu.setOpenedMenu("Shop")
+		end
+
+		-- Scrolling waits for the layout to settle, so it must run outside any
+		-- reactive scope where yielding is illegal.
+		task.spawn(scrollToCashProducts)
 	end,
 }

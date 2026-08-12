@@ -410,6 +410,7 @@ function RunnerManager._showIncomeIndicator(self: RunnerManager, plotId: number,
 					* self.vipMultiplier
 					* self.doubleCashMultiplier
 					* self.trailMultiplier
+					* route.cashMultiplier
 			)
 		),
 		false

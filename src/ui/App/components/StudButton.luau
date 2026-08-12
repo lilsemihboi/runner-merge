@@ -26,12 +26,14 @@ export type StudButton = Button.ButtonProps & {
 	Colors: Bindable<StudButtonColors>,
 	Text: string | () -> string,
 	TextSize: (number | () -> number)?,
+	TextWrapped: boolean?,
 }
 
 local CUSTOM_PROPS = {
 	"Colors",
 	"Text",
 	"TextSize",
+	"TextWrapped",
 }
 
 return function(props: StudButton)
@@ -62,6 +64,7 @@ return function(props: StudButton)
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 		AnchorPoint = Vector2.new(0.5, 0.5),
+		TextWrapped = props.TextWrapped or true,
 		Position = UDim2.fromScale(0.502, 0.467),
 		Size = UDim2.fromScale(0.95, 0.718),
 		TextScaled = if props.TextSize then false else true,

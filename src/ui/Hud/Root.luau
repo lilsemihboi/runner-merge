@@ -1,3 +1,4 @@
+const ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 --local CarUnlocked = require(script.Parent.CarUnlocked)
 local CashBar = require(script.Parent.CashBar)

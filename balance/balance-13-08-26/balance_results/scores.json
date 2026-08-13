@@ -1,0 +1,19 @@
+{
+  "pay_to_win": {
+    "score": 100.0,
+    "progression_ratio": 1.5454545454545454,
+    "income_ratio": 5237.763644682461,
+    "route_ratio": 1.3333333333333333,
+    "resource_ratio": 6.983234603777802,
+    "endgame_time_ratio": 179.81141091529648,
+    "target_advantage": 1.25
+  },
+  "balance": {
+    "free_viability": 1.0,
+    "paid_advantage_target": 0.0,
+    "activity_pacing": 0.0,
+    "route_choice": 1.0,
+    "pay_to_win_pressure": 0.0,
+    "score": 40.0
+  }
+}

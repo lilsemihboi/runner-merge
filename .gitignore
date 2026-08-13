@@ -10,3 +10,7 @@ package-lock.json
 .DS_Store
 node_modules/
 docs/
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/

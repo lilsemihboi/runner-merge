@@ -1,0 +1,362 @@
+[
+  {
+    "tier": 1,
+    "income_per_gate": 1,
+    "speed": 8.0,
+    "two_car_income": 16.0,
+    "merged_income": 24.0,
+    "merge_throughput_ratio": 1.5,
+    "base_equivalent_cars": 1
+  },
+  {
+    "tier": 2,
+    "income_per_gate": 3,
+    "speed": 8.0,
+    "two_car_income": 48.0,
+    "merged_income": 1000.0,
+    "merge_throughput_ratio": 20.833333333333332,
+    "base_equivalent_cars": 2
+  },
+  {
+    "tier": 3,
+    "income_per_gate": 100,
+    "speed": 10.0,
+    "two_car_income": 2000.0,
+    "merged_income": 6215.0,
+    "merge_throughput_ratio": 3.1075,
+    "base_equivalent_cars": 4
+  },
+  {
+    "tier": 4,
+    "income_per_gate": 565,
+    "speed": 11.0,
+    "two_car_income": 12430.0,
+    "merged_income": 20254.0,
+    "merge_throughput_ratio": 1.629444891391794,
+    "base_equivalent_cars": 8
+  },
+  {
+    "tier": 5,
+    "income_per_gate": 1558,
+    "speed": 13.0,
+    "two_car_income": 40508.0,
+    "merged_income": 48000.0,
+    "merge_throughput_ratio": 1.1849511207662684,
+    "base_equivalent_cars": 16
+  },
+  {
+    "tier": 6,
+    "income_per_gate": 3200,
+    "speed": 15.0,
+    "two_car_income": 96000.0,
+    "merged_income": 89440.0,
+    "merge_throughput_ratio": 0.9316666666666666,
+    "base_equivalent_cars": 32
+  },
+  {
+    "tier": 7,
+    "income_per_gate": 5590,
+    "speed": 16.0,
+    "two_car_income": 178880.0,
+    "merged_income": 167542.0,
+    "merge_throughput_ratio": 0.9366167262969588,
+    "base_equivalent_cars": 64
+  },
+  {
+    "tier": 8,
+    "income_per_gate": 8818,
+    "speed": 19.0,
+    "two_car_income": 335084.0,
+    "merged_income": 272244.0,
+    "merge_throughput_ratio": 0.8124649341657614,
+    "base_equivalent_cars": 128
+  },
+  {
+    "tier": 9,
+    "income_per_gate": 12964,
+    "speed": 21.0,
+    "two_car_income": 544488.0,
+    "merged_income": 416323.0,
+    "merge_throughput_ratio": 0.7646137288608748,
+    "base_equivalent_cars": 256
+  },
+  {
+    "tier": 10,
+    "income_per_gate": 18101,
+    "speed": 23.0,
+    "two_car_income": 832646.0,
+    "merged_income": 607500.0,
+    "merge_throughput_ratio": 0.729601775544469,
+    "base_equivalent_cars": 512
+  },
+  {
+    "tier": 11,
+    "income_per_gate": 24300,
+    "speed": 25.0,
+    "two_car_income": 1215000.0,
+    "merged_income": 885416.0,
+    "merge_throughput_ratio": 0.7287374485596708,
+    "base_equivalent_cars": 1024
+  },
+  {
+    "tier": 12,
+    "income_per_gate": 31622,
+    "speed": 28.0,
+    "two_car_income": 1770832.0,
+    "merged_income": 1203930.0,
+    "merge_throughput_ratio": 0.6798668648409335,
+    "base_equivalent_cars": 2048
+  },
+  {
+    "tier": 13,
+    "income_per_gate": 40131,
+    "speed": 30.0,
+    "two_car_income": 2407860.0,
+    "merged_income": 1646139.0,
+    "merge_throughput_ratio": 0.6836522887543296,
+    "base_equivalent_cars": 4096
+  },
+  {
+    "tier": 14,
+    "income_per_gate": 49883,
+    "speed": 33.0,
+    "two_car_income": 3292278.0,
+    "merged_income": 2193588.0,
+    "merge_throughput_ratio": 0.6662827379704873,
+    "base_equivalent_cars": 8192
+  },
+  {
+    "tier": 15,
+    "income_per_gate": 60933,
+    "speed": 36.0,
+    "two_car_income": 4387176.0,
+    "merged_income": 2786768.0,
+    "merge_throughput_ratio": 0.6352077053667325,
+    "base_equivalent_cars": 16384
+  },
+  {
+    "tier": 16,
+    "income_per_gate": 73336,
+    "speed": 38.0,
+    "two_car_income": 5573536.0,
+    "merged_income": 3572822.0,
+    "merge_throughput_ratio": 0.6410332686466904,
+    "base_equivalent_cars": 32768
+  },
+  {
+    "tier": 17,
+    "income_per_gate": 87142,
+    "speed": 41.0,
+    "two_car_income": 7145644.0,
+    "merged_income": 4505600.0,
+    "merge_throughput_ratio": 0.6305379892980955,
+    "base_equivalent_cars": 65536
+  },
+  {
+    "tier": 18,
+    "income_per_gate": 102400,
+    "speed": 44.0,
+    "two_car_income": 9011200.0,
+    "merged_income": 5600379.0,
+    "merge_throughput_ratio": 0.6214909224076705,
+    "base_equivalent_cars": 131072
+  },
+  {
+    "tier": 19,
+    "income_per_gate": 119157,
+    "speed": 47.0,
+    "two_car_income": 11200758.0,
+    "merged_income": 6873050.0,
+    "merge_throughput_ratio": 0.6136236493994425,
+    "base_equivalent_cars": 262144
+  },
+  {
+    "tier": 20,
+    "income_per_gate": 137461,
+    "speed": 50.0,
+    "two_car_income": 13746100.0,
+    "merged_income": 8339868.0,
+    "merge_throughput_ratio": 0.6067079389790558,
+    "base_equivalent_cars": 524288
+  },
+  {
+    "tier": 21,
+    "income_per_gate": 157356,
+    "speed": 53.0,
+    "two_car_income": 16679736.0,
+    "merged_income": 10017560.0,
+    "merge_throughput_ratio": 0.600582647111441,
+    "base_equivalent_cars": 1048576
+  },
+  {
+    "tier": 22,
+    "income_per_gate": 178885,
+    "speed": 56.0,
+    "two_car_income": 20035120.0,
+    "merged_income": 11923369.0,
+    "merge_throughput_ratio": 0.5951234132862693,
+    "base_equivalent_cars": 2097152
+  },
+  {
+    "tier": 23,
+    "income_per_gate": 202091,
+    "speed": 59.0,
+    "two_car_income": 23846738.0,
+    "merged_income": 14302008.0,
+    "merge_throughput_ratio": 0.5997469339412376,
+    "base_equivalent_cars": 4194304
+  },
+  {
+    "tier": 24,
+    "income_per_gate": 227016,
+    "speed": 63.0,
+    "two_car_income": 28604016.0,
+    "merged_income": 16744134.0,
+    "merge_throughput_ratio": 0.5853770323719578,
+    "base_equivalent_cars": 8388608
+  },
+  {
+    "tier": 25,
+    "income_per_gate": 253699,
+    "speed": 66.0,
+    "two_car_income": 33488268.0,
+    "merged_income": 19470489.0,
+    "merge_throughput_ratio": 0.5814122426397209,
+    "base_equivalent_cars": 16777216
+  },
+  {
+    "tier": 26,
+    "income_per_gate": 282181,
+    "speed": 69.0,
+    "two_car_income": 38940978.0,
+    "merged_income": 22812500.0,
+    "merge_throughput_ratio": 0.5858224721525997,
+    "base_equivalent_cars": 33554432
+  },
+  {
+    "tier": 27,
+    "income_per_gate": 312500,
+    "speed": 73.0,
+    "two_car_income": 45625000.0,
+    "merged_income": 26196668.0,
+    "merge_throughput_ratio": 0.5741735452054795,
+    "base_equivalent_cars": 67108864
+  },
+  {
+    "tier": 28,
+    "income_per_gate": 344693,
+    "speed": 76.0,
+    "two_car_income": 52393336.0,
+    "merged_income": 29925121.0,
+    "merge_throughput_ratio": 0.5711627333674649,
+    "base_equivalent_cars": 134217728
+  },
+  {
+    "tier": 29,
+    "income_per_gate": 378799,
+    "speed": 79.0,
+    "two_car_income": 59850242.0,
+    "merged_income": 34432799.0,
+    "merge_throughput_ratio": 0.5753159527742595,
+    "base_equivalent_cars": 268435456
+  },
+  {
+    "tier": 30,
+    "income_per_gate": 414853,
+    "speed": 83.0,
+    "two_car_income": 68865598.0,
+    "merged_income": 38948712.0,
+    "merge_throughput_ratio": 0.5655757465432886,
+    "base_equivalent_cars": 536870912
+  },
+  {
+    "tier": 31,
+    "income_per_gate": 452892,
+    "speed": 86.0,
+    "two_car_income": 77897424.0,
+    "merged_income": 44365500.0,
+    "merge_throughput_ratio": 0.5695374470919603,
+    "base_equivalent_cars": 1073741824
+  },
+  {
+    "tier": 32,
+    "income_per_gate": 492950,
+    "speed": 90.0,
+    "two_car_income": 88731000.0,
+    "merged_income": 50295828.0,
+    "merge_throughput_ratio": 0.566834905500896,
+    "base_equivalent_cars": 2147483648
+  },
+  {
+    "tier": 33,
+    "income_per_gate": 535062,
+    "speed": 94.0,
+    "two_car_income": 100591656.0,
+    "merged_income": 56188317.0,
+    "merge_throughput_ratio": 0.5585783079264547,
+    "base_equivalent_cars": 4294967296
+  },
+  {
+    "tier": 34,
+    "income_per_gate": 579261,
+    "speed": 97.0,
+    "two_car_income": 112376634.0,
+    "merged_income": 63183782.0,
+    "merge_throughput_ratio": 0.5622501738217217,
+    "base_equivalent_cars": 8589934592
+  },
+  {
+    "tier": 35,
+    "income_per_gate": 625582,
+    "speed": 101.0,
+    "two_car_income": 126367564.0,
+    "merged_income": 70776090.0,
+    "merge_throughput_ratio": 0.5600811455066111,
+    "base_equivalent_cars": 17179869184
+  },
+  {
+    "tier": 36,
+    "income_per_gate": 674058,
+    "speed": 105.0,
+    "two_car_income": 141552180.0,
+    "merged_income": 78269652.0,
+    "merge_throughput_ratio": 0.5529385135573327,
+    "base_equivalent_cars": 34359738368
+  },
+  {
+    "tier": 37,
+    "income_per_gate": 724719,
+    "speed": 108.0,
+    "two_car_income": 156539304.0,
+    "merged_income": 87091200.0,
+    "merge_throughput_ratio": 0.5563535660028232,
+    "base_equivalent_cars": 68719476736
+  },
+  {
+    "tier": 38,
+    "income_per_gate": 777600,
+    "speed": 112.0,
+    "two_car_income": 174182400.0,
+    "merged_income": 96596680.0,
+    "merge_throughput_ratio": 0.5545719889035862,
+    "base_equivalent_cars": 137438953472
+  },
+  {
+    "tier": 39,
+    "income_per_gate": 832730,
+    "speed": 116.0,
+    "two_car_income": 193193360.0,
+    "merged_income": 106816920.0,
+    "merge_throughput_ratio": 0.5529016111112721,
+    "base_equivalent_cars": 274877906944
+  },
+  {
+    "tier": 40,
+    "income_per_gate": 890141,
+    "speed": 120.0,
+    "two_car_income": 213633840.0,
+    "merged_income": 117783136.0,
+    "merge_throughput_ratio": 0.5513318302006835,
+    "base_equivalent_cars": 549755813888
+  }
+]

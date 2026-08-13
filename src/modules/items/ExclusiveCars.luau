@@ -12,9 +12,9 @@ local _Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 	Ids must be >= `ID_BASE`. Regular cars occupy 1..40 and grow upward over
 	time, so the gap between 40 and `ID_BASE` is deliberate headroom.
 
-	`incomePerLap` and `speed` are required rather than derived. The regular
-	formulas in `RunnerUtils` scale as `level ^ 2.5`, so an id of 1001 would
-	otherwise pay out roughly 3.2 billion per lap.
+	`incomePerLap` and `speed` are required rather than derived. Exclusive ids are
+	metadata keys rather than progression levels, so applying the regular formula
+	would make their income depend on an implementation detail.
 ]=]
 
 local ID_BASE = 1000
@@ -38,7 +38,7 @@ local cars: { [number]: ExclusiveCar } = {
 	[ids.exclusiveCar] = {
 		name = "Merci G63",
 		imageId = "rbxassetid://115409101765569",
-		incomePerLap = 6_700_000,
+		incomePerLap = 150_000,
 		speed = 83,
 		rarity = "Secret",
 	},

@@ -19,8 +19,8 @@ local UPGRADE_BASE_COSTS: { [UpgradeId]: number } = {
 
 local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 	gates = 2.5,
-	runnerSpeed = 1.7,
-	cashBonus = 1.85,
+	runnerSpeed = 1.85,
+	cashBonus = 2,
 }
 
 UpgradeUtils.levelCaps = {

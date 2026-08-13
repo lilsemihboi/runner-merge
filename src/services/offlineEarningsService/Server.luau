@@ -14,6 +14,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local ProfileServiceServer = require(ServerScriptService.Services.ProfileService.ProfileServiceServer)
 local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
+const RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
 local OFFLINE_EARNINGS_MULTIPLIER = 0.7
 
@@ -131,12 +132,13 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 	end
 
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local playerRoute = profile:getRoute()
 	local cashBonusMultiplier = RunnerUtils.getCashBonusMultiplier(profile:getUpgradeLevel("cashBonus"))
 	local rebirthCashMultiplier = DataService:get(player, { "cashMultiplier" })
 	local customMultiplier = DataService:get(player, { "customMultiplier" }) -- starter pack
 	local vipMultiplier = if MonetizationServiceServer:ownsGamepass(player, Products.vip) == true then 1.5 else 1
 	local earnings = 0
-
+	local routeMultiplier = RouteServiceUtils[playerRoute].cashMultiplier
 	for index, runnerLevel in levels do
 		local speed = RunnerUtils.getRunnerSpeed(runnerLevel, runnerSpeedLevel)
 		local phase = (index - 1) / #levels
@@ -148,7 +150,7 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		earnings += gateCrossings * incomePerGate
 	end
 
-	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier * vipMultiplier * trailMultiplier)
+	return math.floor(earnings * OFFLINE_EARNINGS_MULTIPLIER * rebirthCashMultiplier * customMultiplier * vipMultiplier * trailMultiplier * routeMultiplier)
 end
 
 function OfflineEarnings.requestBegin(_self: OfflineEarnings, player: Player)

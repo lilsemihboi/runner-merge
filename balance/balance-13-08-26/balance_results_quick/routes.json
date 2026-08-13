@@ -1,0 +1,79 @@
+[
+  {
+    "route_id": 1,
+    "name": "Route 1",
+    "cash_multiplier": 1.0,
+    "cash_gate_cap": 8,
+    "gate_cap": 10,
+    "average_path_length": 180.0745,
+    "selected_fraction": 0.059786032940323204,
+    "income_per_active_second": 389796266.2412794,
+    "income_per_hour": 1403266558468.606
+  },
+  {
+    "route_id": 2,
+    "name": "Route 2",
+    "cash_multiplier": 1.25,
+    "cash_gate_cap": 10,
+    "gate_cap": 12,
+    "average_path_length": 151.01350000000002,
+    "selected_fraction": 0.16155941069463553,
+    "income_per_active_second": 782973679.4297013,
+    "income_per_hour": 2818705245946.925
+  },
+  {
+    "route_id": 3,
+    "name": "Route 3",
+    "cash_multiplier": 1.5,
+    "cash_gate_cap": 12,
+    "gate_cap": 14,
+    "average_path_length": 149.5985,
+    "selected_fraction": 0.5536950775484251,
+    "income_per_active_second": 654920522.0697762,
+    "income_per_hour": 2357713879451.1943
+  },
+  {
+    "route_id": 4,
+    "name": "Route 4",
+    "cash_multiplier": 1.75,
+    "cash_gate_cap": 14,
+    "gate_cap": 16,
+    "average_path_length": 211.683,
+    "selected_fraction": 0.1906492964410273,
+    "income_per_active_second": 433249194.75885534,
+    "income_per_hour": 1559697101131.8792
+  },
+  {
+    "route_id": 5,
+    "name": "Route 5",
+    "cash_multiplier": 2.0,
+    "cash_gate_cap": 16,
+    "gate_cap": 18,
+    "average_path_length": 363.539,
+    "selected_fraction": 0.010574790260658495,
+    "income_per_active_second": 14223573.832422063,
+    "income_per_hour": 51204865796.71943
+  },
+  {
+    "route_id": 6,
+    "name": "Route 6",
+    "cash_multiplier": 2.25,
+    "cash_gate_cap": 18,
+    "gate_cap": 20,
+    "average_path_length": 373.69550000000004,
+    "selected_fraction": 0.00964698289815811,
+    "income_per_active_second": 598907002.0864955,
+    "income_per_hour": 2156065207511.3838
+  },
+  {
+    "route_id": 7,
+    "name": "Route 7",
+    "cash_multiplier": 2.5,
+    "cash_gate_cap": 25,
+    "gate_cap": 27,
+    "average_path_length": 453.99350000000004,
+    "selected_fraction": 0.014088409216772192,
+    "income_per_active_second": 948921743.8526356,
+    "income_per_hour": 3416118277869.4883
+  }
+]

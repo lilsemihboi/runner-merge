@@ -54,11 +54,7 @@ function RunnerUtils.getRunnerIncomePerLap(runnerLevel: number)
 
 	local level = math.max(1, math.floor(runnerLevel))
 
-	if level <= 2 then
-		return 1 + (level - 1) * 2
-	end
-
-	return math.floor(100 * ((level - 2) ^ 2.5))
+	return 10 * (level ^ 3)
 end
 
 -- +10% income per cashBonus upgrade level (cap 10 -> 2.0x max)

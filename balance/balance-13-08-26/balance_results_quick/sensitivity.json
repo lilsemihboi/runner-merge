@@ -1,0 +1,50 @@
+[
+  {
+    "parameter": "route_rewards",
+    "value": 0.9,
+    "wealth_change_fraction": 0.1390287819782261,
+    "mean_wealth": 60367353.81885801
+  },
+  {
+    "parameter": "route_rewards",
+    "value": 1.1,
+    "wealth_change_fraction": 0.20769624524726704,
+    "mean_wealth": 64006658.73949949
+  },
+  {
+    "parameter": "car_income",
+    "value": 0.9,
+    "wealth_change_fraction": 1.3804789248243243,
+    "mean_wealth": 126162934.41121468
+  },
+  {
+    "parameter": "car_income",
+    "value": 1.1,
+    "wealth_change_fraction": 0.49275067902437963,
+    "mean_wealth": 79114250.51744469
+  },
+  {
+    "parameter": "upgrade_costs",
+    "value": 0.9,
+    "wealth_change_fraction": 0.2757342992744001,
+    "mean_wealth": 67612605.6177418
+  },
+  {
+    "parameter": "upgrade_costs",
+    "value": 1.1,
+    "wealth_change_fraction": -0.0045682263864562644,
+    "mean_wealth": 52756860.082057945
+  },
+  {
+    "parameter": "paid_boosts",
+    "value": 0.9,
+    "wealth_change_fraction": 0.0,
+    "mean_wealth": 52998971.38157831
+  },
+  {
+    "parameter": "paid_boosts",
+    "value": 1.1,
+    "wealth_change_fraction": 0.0,
+    "mean_wealth": 52998971.38157831
+  }
+]

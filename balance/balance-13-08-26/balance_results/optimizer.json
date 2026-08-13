@@ -1,0 +1,562 @@
+[
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=2.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5293.880002058956,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 132.3470000514739
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.7, car_income=0.6, upgrade_costs=1.3, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7466.293713485278,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 186.65734283713195
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=0.5, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8624.195995741109,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 215.60489989352772
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=1.75, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4944.063508879809,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 123.60158772199523
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.0, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7792.832307410711,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 194.82080768526777
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=0.8, upgrade_costs=0.6, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7996.810298629,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 199.920257465725
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.1, car_income=0.5, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=1.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8356.931974407069,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 208.9232993601767
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.75, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5248.095727355809,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 131.20239318389523
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=2.0, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4362.79397878846,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 109.0698494697115
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.75, car_income=0.7, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7773.609845436151,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 194.34024613590378
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.1, car_income=1.3, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5243.691016558174,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 131.09227541395435
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=1.3, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5175.823219588525,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 129.39558048971313
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.8, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7338.833075738785,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 183.47082689346962
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=1.75, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5421.055434545495,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 135.52638586363736
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.5, car_income=1.5, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6125.654842217501,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 153.14137105543753
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.7, car_income=1.3, upgrade_costs=0.5, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7216.723038380172,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 180.41807595950428
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=2.0, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4375.615418058203,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 109.39038545145509
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=1.75, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5292.696561943431,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 132.3174140485858
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.0, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7836.979367701267,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 195.92448419253168
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.2, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7309.855325500308,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 182.7463831375077
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=1.0, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5827.0248485985885,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 145.6756212149647
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.1, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5940.185651646437,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 148.5046412911609
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=1.75, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5230.0804529815105,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 130.75201132453776
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=0.9, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6911.626420352279,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 172.79066050880698
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.1, car_income=2.0, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5713.313977493185,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 142.83284943732963
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=0.7, upgrade_costs=0.6, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8978.973348859156,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 224.4743337214789
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.75, car_income=2.0, upgrade_costs=1.3, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4978.243144521569,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 124.45607861303922
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.8, car_income=0.6, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8133.670764013865,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 203.34176910034662
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=1.0, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6714.563801818101,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 167.86409504545253
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.5, upgrade_costs=0.5, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6998.821078361443,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 174.97052695903608
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=1.1, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6644.252090010547,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 166.1063022502637
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.75, car_income=0.8, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7538.261408093898,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 188.45653520234745
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=1.1, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6379.355134423389,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 159.48387836058473
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=0.8, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6892.364879174844,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 172.3091219793711
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=0.5, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8230.133809576095,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 205.75334523940236
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.5, car_income=0.5, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8772.062673554243,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 219.30156683885608
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=0.7, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6503.702413283176,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 162.5925603320794
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=1.5, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5538.090568929243,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 138.45226422323108
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.8, car_income=2.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4963.973524219515,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 124.09933810548787
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.7, car_income=0.9, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6034.801722238521,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 150.870043055963
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=2.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5864.716356408449,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 146.61790891021124
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=0.8, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6654.386046528718,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 166.35965116321796
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=0.5, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8713.59318943126,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 217.8398297357815
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.6, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8481.067643710898,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 212.02669109277244
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=2.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5092.8082592692135,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 127.32020648173034
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=0.9, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6310.57080647974,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 157.7642701619935
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.1, car_income=2.0, upgrade_costs=1.5, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4937.475958043156,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 123.43689895107892
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.1, car_income=1.1, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6169.651589196925,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 154.24128972992312
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=2.0, upgrade_costs=0.5, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5586.952232945385,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 139.6738058236346
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.6, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8571.994803600683,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 214.29987009001707
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=0.6, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7970.051406846842,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 199.25128517117105
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=1.75, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5722.216890586749,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 143.05542226466872
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=0.9, upgrade_costs=0.7, merge_costs=1.0, paid_boosts=1.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7817.3178769591195,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 195.432946923978
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.7, car_income=1.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7525.8403703682125,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 188.1460092592053
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.6, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7256.6709563896875,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 181.41677390974218
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=1.1, upgrade_costs=0.5, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8117.940559686212,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 202.94851399215528
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.7, upgrade_costs=1.3, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7024.691321651635,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 175.61728304129088
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=0.6, upgrade_costs=0.5, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 8346.764167659709,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 208.66910419149272
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=0.7, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6427.664567365748,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 160.6916141841437
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=1.75, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5829.27534364733,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 145.73188359118325
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.6, car_income=0.6, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 6828.798923011322,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 170.71997307528304
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=1.75, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5180.874221942071,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 129.52185554855177
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=0.7, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 5822.751999931703,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 145.56879999829258
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.1, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 4701.707276656807,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 117.54268191642018
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=1.0, upgrade_costs=0.9, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7672.624082505645,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 191.81560206264112
+  },
+  {
+    "scales": "EconomyScales(route_rewards=0.9, car_income=1.3, upgrade_costs=0.6, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 40.0,
+    "free_endgame_median": 7575.176427158587,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 189.3794106789647
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.2, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 5635.4768031338945,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 140.88692007834737
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.6, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.3, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7669.6406766980435,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 191.74101691745108
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=1.2, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 5747.572242416931,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 143.68930606042326
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.3, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 5345.859383669676,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 133.6464845917419
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=0.8, upgrade_costs=2.0, merge_costs=1.0, paid_boosts=1.5, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 6065.287995236253,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 151.6321998809063
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.3, car_income=1.5, upgrade_costs=0.8, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 5430.829084159517,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 135.77072710398792
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.0, car_income=1.2, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=2.0, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7184.6752275433455,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 179.61688068858365
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.5, car_income=0.7, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7739.210587119318,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 193.48026467798294
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.0, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.2, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7355.467421881417,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 183.88668554703543
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=0.5, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7645.27910982373,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 191.13197774559325
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=0.5, upgrade_costs=1.2, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 7757.649450562138,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 193.94123626405343
+  },
+  {
+    "scales": "EconomyScales(route_rewards=2.0, car_income=1.5, upgrade_costs=1.0, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 4883.957474378967,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 122.09893685947418
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.2, car_income=1.3, upgrade_costs=1.1, merge_costs=1.0, paid_boosts=1.75, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 6214.749531511653,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 155.36873828779133
+  },
+  {
+    "scales": "EconomyScales(route_rewards=1.75, car_income=1.2, upgrade_costs=1.75, merge_costs=1.0, paid_boosts=1.1, runner_costs=1.0, rebirth_costs=1.0, trail_multipliers=1.0, route_multipliers=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))",
+    "score": 37.142857142857146,
+    "free_endgame_median": 5524.121288393634,
+    "paid_endgame_median": 40.0,
+    "paid_advantage": 138.10303220984085
+  }
+]

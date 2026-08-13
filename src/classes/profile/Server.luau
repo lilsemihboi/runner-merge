@@ -6,6 +6,7 @@
 ]]
 
 local Profile = {}
+
 Profile.__index = Profile
 
 -- Service References

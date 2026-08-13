@@ -1,10 +1,24 @@
 local RebirthUtils = {}
 
-local BASE_PRICE = 1_000
+local ENDGAME_GROWTH = 1.25
 local CASH_MULTIPLIER_REBIRTH = 0.05
 
+local ROUTE_PROGRESSION_PRICES = {
+	[1] = 1_000,
+	[2] = 10_000,
+	[3] = 100_000,
+	[4] = 500_000,
+	[5] = 2_000_000,
+	[6] = 10_000_000,
+}
+
 function RebirthUtils.calculateCashRequirement(rebirthLevel: number)
-	return BASE_PRICE * (10 ^ (rebirthLevel - 1))
+	local routeProgressionPrice = ROUTE_PROGRESSION_PRICES[rebirthLevel]
+	if routeProgressionPrice then
+		return routeProgressionPrice
+	end
+
+	return ROUTE_PROGRESSION_PRICES[6] * (ENDGAME_GROWTH ^ (rebirthLevel - 6))
 end
 
 function RebirthUtils.getCashMultiplierForRebirth(rebirthLevel: number)

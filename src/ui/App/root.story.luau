@@ -16,8 +16,12 @@ return function(parent)
 	DataService:set("rebirths", 1)
 	DataService:set({ "tutorial", "finished" }, true)
 	DataService:set({ "index", "40" }, true)
+	DataService:set("selectedRoute", 7)
 	DataService:arrayInsert("inventory", 1)
+	DataService:arrayInsert("inventory", 2)
 	DataService:arrayInsert("inventory", 3)
+	DataService:arrayInsert("inventory", 5)
+	DataService:arrayInsert("inventory", 6)
 
 	DataService:set({ "selectedTrail" }, 1)
 

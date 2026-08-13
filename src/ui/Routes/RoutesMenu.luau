@@ -107,8 +107,8 @@ local function routeIndex(props: RouteProps)
 		}),
 
 		Frame({
-			Size = usePx.udim2(1, 6, 0, 30),
-			Position = UDim2.fromScale(0.5, -0.205),
+			Size = usePx.udim2(1, 6, 0, 40),
+			Position = UDim2.fromScale(0.5, -0.275),
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 0.5,
@@ -181,7 +181,7 @@ local function routesMenuContainer()
 		BorderSizePixel = 0,
 
 		Vide.create("UIPadding", {
-			PaddingTop = usePx.udim(0, 60),
+			PaddingTop = usePx.udim(0, 80),
 			PaddingBottom = usePx.udim(0, 25),
 			PaddingLeft = usePx.udim(0, 18),
 			PaddingRight = usePx.udim(0, 18),
@@ -189,7 +189,7 @@ local function routesMenuContainer()
 
 		Vide.create("UIGridLayout", {
 			CellSize = usePx.offset(190, 190),
-			CellPadding = usePx.offset(30, 28),
+			CellPadding = usePx.offset(30, 72),
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Top,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,

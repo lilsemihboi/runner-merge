@@ -1,6 +1,7 @@
 const ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 --local CarUnlocked = require(script.Parent.CarUnlocked)
+const Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local CashBar = require(script.Parent.CashBar)
 local DisableCoreGui = require(script.Parent.DisableCoreGui)
 local Navigator = require(script.Parent.Navigator)
@@ -21,5 +22,6 @@ return function()
 		--CarUnlocked.setCarData({6,7,8,40}),
 		CashBar.Component(),
 		RunService:IsRunning() and DisableCoreGui(),
+		Menu.setOpenedMenu("Routes"),
 	}
 end

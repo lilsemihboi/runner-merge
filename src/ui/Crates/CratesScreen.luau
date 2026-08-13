@@ -31,8 +31,8 @@ const MIN_TICK_INTERVAL = 0.045
 const REVEAL_HOLD = Blocks.revealHold
 
 const PANEL_WIDTH = 1358
-const PANEL_HEIGHT = 430
-const REEL_TOP = 58
+const PANEL_HEIGHT = 470
+const REEL_TOP = 88
 const REEL_HEIGHT = 245
 const REEL_CENTER_Y = REEL_TOP + REEL_HEIGHT // 2
 const TILE_SIZE = 235
@@ -55,9 +55,9 @@ const BACKDROP_TRANSPARENCY = 0.42
 -- offset measured afterwards is always relative to the same starting point.
 const REEL_START_POSITION = UDim2.fromScale(0, 0.5)
 
-const RAY_COUNT = 9
 const RAY_SPIN_DEGREES_PER_SECOND = 14
 const MARKER_IDLE_COLOR = Color3.fromRGB(255, 53, 97)
+const SUNRAY_IMAGE = "rbxassetid://77656565126814"
 
 -- Hoisted because these are read inside per-frame prop closures, where `usePx(n)` would
 -- otherwise allocate a fresh reader on every spring step.
@@ -65,7 +65,7 @@ const RAYS_SIZE_PX = usePx(340)
 const BEAM_BASE_PX = usePx(4)
 const BEAM_KICK_PX = usePx(7)
 const TILE_RIM_PX = usePx(4)
-const RESULT_TOP_PX = usePx(REEL_TOP + REEL_HEIGHT + 8)
+const RESULT_TOP_PX = usePx(REEL_TOP + REEL_HEIGHT + 32)
 const RESULT_SLIDE_PX = usePx(20)
 
 const function getTrailIds(loot: { [number]: number }): { number }
@@ -106,28 +106,8 @@ const function shade(color: Color3, factor: number): Color3
 	return Color3.new(color.R * factor, color.G * factor, color.B * factor)
 end
 
---[=[
-	A spinning starburst built from plain frames, so the reveal gets a focal point without
-	depending on an uploaded image asset. Rotating the container rotates every blade with it.
-]=]
 const function revealRays(color: () -> Color3, reveal: () -> number, rotation: () -> number)
-	local blades = table.create(RAY_COUNT)
-
-	for index = 1, RAY_COUNT do
-		blades[index] = Vide.create("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.05, 1),
-			Rotation = (index - 1) * (180 / RAY_COUNT),
-			BackgroundColor3 = color,
-			BackgroundTransparency = function()
-				return 1 - 0.5 * reveal()
-			end,
-			BorderSizePixel = 0,
-		})
-	end
-
-	return Vide.create("Frame", {
+	return Frame({
 		Name = "RevealRays",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = usePx.udim2(0.5, 0, 0, REEL_CENTER_Y),
@@ -136,10 +116,22 @@ const function revealRays(color: () -> Color3, reveal: () -> number, rotation: (
 			return UDim2.fromOffset(size, size)
 		end,
 		BackgroundTransparency = 1,
-		Rotation = rotation,
 		ZIndex = 0,
 
-		table.unpack(blades),
+		ImageLabel({
+			Name = "Sunray",
+			Image = SUNRAY_IMAGE,
+			Size = UDim2.fromScale(1, 1),
+			ImageColor3 = function()
+				return color():Lerp(WHITE, 0.3)
+			end,
+			ImageTransparency = function()
+				return 1 - 0.8 * reveal()
+			end,
+			BackgroundTransparency = 1,
+			Rotation = rotation,
+			ZIndex = 0,
+		}),
 	})
 end
 
@@ -685,6 +677,7 @@ const function rollScreen()
 					end
 					return string.format("%s  •  %s  •  x%.2f", trail.trailName, trail.trailRarity, trail.trailMultiplier)
 				end,
+				Visible = isRevealed,
 				TextColor3 = wonColor,
 				TextTransparency = function()
 					return 1 - reveal()

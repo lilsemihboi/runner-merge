@@ -17,27 +17,22 @@ const Crates = require(ReplicatedStorage.Shared.UI.Shop.Frames.Crates)
 local scrollingFrame = nil
 local cashProductsFrame = nil
 
--- The shop re-mounts from scratch on every open, its sections auto-size, and the
--- menu's open-spring keeps rescaling everything on top of that, so AbsolutePosition
--- and AbsoluteCanvasSize take several layout passes to settle. Poll a bounded
--- number of frames rather than guessing with a fixed debounce.
+-- The shop re-mounts from scratch on every open and its sections auto-size, so
+-- their layout positions take several passes to settle. Poll a bounded number of
+-- frames rather than guessing with a fixed debounce.
 local LAYOUT_READY_MAX_FRAMES = 120
 
--- The section's canvas offset can drift a sub-pixel between frames once settled
--- (integer AbsolutePosition rounding), so treat readings this close as steady.
+-- Treat sub-pixel changes between layout passes as settled.
 local LAYOUT_STABLE_TOLERANCE = 1
+local LAYOUT_STABLE_FRAMES = 5
 
--- Returns the Currency section's top expressed as a CanvasPosition.Y, or nil
--- while the layout has not produced trustworthy measurements yet.
+-- Convert the on-screen distance to canvas units. This accounts for every
+-- UIScale between the shop and the viewport without relying on viewport size.
 local function getCurrencyCanvasOffset(scrollFrame, currencyFrame): number?
-	if scrollFrame.AbsoluteSize.Y <= 0 or scrollFrame.AbsoluteCanvasSize.Y <= 0 then
+	if scrollFrame.AbsoluteSize.Y <= 0 or scrollFrame.Size.Y.Offset <= 0 or scrollFrame.AbsoluteCanvasSize.Y <= 0 then
 		return nil
 	end
 
-	-- Convert the on-screen gap into canvas units: UIScale multiplies AbsoluteSize
-	-- and AbsolutePosition but not the requested Size or CanvasPosition, so this
-	-- stays constant across the open-animation and settles exactly when the section
-	-- stops moving within the canvas, no matter how far the spring has scaled it.
 	local pixelsPerCanvasUnit = scrollFrame.AbsoluteSize.Y / scrollFrame.Size.Y.Offset
 	local screenGap = currencyFrame.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y
 
@@ -48,6 +43,7 @@ end
 -- so it is free to yield while waiting for the layout to settle.
 local function scrollToCashProducts()
 	local previousOffset = nil
+	local stableFrames = 0
 
 	for frame = 1, LAYOUT_READY_MAX_FRAMES do
 		-- The player may have closed the Shop or switched menus while we waited,
@@ -61,12 +57,15 @@ local function scrollToCashProducts()
 		local canvasOffset = if scrollFrame ~= nil and currencyFrame ~= nil then getCurrencyCanvasOffset(scrollFrame, currencyFrame) else nil
 
 		if canvasOffset ~= nil then
-			-- Wait until the target holds steady between frames (or fall back on
-			-- the final polled frame) so the tween never commits to a half-settled
-			-- layout and leaves the section only partly scrolled into view.
-			local isSettled = previousOffset ~= nil and math.abs(canvasOffset - previousOffset) <= LAYOUT_STABLE_TOLERANCE
+			if previousOffset ~= nil and math.abs(canvasOffset - previousOffset) <= LAYOUT_STABLE_TOLERANCE then
+				stableFrames += 1
+			else
+				stableFrames = 0
+			end
 
-			if isSettled or frame == LAYOUT_READY_MAX_FRAMES then
+			-- Several consecutive readings prevent an early auto-size layout pass
+			-- from being mistaken for the final section position.
+			if stableFrames >= LAYOUT_STABLE_FRAMES or frame == LAYOUT_READY_MAX_FRAMES then
 				TweenService:Create(
 					scrollFrame,
 					TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -140,14 +139,14 @@ return {
 		})
 	end,
 	openCashProducts = function()
+		-- Defer until after the Shop mount has reacted to the menu change. This is
+		-- scheduled first so a non-critical analytics error cannot skip scrolling.
+		task.defer(scrollToCashProducts)
+
 		-- Force-open rather than toggle: switch to the Shop when another menu
 		-- (or nothing) is open, and leave it open when it already is.
 		if Menu.openedMenu() ~= "Shop" then
 			Menu.setOpenedMenu("Shop")
 		end
-
-		-- Scrolling waits for the layout to settle, so it must run outside any
-		-- reactive scope where yielding is illegal.
-		task.spawn(scrollToCashProducts)
 	end,
 }

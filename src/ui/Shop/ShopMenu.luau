@@ -17,40 +17,66 @@ const Crates = require(ReplicatedStorage.Shared.UI.Shop.Frames.Crates)
 local scrollingFrame = nil
 local cashProductsFrame = nil
 
--- AutomaticCanvasSize needs at least one layout pass before AbsolutePosition and
--- AbsoluteCanvasSize can be trusted, so poll a bounded number of frames instead
--- of guessing with a fixed debounce or waiting forever.
-local LAYOUT_READY_MAX_FRAMES = 30
+-- The shop re-mounts from scratch on every open, its sections auto-size, and the
+-- menu's open-spring keeps rescaling everything on top of that, so AbsolutePosition
+-- and AbsoluteCanvasSize take several layout passes to settle. Poll a bounded
+-- number of frames rather than guessing with a fixed debounce.
+local LAYOUT_READY_MAX_FRAMES = 120
+
+-- The section's canvas offset can drift a sub-pixel between frames once settled
+-- (integer AbsolutePosition rounding), so treat readings this close as steady.
+local LAYOUT_STABLE_TOLERANCE = 1
+
+-- Returns the Currency section's top expressed as a CanvasPosition.Y, or nil
+-- while the layout has not produced trustworthy measurements yet.
+local function getCurrencyCanvasOffset(scrollFrame, currencyFrame): number?
+	if scrollFrame.AbsoluteSize.Y <= 0 or scrollFrame.AbsoluteCanvasSize.Y <= 0 then
+		return nil
+	end
+
+	-- Convert the on-screen gap into canvas units: UIScale multiplies AbsoluteSize
+	-- and AbsolutePosition but not the requested Size or CanvasPosition, so this
+	-- stays constant across the open-animation and settles exactly when the section
+	-- stops moving within the canvas, no matter how far the spring has scaled it.
+	local pixelsPerCanvasUnit = scrollFrame.AbsoluteSize.Y / scrollFrame.Size.Y.Offset
+	local screenGap = currencyFrame.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y
+
+	return scrollFrame.CanvasPosition.Y + screenGap / pixelsPerCanvasUnit
+end
 
 -- Scrolls the Currency section into view. Runs outside any Vide reactive scope
--- so it is free to yield while waiting for that layout pass.
+-- so it is free to yield while waiting for the layout to settle.
 local function scrollToCashProducts()
-	for _ = 1, LAYOUT_READY_MAX_FRAMES do
+	local previousOffset = nil
+
+	for frame = 1, LAYOUT_READY_MAX_FRAMES do
+		-- The player may have closed the Shop or switched menus while we waited,
+		-- so stop as soon as it is no longer the open menu.
+		if Menu.openedMenu() ~= "Shop" then
+			return
+		end
+
 		local scrollFrame = scrollingFrame
 		local currencyFrame = cashProductsFrame
-		local isLayoutReady = scrollFrame ~= nil and currencyFrame ~= nil and scrollFrame.AbsoluteSize.Y > 0 and scrollFrame.AbsoluteCanvasSize.Y > 0
+		local canvasOffset = if scrollFrame ~= nil and currencyFrame ~= nil then getCurrencyCanvasOffset(scrollFrame, currencyFrame) else nil
 
-		if isLayoutReady then
-			-- The player may have closed the Shop or switched menus while we
-			-- waited for the layout, so only scroll while it is still open.
-			if Menu.openedMenu() ~= "Shop" then
+		if canvasOffset ~= nil then
+			-- Wait until the target holds steady between frames (or fall back on
+			-- the final polled frame) so the tween never commits to a half-settled
+			-- layout and leaves the section only partly scrolled into view.
+			local isSettled = previousOffset ~= nil and math.abs(canvasOffset - previousOffset) <= LAYOUT_STABLE_TOLERANCE
+
+			if isSettled or frame == LAYOUT_READY_MAX_FRAMES then
+				TweenService:Create(
+					scrollFrame,
+					TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ CanvasPosition = Vector2.new(0, math.max(0, canvasOffset)) }
+				):Play()
+
 				return
 			end
 
-			-- Convert the on-screen gap into canvas units so the section lands
-			-- correctly even mid open-animation: UIScale multiplies AbsoluteSize
-			-- and AbsolutePosition but not the requested Size or CanvasPosition.
-			local pixelsPerCanvasUnit = scrollFrame.AbsoluteSize.Y / scrollFrame.Size.Y.Offset
-			local screenGap = currencyFrame.AbsolutePosition.Y - scrollFrame.AbsolutePosition.Y
-			local canvasOffset = scrollFrame.CanvasPosition.Y + screenGap / pixelsPerCanvasUnit
-
-			TweenService:Create(
-				scrollFrame,
-				TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-				{ CanvasPosition = Vector2.new(0, math.max(0, canvasOffset)) }
-			):Play()
-
-			return
+			previousOffset = canvasOffset
 		end
 
 		RunService.Heartbeat:Wait()

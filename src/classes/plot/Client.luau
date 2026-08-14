@@ -53,6 +53,10 @@ type BlockState = {
 }
 
 function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
+	-- The plot can be assigned before the initial profile snapshot reaches the
+	-- client. Build data-backed UI only after persisted values are available.
+	DataService:waitForData()
+
 	local self = setmetatable({
 		plotId = plotData.plotId,
 		plotModel = workspace._PLOTS:WaitForChild(tostring(plotData.plotId)),
@@ -706,9 +710,6 @@ end
 	available, so an owned pack is never built onto the plot in the first place.
 ]=]
 function Plot.setupStarterPack(self: Plot)
-	-- Ownership is data driven, so the first read has to happen after the load.
-	DataService:waitForData()
-
 	local owns = Charm.atom(MonetizationServiceClient:ownsOneTimePurchase(Products.starterPack))
 
 	if owns() then

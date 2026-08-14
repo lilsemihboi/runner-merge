@@ -38,7 +38,6 @@ const CRATE_IMAGE_SIZE = 148
 const CRATE_IMAGE_CENTER_SCALE = 0.315
 const SUNRAY_IMAGE = "rbxassetid://77656565126814"
 const SUNRAY_SIZE = 200
-const SUNRAY_SPIN_DEGREES_PER_SECOND = 14
 
 -- Preview reel geometry, in card-local design pixels.
 const REEL_TOP = 214
@@ -268,7 +267,6 @@ type CrateCardProps = {
 	singleProduct: MonetizationProduct,
 	tripleProduct: MonetizationProduct,
 	studFrame: (props: any) -> Instance,
-	sunrayRotation: () -> number,
 }
 
 const function crateCard(props: CrateCardProps)
@@ -297,7 +295,6 @@ const function crateCard(props: CrateCardProps)
 			Position = UDim2.fromScale(0.5, CRATE_IMAGE_CENTER_SCALE),
 			ImageColor3 = WHITE,
 			ImageTransparency = 0.2,
-			Rotation = props.sunrayRotation,
 			ZIndex = 0,
 		}),
 
@@ -346,12 +343,6 @@ const function crateCard(props: CrateCardProps)
 end
 
 const function container()
-	local sunrayRotation = Vide.source(0)
-
-	Vide.cleanup(RunService.RenderStepped:Connect(function(deltaTime)
-		sunrayRotation((sunrayRotation() + deltaTime * SUNRAY_SPIN_DEGREES_PER_SECOND) % 360)
-	end))
-
 	return Frame({
 		Size = usePx.offset(SECTION_WIDTH, ROW_HEIGHT),
 		BackgroundTransparency = 1,
@@ -371,7 +362,6 @@ const function container()
 			singleProduct = Products.crate1,
 			tripleProduct = Products.x3crate1,
 			studFrame = ShopFrame.Blue,
-			sunrayRotation = sunrayRotation,
 		}),
 
 		crateCard({
@@ -381,7 +371,6 @@ const function container()
 			singleProduct = Products.crate2,
 			tripleProduct = Products.x3crate2,
 			studFrame = ShopFrame.Grey,
-			sunrayRotation = sunrayRotation,
 		}),
 
 		crateCard({
@@ -391,7 +380,6 @@ const function container()
 			singleProduct = Products.crate3,
 			tripleProduct = Products.x3crate3,
 			studFrame = ShopFrame.Orange,
-			sunrayRotation = sunrayRotation,
 		}),
 	})
 end

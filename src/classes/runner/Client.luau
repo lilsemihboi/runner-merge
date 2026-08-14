@@ -21,6 +21,14 @@ local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 local RunnersFolder = ReplicatedStorage.Assets.Entities
+local RUNNER_CLEARANCE = 0.25
+local INVERTED_CLEARANCE = 0.5
+
+local function getRunnerCFrame(path: PathData.Path, distance: number): CFrame
+	local pathCFrame = PathData.sample(path, distance)
+	local invertedAlpha = math.clamp(-pathCFrame.UpVector.Y, 0, 1)
+	return pathCFrame + pathCFrame.UpVector * (RUNNER_CLEARANCE + INVERTED_CLEARANCE * invertedAlpha)
+end
 
 function Runner.new(config: RunnerConfig): Runner
 	local self = setmetatable({
@@ -102,8 +110,7 @@ function Runner._createModel(self: Runner): ()
 	self.janitor:Add(model, "Destroy", "model")
 	self:_applySelectedTrail()
 
-	local position, direction = PathData.sample(self.path, self:getDistance(workspace:GetServerTimeNow()))
-	model:PivotTo(CFrame.lookAt(position, position + direction))
+	model:PivotTo(getRunnerCFrame(self.path, self:getDistance(workspace:GetServerTimeNow())))
 
 	if self.active and self.visible then
 		model.Parent = self:_resolveContainer()
@@ -181,8 +188,7 @@ function Runner.update(self: Runner, now: number): ({ number }?, number)
 			end
 		end
 
-		local position, direction = PathData.sample(self.path, distance)
-		model:PivotTo(CFrame.lookAt(position, position + direction))
+		model:PivotTo(getRunnerCFrame(self.path, distance))
 	end
 
 	local crossedGates: { number }? = nil

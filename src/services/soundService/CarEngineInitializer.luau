@@ -1,12 +1,12 @@
 const ReplicatedStorage = game:GetService("ReplicatedStorage")
-const SoundService = game:GetService("SoundService")
+--const SoundService = game:GetService("SoundService")
 
 const Charm = require(ReplicatedStorage.Packages.Charm)
 const GetDataSource = require(ReplicatedStorage.Shared.Modules.Ui.Sources.GetDataSource)
 
-const SoundServiceClient = require(script.Parent.SoundServiceClient)
+--const SoundServiceClient = require(script.Parent.SoundServiceClient)
 
-const ENGINE_SOUND_ID = "carEngineRunning"
+--const ENGINE_SOUND_ID = "carEngineRunning"
 
 return function()
 	const runnersSource = GetDataSource("runners")
@@ -23,11 +23,11 @@ return function()
 		isEngineRunning = hasCar
 
 		if hasCar then
-			SoundServiceClient:play(ENGINE_SOUND_ID, true)
+			--SoundServiceClient:play(ENGINE_SOUND_ID, true)
 			return
 		end
 
-		SoundServiceClient:stop(ENGINE_SOUND_ID)
+		--SoundServiceClient:stop(ENGINE_SOUND_ID)
 	end
 
 	sync(runnersSource())

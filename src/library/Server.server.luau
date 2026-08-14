@@ -4,17 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
-local AutoRejoinServiceServer = require(ServerScriptService.Services.AutoRejoinService.AutoRejoinServiceServer)
 local BlockServiceServer = require(ServerScriptService.Services.BlockService.BlockServiceServer)
 local CodeServiceServer = require(ServerScriptService.Services.CodeService.CodeServiceServer)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local FriendServiceServer = require(ServerScriptService.Services.FriendService.FriendServiceServer)
-local GeneralNotificationsServiceServer = require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer)
 local InventoryServiceServer = require(ServerScriptService.Services.InventoryService.InventoryServiceServer)
-local LeaderboardServiceServer = require(ServerScriptService.Services.LeaderboardService.LeaderboardServiceServer)
 local MonetizationServiceServer = require(ServerScriptService.Services.MonetizationService.MonetizationServiceServer)
-local NotificationServiceServer = require(ServerScriptService.Services.NotificationService.NotificationServiceServer)
 local OfflineEarningsServiceServer = require(ServerScriptService.Services.OfflineEarningsService.OfflineEarningsServiceServer)
 local PlotServiceServer = require(ServerScriptService.Services.PlotService.PlotServiceServer)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
@@ -24,13 +19,18 @@ local ProfileServiceServer = require(ServerScriptService.Services.ProfileService
 local RebirthServiceServer = require(ServerScriptService.Services.RebirthService.RebirthServiceServer)
 local RouteServiceServer = require(ServerScriptService.Services.RouteService.RouteServiceServer)
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
-local SettingsServiceServer = require(ServerScriptService.Services.SettingsService.SettingsServiceServer)
-local SoundServiceServer = require(ServerScriptService.Services.SoundService.SoundServiceServer)
 local StockServiceServer = require(ServerScriptService.Services.StockService.StockServiceServer)
-local TitleServiceServer = require(ServerScriptService.Services.TitleService.TitleServiceServer)
-local TutorialServiceServer = require(ServerScriptService.Services.TutorialService.TutorialServiceServer)
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
+
+local function initializeOptionalFeature(featureName, initialize)
+	task.spawn(function()
+		local success, problem = xpcall(initialize, debug.traceback)
+		if not success then
+			warn(`[Startup] Optional server feature "{featureName}" failed to initialize and was disabled:\n{problem}`)
+		end
+	end)
+end
 
 DataService:init({
 	resetData = false,
@@ -43,7 +43,9 @@ DataService:init({
 -- listening before any other service can yield on player setup. It also owns
 -- the Gamebeast handle every other service sends markers through, which has to
 -- exist before those services can fire anything.
-AnalyticsServiceServer:init()
+initializeOptionalFeature("AnalyticsService", function()
+	require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer):init()
+end)
 
 StockServiceServer:init({
 	products = Products :: any,
@@ -69,11 +71,27 @@ PlotServiceServer:init()
 RouteServiceServer:init()
 OfflineEarningsServiceServer:init()
 RebirthServiceServer:init()
-LeaderboardServiceServer:init()
-AutoRejoinServiceServer:init()
-NotificationServiceServer:init()
-SoundServiceServer:init()
-SettingsServiceServer:init()
-TutorialServiceServer:init()
-TitleServiceServer:init()
-GeneralNotificationsServiceServer:init()
+initializeOptionalFeature("LeaderboardService", function()
+	require(ServerScriptService.Services.LeaderboardService.LeaderboardServiceServer):init()
+end)
+initializeOptionalFeature("AutoRejoinService", function()
+	require(ServerScriptService.Services.AutoRejoinService.AutoRejoinServiceServer):init()
+end)
+initializeOptionalFeature("NotificationService", function()
+	require(ServerScriptService.Services.NotificationService.NotificationServiceServer):init()
+end)
+initializeOptionalFeature("SoundService", function()
+	require(ServerScriptService.Services.SoundService.SoundServiceServer):init()
+end)
+initializeOptionalFeature("SettingsService", function()
+	require(ServerScriptService.Services.SettingsService.SettingsServiceServer):init()
+end)
+initializeOptionalFeature("TutorialService", function()
+	require(ServerScriptService.Services.TutorialService.TutorialServiceServer):init()
+end)
+initializeOptionalFeature("TitleService", function()
+	require(ServerScriptService.Services.TitleService.TitleServiceServer):init()
+end)
+initializeOptionalFeature("GeneralNotificationsService", function()
+	require(ServerScriptService.Services.GeneralNotificationsService.GeneralNotificationsServiceServer):init()
+end)

@@ -6,11 +6,12 @@
 	The path for a plot+route is computed ONCE from the Runway waypoint
 	attachments and reused by all cars on that plot:
 		- points: densely sampled Catmull-Rom polyline
+		- upVectors: densely sampled waypoint orientation
 		- cumulative: arc-length lookup table (cumulative[i] = distance from start to points[i])
 		- length: total arc length
 		- gateDistances: arc distance of every gate attachment projected onto the path
 
-	PathData.sample resolves distance -> (position, direction) with a binary
+	PathData.sample resolves distance -> CFrame with a binary
 	search over the cumulative table (O(log n) instead of a linear scan).
 
 	Only one route is ever active per plot at a time, so the cache is a
@@ -21,6 +22,8 @@
 local PathData = {}
 
 local SAMPLES_PER_SEGMENT = 12
+local DIRECTION_EPSILON = 1e-4
+local CATMULL_ROM_ALPHA = 0.5
 
 local cache: { [number]: { runwayModel: Instance, laneCount: number, lanes: { [number]: Path } } } = {}
 
@@ -61,7 +64,7 @@ local function getRunwayModel(plotId: number): Instance?
 	return plotModel:FindFirstChild(`Runway`)
 end
 
-local function getWaypointPositions(laneFolder: Folder): { Vector3 }
+local function getWaypointCFrames(laneFolder: Folder): { CFrame }
 	local attachments: { Attachment } = {}
 	for _, child in laneFolder:GetChildren() do
 		if child:IsA("Attachment") then
@@ -78,12 +81,12 @@ local function getWaypointPositions(laneFolder: Folder): { Vector3 }
 		return firstAttachment.Name < secondAttachment.Name
 	end)
 
-	local positions: { Vector3 } = {}
+	local cframes: { CFrame } = {}
 	for _, attachment in attachments do
-		positions[#positions + 1] = attachment.WorldCFrame.Position
+		cframes[#cframes + 1] = attachment.WorldCFrame
 	end
 
-	return positions
+	return cframes
 end
 
 -- Invalidates the cached entry for plotId if the live Runway instance
@@ -115,35 +118,77 @@ function PathData.getLaneCount(plotId: number): number
 	return #laneFolders
 end
 
-local function buildSmoothPath(positions: { Vector3 }): { Vector3 }
-	if #positions < 2 then
-		return positions
+local function buildSmoothPath(waypoints: { CFrame }): ({ Vector3 }, { Vector3 })
+	if #waypoints < 2 then
+		local points = {}
+		local upVectors = {}
+		for _, waypoint in waypoints do
+			points[#points + 1] = waypoint.Position
+			upVectors[#upVectors + 1] = waypoint.UpVector
+		end
+		return points, upVectors
 	end
 
 	local sampledPath = {}
+	local sampledUpVectors = {}
 
-	for index = 1, #positions - 1 do
-		local previousPosition = positions[math.max(1, index - 1)]
-		local currentPosition = positions[index]
-		local nextPosition = positions[index + 1]
-		local futurePosition = positions[math.min(#positions, index + 2)]
+	for index = 1, #waypoints - 1 do
+		local currentWaypoint = waypoints[index]
+		local nextWaypoint = waypoints[index + 1]
+		local currentPosition = currentWaypoint.Position
+		local nextPosition = nextWaypoint.Position
+		local previousPosition = if index > 1 then waypoints[index - 1].Position else currentPosition * 2 - nextPosition
+		local futurePosition = if index + 2 <= #waypoints then waypoints[index + 2].Position else nextPosition * 2 - currentPosition
+
+		local firstKnot = 0
+		local secondKnot = firstKnot + (currentPosition - previousPosition).Magnitude ^ CATMULL_ROM_ALPHA
+		local thirdKnot = secondKnot + (nextPosition - currentPosition).Magnitude ^ CATMULL_ROM_ALPHA
+		local fourthKnot = thirdKnot + (futurePosition - nextPosition).Magnitude ^ CATMULL_ROM_ALPHA
 
 		for step = 0, SAMPLES_PER_SEGMENT do
 			local alpha = step / SAMPLES_PER_SEGMENT
-			local catmullRomPoint = (
-				0.5
-				* (
-					(2 * currentPosition)
-					+ ((-previousPosition + nextPosition) * alpha)
-					+ ((2 * previousPosition - 5 * currentPosition + 4 * nextPosition - futurePosition) * (alpha * alpha))
-					+ ((-previousPosition + 3 * currentPosition - 3 * nextPosition + futurePosition) * (alpha * alpha * alpha))
-				)
-			)
+			local knot = secondKnot + (thirdKnot - secondKnot) * alpha
+			local firstPoint = previousPosition:Lerp(currentPosition, (knot - firstKnot) / (secondKnot - firstKnot))
+			local secondPoint = currentPosition:Lerp(nextPosition, (knot - secondKnot) / (thirdKnot - secondKnot))
+			local thirdPoint = nextPosition:Lerp(futurePosition, (knot - thirdKnot) / (fourthKnot - thirdKnot))
+			local firstTangent = firstPoint:Lerp(secondPoint, (knot - firstKnot) / (thirdKnot - firstKnot))
+			local secondTangent = secondPoint:Lerp(thirdPoint, (knot - secondKnot) / (fourthKnot - secondKnot))
+			local catmullRomPoint = firstTangent:Lerp(secondTangent, alpha)
 			sampledPath[#sampledPath + 1] = catmullRomPoint
+			sampledUpVectors[#sampledUpVectors + 1] = currentWaypoint:Lerp(nextWaypoint, alpha).UpVector
 		end
 	end
 
-	return sampledPath
+	return sampledPath, sampledUpVectors
+end
+local function getPathDirection(points: { Vector3 }, index: number): Vector3
+	local point = points[index]
+
+	for nextIndex = index + 1, #points do
+		local direction = points[nextIndex] - point
+		if direction.Magnitude >= DIRECTION_EPSILON then
+			return direction.Unit
+		end
+	end
+
+	for previousIndex = index - 1, 1, -1 do
+		local direction = point - points[previousIndex]
+		if direction.Magnitude >= DIRECTION_EPSILON then
+			return direction.Unit
+		end
+	end
+
+	return Vector3.zAxis
+end
+
+local function getWorldUp(direction: Vector3): Vector3
+	local up = Vector3.yAxis - direction * direction.Y
+	if up.Magnitude < DIRECTION_EPSILON then
+		local fallback = if math.abs(direction.X) < 0.9 then Vector3.xAxis else Vector3.zAxis
+		up = fallback - direction * direction:Dot(fallback)
+	end
+
+	return up.Unit
 end
 
 local function buildCumulative(points: { Vector3 }): ({ number }, number)
@@ -210,13 +255,13 @@ local function buildGateDistances(runwayModel: Instance, points: { Vector3 }, cu
 	return gateDistances
 end
 
-function PathData.sample(path: Path, distance: number): (Vector3, Vector3)
+function PathData.sample(path: Path, distance: number): CFrame
 	local points = path.points
 	local cumulative = path.cumulative
 	local numPoints = #points
 
 	if path.length <= 0 or numPoints < 2 then
-		return points[1] or Vector3.zero, Vector3.zAxis
+		return CFrame.new(points[1] or Vector3.zero)
 	end
 
 	distance %= path.length
@@ -237,22 +282,14 @@ function PathData.sample(path: Path, distance: number): (Vector3, Vector3)
 	local segmentProgress = if segmentLength > 1e-4 then (distance - cumulative[low - 1]) / segmentLength else 0
 	local position = fromPoint:Lerp(toPoint, segmentProgress)
 
-	local direction = toPoint - fromPoint
-	if direction.Magnitude < 1e-4 then
-		-- Catmull-Rom emits duplicate points at segment joins; look ahead for a usable direction
-		for index = low + 1, numPoints do
-			direction = points[index] - fromPoint
-			if direction.Magnitude >= 1e-4 then
-				break
-			end
-		end
+	local direction = getPathDirection(points, low - 1)
+	local up = path.upVectors[low - 1]:Lerp(path.upVectors[low], segmentProgress)
+	up = up - direction * direction:Dot(up)
+	if up.Magnitude < DIRECTION_EPSILON then
+		up = getWorldUp(direction)
 	end
 
-	if direction.Magnitude < 1e-4 then
-		direction = Vector3.zAxis
-	end
-
-	return position, direction.Unit
+	return CFrame.lookAt(position, position + direction, up.Unit)
 end
 
 function PathData.get(plotId: number, laneId: number?): Path?
@@ -281,7 +318,8 @@ function PathData.get(plotId: number, laneId: number?): Path?
 		return nil
 	end
 
-	local points = buildSmoothPath(getWaypointPositions(laneFolder))
+	local waypoints = getWaypointCFrames(laneFolder)
+	local points, upVectors = buildSmoothPath(waypoints)
 	if #points < 2 then
 		return nil
 	end
@@ -293,6 +331,7 @@ function PathData.get(plotId: number, laneId: number?): Path?
 
 	local path: Path = {
 		points = points,
+		upVectors = upVectors,
 		cumulative = cumulative,
 		length = length,
 		gateDistances = buildGateDistances(runwayModel, points, cumulative),
@@ -304,6 +343,7 @@ end
 
 export type Path = {
 	points: { Vector3 },
+	upVectors: { Vector3 },
 	cumulative: { number },
 	length: number,
 	gateDistances: { [number]: number },

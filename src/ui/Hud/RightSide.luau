@@ -191,7 +191,7 @@ return function()
 		}),
 		productIndex({
 			title = "STARTER PACK",
-			image = CarIds[6].imageId,
+			image = "rbxassetid://90845757723339",
 			LayoutOrder = 2,
 
 			Visible = function()

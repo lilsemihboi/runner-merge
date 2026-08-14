@@ -448,6 +448,9 @@ tutorialSteps = {
 		TutorialSlice.states.localTutorialStage(10)
 		instructorTextSource("")
 
+		Menu.closeCurrentMenu()
+		clearNavigators()
+
 		const cashSource = GetDataSource("cash")
 
 		if cashSource() >= 1000 then
@@ -456,9 +459,6 @@ tutorialSteps = {
 		end
 
 		instructorTextSource(`Save up <font color="rgb(0,255,0)">$1,000</font>!`)
-
-		Menu.closeCurrentMenu()
-		clearNavigators()
 
 		local connection: (() -> ())?
 
@@ -560,10 +560,7 @@ return function(): any
 		return
 	end
 
-	local plot = PlotServiceClient:getPlot()
-	if not plot then
-		return
-	end
+	local plot = PlotServiceClient:waitForPlot()
 	plotModel = plot.plotModel
 
 	arrowNav = useArrowNavigator()

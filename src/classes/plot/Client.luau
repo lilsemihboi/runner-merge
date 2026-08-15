@@ -96,6 +96,9 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 	self.janitor:Add(Charm.subscribe(upgradesAtom, function()
 		self:_updateUpgradeButtonPrices()
 	end))
+	self.janitor:Add(Charm.subscribe(GetDataSource("rebirths"), function()
+		self:_updateUpgradeButtonPrices()
+	end))
 
 	self.janitor:Add(
 		DataService:getChangedSignal({ "runners" }):Connect(function()
@@ -243,6 +246,7 @@ function Plot.setupUpgradeBoard(self: Plot)
 
 	local extraGates = GetDataSource({ "extraGates" })
 	local selectedRouteAtom = GetDataSource({ "selectedRoute" })
+	local rebirths = GetDataSource("rebirths")
 
 	local function setupUpgradeFrame(
 		upgradeFrame: typeof(workspace._PLOTS["1"].UpgradeTable.UpgradeTable.UpgradePart.SurfaceGui.Frame.gates),
@@ -272,7 +276,7 @@ function Plot.setupUpgradeBoard(self: Plot)
 				end
 
 				local nextCashGateLevel = rawLevel + 1
-				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextCashGateLevel)
+				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextCashGateLevel, rebirths())
 				upgradeFrame.nextLevel.Text = `{cashGateCount} → {cashGateCount + 1}`
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
 				return
@@ -285,7 +289,7 @@ function Plot.setupUpgradeBoard(self: Plot)
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 			else
 				upgradeFrame.nextLevel.Text = `{rawLevel} → {nextLevel}`
-				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextLevel)
+				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextLevel, rebirths())
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
 			end
 		end
@@ -293,6 +297,9 @@ function Plot.setupUpgradeBoard(self: Plot)
 		if upgradeId ~= "gates" then
 			self.janitor:Add(Charm.subscribe(levelAtomForUpgrade, function(newLevel)
 				changeLevelStatus(newLevel)
+			end))
+			self.janitor:Add(Charm.subscribe(rebirths, function()
+				changeLevelStatus(levelAtomForUpgrade())
 			end))
 		end
 
@@ -997,6 +1004,7 @@ end
 
 function Plot._updateUpgradeButtonPrices(self: Plot)
 	local cash = DataService:get("cash")
+	local rebirths = DataService:get("rebirths")
 	if typeof(cash) ~= "number" then
 		return
 	end
@@ -1015,7 +1023,7 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 		end
 
 		local nextUpgradeLevel: number = currentUpgradeLevel + 1
-		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel)
+		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel, rebirths)
 
 		if levelCap <= currentUpgradeLevel then
 			-- MAX

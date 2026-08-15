@@ -23,6 +23,9 @@ local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 	cashBonus = 2,
 }
 
+local UPGRADE_REBIRTH_BASE_SCALE = 0.5
+local UPGRADE_REBIRTH_GROWTH = 1.4
+
 UpgradeUtils.levelCaps = {
 	gates = Charm.atom(10),
 	runnerSpeed = Charm.atom(10),
@@ -44,7 +47,7 @@ function UpgradeUtils.updateLevelCaps()
 	end)
 end
 
-function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: number): number
+function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: number, rebirthLevel: number): number
 	local level = math.max(0, math.floor(upgradeLevel))
 
 	local function roundToTens(value: number): number
@@ -62,8 +65,10 @@ function UpgradeUtils.calculateUpgradeCost(upgradeId: UpgradeId, upgradeLevel: n
 
 	local baseCost = UPGRADE_BASE_COSTS[upgradeId]
 	local growth = UPGRADE_GROWTH[upgradeId]
+	local rebirths = math.max(0, math.floor(rebirthLevel))
+	local rebirthScale = UPGRADE_REBIRTH_BASE_SCALE * (UPGRADE_REBIRTH_GROWTH ^ rebirths)
 
-	return roundToTens(baseCost * (growth ^ level))
+	return roundToTens(baseCost * (growth ^ level) * rebirthScale)
 end
 
 return UpgradeUtils

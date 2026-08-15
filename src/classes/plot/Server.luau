@@ -175,7 +175,7 @@ function Plot.upgrade(self: Plot, player: Player, upgradeId: keyof<typeof(_DataT
 		return "MAX_LEVEL"
 	end
 
-	local nextUpgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeId)
+	local nextUpgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeId, self.profile:getRebirths())
 
 	if self.profile:getCash() < nextUpgradeCost then
 		return "NOT_ENOUGH_CASH"

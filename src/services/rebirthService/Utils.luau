@@ -1,6 +1,6 @@
 local RebirthUtils = {}
 
-local ENDGAME_GROWTH = 1.30
+local ENDGAME_GROWTH = 1.45
 local CASH_MULTIPLIER_REBIRTH = 0.05
 
 local ROUTE_PROGRESSION_PRICES = {

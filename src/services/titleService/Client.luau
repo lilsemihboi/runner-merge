@@ -32,15 +32,17 @@ function TitleService.init(_self: TitleService)
 		local tag = not titleInfo and "" or `[{titleInfo.text}]`
 		local color = if not titleInfo then colorSequence else titleInfo.colorSequence
 
-		properties.PrefixText = `<font weight="ExtraBold">{tag}</font>`
+		if tag ~= "" then
+			properties.PrefixText = `<font weight="ExtraBold">{tag}</font>`
+			properties.PrefixTextProperties = ChatWindowConfiguration:DeriveNewMessageProperties()
+
+			local UIGradient = Instance.new("UIGradient")
+			UIGradient.Color = color
+			UIGradient.Rotation = titleInfo.rotation
+			UIGradient.Parent = properties.PrefixTextProperties
+		end
+
 		properties.Text = `<font weight="ExtraBold">{FormatNameWithIcons(PlayerByUserId)}:</font> {message.Text}`
-		properties.PrefixTextProperties = ChatWindowConfiguration:DeriveNewMessageProperties()
-
-		local UIGradient = Instance.new("UIGradient")
-
-		UIGradient.Color = color
-		UIGradient.Rotation = not titleInfo and 0 or titleInfo.rotation
-		UIGradient.Parent = properties.PrefixTextProperties
 
 		return properties
 	end

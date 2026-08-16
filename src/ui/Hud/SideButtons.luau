@@ -132,6 +132,7 @@ const function SideButtonsComponent()
 				layoutOrder = nextOrder(),
 				icon = "rbxassetid://137794920489098",
 				menuId = "Rebirth",
+				notificationStyle = "dot",
 				notify = canRebirth,
 				visible = function()
 					return isTutorialFinished() or localTutorialStage() >= 11

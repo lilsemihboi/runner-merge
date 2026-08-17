@@ -118,6 +118,9 @@ function RouteService.selectRoute(self: RouteService, player: Player, routeId: n
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
+	if profile:getRoute() == routeId then
+		return false, "ALREADY_SELECTED"
+	end
 
 	local routeRebirthRequirement = RouteServiceUtils[routeId].rebirthRequirement
 

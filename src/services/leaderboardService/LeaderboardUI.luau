@@ -15,6 +15,7 @@ local leaderboardFolder = workspace:WaitForChild("_LEADERBOARDS")
 local leaderboardModels: { [LeaderboardSliceId]: Instance } = {
 	rebirthsLeaderboard = leaderboardFolder:WaitForChild("topRebirth"),
 	cashLeaderboard = leaderboardFolder:WaitForChild("topCash"),
+	playtimeLeaderboard = leaderboardFolder:WaitForChild("topPlaytime"),
 }
 local leaderboardEntrySample = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("leaderboardEntry")
 
@@ -86,6 +87,7 @@ end
 function LeaderboardUI.init()
 	LeaderboardUI.setupLeaderboard("rebirthsLeaderboard", leaderboardModels.rebirthsLeaderboard)
 	LeaderboardUI.setupLeaderboard("cashLeaderboard", leaderboardModels.cashLeaderboard)
+	LeaderboardUI.setupLeaderboard("playtimeLeaderboard", leaderboardModels.playtimeLeaderboard)
 end
 
 return LeaderboardUI

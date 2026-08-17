@@ -305,7 +305,7 @@ tutorialSteps = {
 	-- Step 7: Open Lucky Block
 	[7] = function()
 		TutorialSlice.states.localTutorialStage(7)
-		instructorTextSource("Open the Crate!")
+		instructorTextSource("Roll the Crate!")
 
 		local luckyBlockSpawn = plotModel.LuckyBlock.CrateSpawn
 		local att = getOrCreateAttachment("luckyBlock", luckyBlockSpawn)

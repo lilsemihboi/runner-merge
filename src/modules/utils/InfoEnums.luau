@@ -14,5 +14,6 @@ return {
 	COOLDOWN = "Please wait before trying again.",
 	ERROR = "Something went wrong.",
 	INVALID_ROUTE = "This route doesn't exist.",
+	ALREADY_SELECTED = "This route is already selected.",
 	OUT_OF_STOCK = "This item is sold out.",
 }

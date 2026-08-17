@@ -55,6 +55,7 @@ function Plot.new(player: Player, plotId: number): Plot
 	self.networker:addRecipient(player)
 
 	self.profile = ProfileServiceServer.getProfile(player)
+	self:_setupStreaming()
 
 	local tempFolder = Instance.new("Folder")
 	tempFolder.Name = "_TEMP"
@@ -74,6 +75,40 @@ function Plot.new(player: Player, plotId: number): Plot
 	RunnerServiceServer:registerPlot(player, plotId)
 
 	return self :: Plot
+end
+
+function Plot._setStreamingModel(self: Plot, instance: Instance)
+	if not instance:IsA("Model") then
+		return
+	end
+
+	instance.ModelStreamingMode = Enum.ModelStreamingMode.PersistentPerPlayer
+	instance:AddPersistentPlayer(self.player)
+end
+
+function Plot._setupStreaming(self: Plot)
+	self:_setStreamingModel(self.plotModel)
+
+	for _, descendant in self.plotModel:GetDescendants() do
+		self:_setStreamingModel(descendant)
+	end
+
+	self.janitor:Add(
+		self.plotModel.DescendantAdded:Connect(function(descendant)
+			self:_setStreamingModel(descendant)
+		end),
+		"Disconnect"
+	)
+end
+
+function Plot._removePersistentPlayer(self: Plot)
+	self.plotModel:RemovePersistentPlayer(self.player)
+
+	for _, descendant in self.plotModel:GetDescendants() do
+		if descendant:IsA("Model") and descendant.ModelStreamingMode == Enum.ModelStreamingMode.PersistentPerPlayer then
+			descendant:RemovePersistentPlayer(self.player)
+		end
+	end
 end
 
 function Plot._checkForGates(self: Plot)
@@ -288,6 +323,7 @@ end
 function Plot.destroy(self: Plot)
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerImage.Image = ""
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = "Empty"
+	self:_removePersistentPlayer()
 
 	RunnerServiceServer:unregisterPlot(self.player)
 

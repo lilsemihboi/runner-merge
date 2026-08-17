@@ -241,6 +241,8 @@ end
 function Plot.setupUpgradeBoard(self: Plot)
 	local upgradeBoardUI =
 		self.plotModel:WaitForChild("UpgradeTable"):WaitForChild("UpgradeTable"):WaitForChild("UpgradePart"):WaitForChild("SurfaceGui"):WaitForChild("Frame")
+	local upgradeSurfaceGui = upgradeBoardUI.Parent :: SurfaceGui
+	upgradeSurfaceGui.MaxDistance = 0
 
 	UpgradeUtils.updateLevelCaps()
 
@@ -1024,9 +1026,11 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 
 		local nextUpgradeLevel: number = currentUpgradeLevel + 1
 		local upgradeCost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextUpgradeLevel, rebirths)
+		local buttonLabel = upgradeButton.BTN_Surface.TXT_ButtonLabel
 
 		if levelCap <= currentUpgradeLevel then
 			-- MAX
+			buttonLabel.Text = "MAX"
 
 			upgradeButton.BTN_Surface.FX_BackgroundGradient.Rotation = 180
 			upgradeButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -1043,6 +1047,8 @@ function Plot._updateUpgradeButtonPrices(self: Plot)
 
 			continue
 		end
+
+		buttonLabel.Text = if upgradeCost == 0 then "FREE" else FormatCurrency(upgradeCost, true)
 
 		if cash >= upgradeCost then
 			-- Affordable

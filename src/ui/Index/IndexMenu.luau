@@ -60,15 +60,7 @@ local function runnerIndex(props: IndexProps)
 		-- Car Name
 		TextLabel({
 			Size = usePx.offset(150, 30),
-			Text = function()
-				local isOwned = ownedCars()[tostring(props.runnerLevel)]
-
-				if isOwned then
-					return props.runnerName
-				else
-					return "???"
-				end
-			end,
+			Text = props.runnerName,
 			Position = UDim2.fromScale(0.5, 0.15),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			TextColor3 = Color3.fromRGB(255, 255, 255),

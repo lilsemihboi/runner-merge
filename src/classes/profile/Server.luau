@@ -21,8 +21,8 @@ local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 
-function Profile._waitForData(self: Profile)
-	DataService:waitForData(self.player)
+function Profile._waitForData(self: Profile): boolean
+	return DataService:waitForData(self.player) ~= nil
 end
 
 --[=[
@@ -32,13 +32,15 @@ end
 	@param player Player -- The player to create a profile for
 	@return Profile -- A new Profile instance bound to the specified player
 ]=]
-function Profile.new(player: Player): Profile
+function Profile.new(player: Player): Profile?
 	-- Create a new table with metatables to associate it with the Profile class
 	local self: Profile = setmetatable({
 		player = player, -- Store reference to the player
 	}, Profile)
 
-	self:_waitForData()
+	if not self:_waitForData() then
+		return nil
+	end
 
 	return self
 end

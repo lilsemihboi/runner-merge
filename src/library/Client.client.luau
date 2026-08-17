@@ -29,9 +29,12 @@ local function initializeOptionalFeature(featureName, initialize)
 end
 
 DataService:init()
-initializeOptionalFeature("AnalyticsService", function()
+local analyticsSuccess, analyticsProblem = xpcall(function()
 	require(ReplicatedStorage.Shared.Services.AnalyticsService.AnalyticsServiceClient):init()
-end)
+end, debug.traceback)
+if not analyticsSuccess then
+	warn(`[Startup] Optional client feature "AnalyticsService" failed to initialize and was disabled:\n{analyticsProblem}`)
+end
 InventoryServiceClient:init()
 BlockServiceClient:init()
 -- Before monetization: product cost text reads stock as soon as it initialises.

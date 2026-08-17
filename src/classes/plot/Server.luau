@@ -41,49 +41,60 @@ function Plot.new(player: Player, plotId: number): Plot
 		janitor = Janitor.new(),
 		gates = {},
 		_isApplyingRunnerMerge = false,
+		_isDestroyed = false,
 	}, Plot) :: Plot
 
-	local networker = Networker.server.new(`plot_{player.Name}`, self, {
-		self.merge,
-		self.upgrade,
-		self.addRunner,
-		self.teleportToBase,
-		self.giveGroupReward,
-		self.upgradeGatesWithPass,
-	})
-	self.networker = networker
-	self.networker:addRecipient(player)
+	local success, problem = xpcall(function()
+		self.networker = Networker.server.new(`plot_{player.UserId}`, self, {
+			self.merge,
+			self.upgrade,
+			self.addRunner,
+			self.teleportToBase,
+			self.giveGroupReward,
+			self.upgradeGatesWithPass,
+		})
+		self.networker:addRecipient(player)
 
-	self.profile = ProfileServiceServer.getProfile(player)
-	self:_setupStreaming()
+		self.profile = ProfileServiceServer.getProfile(player)
+		assert(player.Parent == Players, "Player left while their plot was being created")
+		self:_setupStreaming()
 
-	local tempFolder = Instance.new("Folder")
-	tempFolder.Name = "_TEMP"
-	tempFolder.Parent = self.plotModel
-	self.janitor:Add(tempFolder, "Destroy")
+		local tempFolder = Instance.new("Folder")
+		tempFolder.Name = "_TEMP"
+		tempFolder.Parent = self.plotModel
+		self.janitor:Add(tempFolder, "Destroy")
 
-	self:onCharacterAdded()
-	self:setupSign()
-	self:buildRunway(self.profile:getRoute())
-	self:_watchCrate()
-	self:_watchRunners()
-	self:_watchRunnerSpawnLevel()
-	self:_checkForGates()
+		self:onCharacterAdded()
+		self:setupSign()
+		self:buildRunway(self.profile:getRoute())
+		self:_watchCrate()
+		self:_watchRunners()
+		self:_watchRunnerSpawnLevel()
+		self:_checkForGates()
 
-	-- runner simulation is fully client-side; RunnerService only broadcasts
-	-- the roster + start signal and validates gate income
-	RunnerServiceServer:registerPlot(player, plotId)
+		-- runner simulation is fully client-side; RunnerService only broadcasts
+		-- the roster + start signal and validates gate income
+		RunnerServiceServer:registerPlot(player, plotId)
+	end, debug.traceback)
+
+	if not success then
+		self:destroy()
+		error(problem, 0)
+	end
 
 	return self :: Plot
 end
 
 function Plot._setStreamingModel(self: Plot, instance: Instance)
-	if not instance:IsA("Model") then
+	if not instance:IsA("Model") or self.player.Parent ~= Players then
 		return
 	end
 
 	instance.ModelStreamingMode = Enum.ModelStreamingMode.PersistentPerPlayer
-	instance:AddPersistentPlayer(self.player)
+	local success, problem = pcall(instance.AddPersistentPlayer, instance, self.player)
+	if not success and self.player.Parent == Players then
+		warn(`[Plot] Failed to make {instance:GetFullName()} persistent for {self.player.Name}: {problem}`)
+	end
 end
 
 function Plot._setupStreaming(self: Plot)
@@ -102,11 +113,15 @@ function Plot._setupStreaming(self: Plot)
 end
 
 function Plot._removePersistentPlayer(self: Plot)
-	self.plotModel:RemovePersistentPlayer(self.player)
+	if self.player.Parent ~= Players then
+		return
+	end
+
+	pcall(self.plotModel.RemovePersistentPlayer, self.plotModel, self.player)
 
 	for _, descendant in self.plotModel:GetDescendants() do
 		if descendant:IsA("Model") and descendant.ModelStreamingMode == Enum.ModelStreamingMode.PersistentPerPlayer then
-			descendant:RemovePersistentPlayer(self.player)
+			pcall(descendant.RemovePersistentPlayer, descendant, self.player)
 		end
 	end
 end
@@ -293,24 +308,33 @@ function Plot.setupSign(self: Plot)
 	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = FormatNameWithIcons(self.player) .. "'s Base"
 end
 
-function Plot.teleportToBase(self: Plot, player: Player)
-	assert(player == self.player, "You dont own the base!")
+function Plot._teleportCharacterToBase(self: Plot, character: Model)
+	local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 10)
+	if self._isDestroyed or character ~= self.player.Character or not humanoidRootPart or not humanoidRootPart:IsA("BasePart") then
+		return
+	end
 
-	local character = self.player.Character or self.player.CharacterAdded:Wait()
-
-	local humanoidRootPart: BasePart = character:WaitForChild("HumanoidRootPart") :: BasePart
 	humanoidRootPart.CFrame = self.plotModel.Spawn.WorldCFrame
 end
 
-function Plot.onCharacterAdded(self: Plot)
-	self:teleportToBase(self.player)
+function Plot.teleportToBase(self: Plot, player: Player)
+	assert(player == self.player, "You dont own the base!")
 
+	local character = self.player.Character
+	if character then
+		task.spawn(self._teleportCharacterToBase, self, character)
+	end
+end
+
+function Plot.onCharacterAdded(self: Plot)
 	self.janitor:Add(
-		self.player.CharacterAdded:Connect(function()
-			self:teleportToBase(self.player)
+		self.player.CharacterAdded:Connect(function(character)
+			task.spawn(self._teleportCharacterToBase, self, character)
 		end),
 		"Disconnect"
 	)
+
+	self:teleportToBase(self.player)
 end
 
 function Plot.getPlotData(self: Plot): PlotServiceTypes.PlotData
@@ -321,19 +345,52 @@ function Plot.getPlotData(self: Plot): PlotServiceTypes.PlotData
 end
 
 function Plot.destroy(self: Plot)
-	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerImage.Image = ""
-	self.plotModel.Sign.PlayerTable.SurfaceGui.Frame.PlayerName.Text = "Empty"
+	if self._isDestroyed then
+		return
+	end
+	self._isDestroyed = true
+
+	local sign = self.plotModel:FindFirstChild("Sign")
+	if sign then
+		local playerTable = sign:FindFirstChild("PlayerTable")
+		local surfaceGui = playerTable and playerTable:FindFirstChild("SurfaceGui")
+		local frame = surfaceGui and surfaceGui:FindFirstChild("Frame")
+		local playerImage = frame and frame:FindFirstChild("PlayerImage")
+		local playerName = frame and frame:FindFirstChild("PlayerName")
+		if playerImage and playerImage:IsA("ImageLabel") then
+			playerImage.Image = ""
+		end
+		if playerName and playerName:IsA("TextLabel") then
+			playerName.Text = "Empty"
+		end
+	end
+
 	self:_removePersistentPlayer()
 
-	RunnerServiceServer:unregisterPlot(self.player)
+	local runnerSuccess, runnerProblem = pcall(RunnerServiceServer.unregisterPlot, RunnerServiceServer, self.player)
+	if not runnerSuccess then
+		warn(`[Plot] Failed to unregister runners for {self.player.Name}: {runnerProblem}`)
+	end
 
 	for gateId, gate in self.gates do
-		gate:destroy()
+		local gateSuccess, gateProblem = pcall(gate.destroy, gate)
+		if not gateSuccess then
+			warn(`[Plot] Failed to destroy gate {gateId} for {self.player.Name}: {gateProblem}`)
+		end
 		self.gates[gateId] = nil
 	end
 
-	self.janitor:Destroy()
-	self.networker:destroy()
+	local janitorSuccess, janitorProblem = pcall(self.janitor.Destroy, self.janitor)
+	if not janitorSuccess then
+		warn(`[Plot] Failed to clean plot {self.plotId} for {self.player.Name}: {janitorProblem}`)
+	end
+
+	if self.networker then
+		local networkerSuccess, networkerProblem = pcall(self.networker.destroy, self.networker)
+		if not networkerSuccess then
+			warn(`[Plot] Failed to destroy plot networker for {self.player.Name}: {networkerProblem}`)
+		end
+	end
 end
 
 function Plot._watchRunnerSpawnLevel(self: Plot)
@@ -606,6 +663,7 @@ export type Plot = typeof(setmetatable(
 		profile: ProfileServer.Profile,
 		gates: { [number]: GateServer.Gate },
 		_isApplyingRunnerMerge: boolean,
+		_isDestroyed: boolean,
 	},
 	Plot
 ))

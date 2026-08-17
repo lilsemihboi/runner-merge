@@ -67,7 +67,7 @@ function Plot.new(plotData: PlotServiceTypes.PlotData): Plot
 		registeredButtons = {},
 		upgradeButtons = {},
 	}, Plot) :: Plot
-	self.networker = Networker.client.new(`plot_{self.player.Name}`, self)
+	self.networker = Networker.client.new(`plot_{self.player.UserId}`, self)
 
 	self:setupButtons()
 	self:setupUpgradeBoard()

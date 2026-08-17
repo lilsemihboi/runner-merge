@@ -112,7 +112,9 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 end
 
 function MonetizationServiceServer.playerAdded(self: MonetizationService, player: Player): ()
-	DataService:waitForData(player)
+	if not DataService:waitForData(player) or player.Parent ~= Players then
+		return
+	end
 	DataService:set(player, GIFT_RECEIVER_DATA_KEY, nil)
 	if self.options.canAwardGamepasses == false then
 		return

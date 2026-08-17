@@ -17,6 +17,7 @@ local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local profiles: { [Player]: ProfileServer.Profile } = {} -- Maps players to their profile instances
+local failedProfiles: { [Player]: boolean } = {}
 local playersJoinedAt: { [Player]: number } = {} -- Tracks session start time for each player
 local profileCreationSignal = Signal.new() -- Fired when a player's profile is created
 
@@ -81,7 +82,8 @@ function ProfileService._create(self: ProfileService, player: Player)
 	-- Instantiate a new profile for the player
 	local profile = ProfileServer.new(player)
 	if not profile then
-		warn("Failed to create profile for player: " .. player.Name)
+		failedProfiles[player] = true
+		profileCreationSignal:Fire(player)
 		return
 	end
 
@@ -109,14 +111,14 @@ function ProfileService.getProfile(player: Player): ProfileServer.Profile
 
 	-- Wait for the profile to be created using the signal
 	-- Keep waiting until the profile is created for this player
-	while not profiles[player] do
+	while not profiles[player] and not failedProfiles[player] do
 		local createdPlayer = profileCreationSignal:Wait()
 		if createdPlayer == player then
 			break
 		end
 	end
 
-	return profiles[player]
+	return assert(profiles[player], `Profile was not created for {player.Name}`)
 end
 
 --[=[
@@ -178,11 +180,13 @@ DataService:addPlayerRemovingCallback(function(player: Player, data)
 
 	local profile = profiles[player]
 	if not profile then
+		failedProfiles[player] = nil
 		return
 	end
 
 	-- Clear the player's profile from cache
 	profiles[player] = nil
+	failedProfiles[player] = nil
 end)
 
 type ProfileService = typeof(ProfileService)

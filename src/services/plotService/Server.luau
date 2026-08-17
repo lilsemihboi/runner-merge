@@ -43,6 +43,10 @@ function PlotService._releasePlot(self: PlotService, plotId: string)
 end
 
 function PlotService.playerAdded(self: PlotService, player: Player, playerData: PlayerData)
+	if self.plots[player] then
+		return
+	end
+
 	local plotModel = self:_claimPlot()
 	if not plotModel then
 		player:Kick("Failed to claim plot!")
@@ -50,22 +54,40 @@ function PlotService.playerAdded(self: PlotService, player: Player, playerData: 
 	end
 
 	local plotId = tonumber(plotModel.Name) :: number
-	local plot = PlotServer.new(player, plotId)
+	local success, plotOrProblem = xpcall(PlotServer.new, debug.traceback, player, plotId)
+	if not success then
+		self:_releasePlot(plotModel.Name)
+		warn(`[PlotService] Failed to create plot {plotModel.Name} for {player.Name}:\n{plotOrProblem}`)
+		if player.Parent then
+			player:Kick("Failed to initialize plot. Please rejoin.")
+		end
+		return
+	end
+
+	local plot = plotOrProblem :: Plot
+	if not player.Parent then
+		plot:destroy()
+		self:_releasePlot(plotModel.Name)
+		return
+	end
+
 	playerData.plot = plot
 	self.plots[player] = plot
 
 	self.networker:fire(player, "initPlot", plot:getPlotData())
 end
 
-function PlotService.playerRemoving(self: PlotService, player: Player, playerData: PlayerData)
-	local plot = playerData.plot
+function PlotService.playerRemoving(self: PlotService, player: Player, playerData: PlayerData?)
+	local plot = self.plots[player] or (playerData and playerData.plot)
 
 	if plot then
-		plot:destroy()
+		local success, problem = xpcall(plot.destroy, debug.traceback, plot)
+		if not success then
+			warn(`[PlotService] Failed to destroy plot {plot.plotId} for {player.Name}:\n{problem}`)
+		end
 		self:_releasePlot(tostring(plot.plotId))
 	end
 	self.plots[player] = nil
-	self.networker:fire(player, "destroyPlot")
 end
 
 type Plot = PlotServer.Plot

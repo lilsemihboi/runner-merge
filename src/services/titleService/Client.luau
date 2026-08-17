@@ -9,7 +9,6 @@ local FormatNameWithIcons = require(ReplicatedStorage.Shared.Modules.Ui.FormatNa
 local TitleServiceUtils = require(script.Parent.TitleServiceUtils)
 
 local ChatWindowConfiguration = TextChatService.ChatWindowConfiguration
-local colorSequence = ColorSequence.new(Color3.fromRGB(255, 255, 255))
 
 function TitleService.init(_self: TitleService)
 	function TextChatService.OnChatWindowAdded(message: TextChatMessage)
@@ -29,20 +28,21 @@ function TitleService.init(_self: TitleService)
 
 		local titleId = PlayerByUserId:GetAttribute("TitleId") or ""
 		local titleInfo = TitleServiceUtils.titles[titleId]
-		local tag = not titleInfo and "" or `[{titleInfo.text}]`
-		local color = if not titleInfo then colorSequence else titleInfo.colorSequence
+		local formattedName = `<font weight="ExtraBold">{FormatNameWithIcons(PlayerByUserId)}:</font>`
 
-		if tag ~= "" then
-			properties.PrefixText = `<font weight="ExtraBold">{tag}</font>`
+		if titleInfo then
+			properties.PrefixText = `<font weight="ExtraBold">[{titleInfo.text}]</font>`
 			properties.PrefixTextProperties = ChatWindowConfiguration:DeriveNewMessageProperties()
+			properties.Text = `{formattedName} {message.Text}`
 
 			local UIGradient = Instance.new("UIGradient")
-			UIGradient.Color = color
+			UIGradient.Color = titleInfo.colorSequence
 			UIGradient.Rotation = titleInfo.rotation
 			UIGradient.Parent = properties.PrefixTextProperties
+		else
+			properties.PrefixText = formattedName
+			properties.Text = message.Text
 		end
-
-		properties.Text = `<font weight="ExtraBold">{FormatNameWithIcons(PlayerByUserId)}:</font> {message.Text}`
 
 		return properties
 	end

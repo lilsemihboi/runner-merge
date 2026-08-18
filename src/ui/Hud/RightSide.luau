@@ -121,7 +121,7 @@ return function()
 			-- Ekranda
 			return usePx.udim2(0.9, 0, 500 / 1080, 0)()
 		else
-			return UDim2.fromScale(1, 500 / 1080)
+			return UDim2.fromScale(2, 500 / 1080)
 		end
 	end)
 	local sidebarPosition = Vide.spring(sidebarPositionTarget, 0.35, 0.8)

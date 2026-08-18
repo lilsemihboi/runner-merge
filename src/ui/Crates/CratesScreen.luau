@@ -369,6 +369,8 @@ const function rollScreen()
 	local rollStrip = Vide.source({})
 	local containerRef: Frame? = nil
 	local itemsFrameRef: Frame? = nil
+	local skipSpin: (() -> ())? = nil
+	local shouldSkipSpin = false
 
 	-- Every spin is tagged so a queued roll starting mid-flight cannot be driven by the
 	-- previous spin's deferred thread, tick loop, or tween completion.
@@ -495,11 +497,15 @@ const function rollScreen()
 			kickTarget(0)
 		end)
 
-		tween.Completed:Connect(function()
-			isTicking = false
-			if token ~= spinToken then
+		local hasFinished = false
+		local function finishSpin()
+			if hasFinished or token ~= spinToken then
 				return
 			end
+
+			hasFinished = true
+			isTicking = false
+			skipSpin = nil
 
 			CratesSlice.actions.finishRolling()
 			playRevealImpact()
@@ -507,8 +513,25 @@ const function rollScreen()
 			if #CratesSlice.states.pendingRolls() > 0 then
 				task.delay(REVEAL_HOLD, CratesSlice.actions.advanceRoll)
 			end
+		end
+
+		skipSpin = function()
+			tween:Cancel()
+			container.Position = UDim2.new(0, targetOffset, 0.5, 0)
+			finishSpin()
+		end
+
+		tween.Completed:Connect(function(playbackState)
+			if playbackState == Enum.PlaybackState.Completed then
+				finishSpin()
+			end
 		end)
-		tween:Play()
+
+		if shouldSkipSpin then
+			skipSpin()
+		else
+			tween:Play()
+		end
 	end
 
 	Vide.effect(function()
@@ -528,6 +551,7 @@ const function rollScreen()
 			return
 		end
 
+		shouldSkipSpin = false
 		spinToken += 1
 		local token = spinToken
 
@@ -698,10 +722,21 @@ const function rollScreen()
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Colors = ButtonColors.Green,
 				Visible = function()
-					return not isRolling() and #pendingRolls() == 0
+					return isRolling() or #pendingRolls() == 0
 				end,
-				Text = "Claim",
-				OnClick = CratesSlice.actions.closeScreen,
+				Text = function()
+					return if isRolling() then "Skip" else "Claim"
+				end,
+				OnClick = function()
+					if isRolling() then
+						shouldSkipSpin = true
+						if skipSpin then
+							skipSpin()
+						end
+					else
+						CratesSlice.actions.closeScreen()
+					end
+				end,
 				ZIndex = 10,
 			} :: StudButton.StudButton),
 		}),

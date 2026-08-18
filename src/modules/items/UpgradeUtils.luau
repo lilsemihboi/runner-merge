@@ -13,13 +13,13 @@ type UpgradeId = keyof<typeof(_DataTemplate.upgrades)>
 
 local UPGRADE_BASE_COSTS: { [UpgradeId]: number } = {
 	gates = 50,
-	runnerSpeed = 100,
+	runnerSpeed = 300,
 	cashBonus = 500,
 }
 
 local UPGRADE_GROWTH: { [UpgradeId]: number } = {
 	gates = 2.5,
-	runnerSpeed = 1.85,
+	runnerSpeed = 1.95,
 	cashBonus = 2,
 }
 

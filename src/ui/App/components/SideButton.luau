@@ -60,7 +60,7 @@ local function glowingDot()
 			ZIndex = 1,
 
 			e("UICorner", {
-				CornerRadius = UDim.new(0, 12),
+				CornerRadius = usePx.udim(0, 12),
 			}),
 		}),
 
@@ -75,7 +75,7 @@ local function glowingDot()
 			ZIndex = 3,
 
 			e("UICorner", {
-				CornerRadius = UDim.new(0, 6),
+				CornerRadius = usePx.udim(0, 6),
 			}),
 
 			e("UIStroke", {

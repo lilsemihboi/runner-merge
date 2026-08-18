@@ -1,5 +1,6 @@
 local RebirthService = {}
 
+local ConfigService = game:GetService("ConfigService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Networker = require(ReplicatedStorage.Packages.Networker)
@@ -29,6 +30,16 @@ function RebirthService.rebirth(_self: RebirthService, player: Player)
 	profile:resetCash()
 	profile:setExtraGateCount(0)
 	profile:resetUpgrades()
+
+	-- Config based A/B Test
+	local configSuccess, shouldAutoBuyFirstGate = pcall(function()
+		local config = ConfigService:GetConfigForPlayerAsync(player)
+		return config:GetValue("auto_buy_first_gate") == true
+	end)
+
+	if configSuccess and shouldAutoBuyFirstGate then
+		profile:giveUpgrade("gates")
+	end
 
 	-- Award
 

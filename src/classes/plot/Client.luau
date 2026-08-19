@@ -25,11 +25,13 @@ local Menu = require(ReplicatedStorage.Shared.UI.App.Components.Menu)
 local MonetizationServiceClient = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceClient)
 local PlotServiceTypes = require(ReplicatedStorage.Shared.Services.PlotService.PlotServiceTypes)
 local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
+local Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local StockSlice = require(ReplicatedStorage.Shared.Services.StockService.StockSlice)
+local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice)
@@ -476,6 +478,11 @@ function Plot._hideCrateUIOnOtherPlots(self: Plot)
 		if proximityPrompt and proximityPrompt:IsA("ProximityPrompt") then
 			proximityPrompt.Enabled = false
 		end
+
+		local autoOpenCrate = crateSpawn and crateSpawn:FindFirstChild("autoOpenCrate")
+		if autoOpenCrate and autoOpenCrate:IsA("ProximityPrompt") then
+			autoOpenCrate.Enabled = false
+		end
 	end
 
 	for _, plotModel in workspace._PLOTS:GetChildren() do
@@ -490,6 +497,25 @@ end
 function Plot.setupBlocks(self: Plot)
 	local blockInQueue = GetDataSource({ "luckyBlockInQueue" })
 	local lapsLeftToAcquire = GetDataSource({ "lapsLeftToAcquire" })
+	local autoOpenPrompt = self.plotModel.LuckyBlock.CrateSpawn.autoOpenCrate
+	local billboardFrame = self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame
+	local crateNameLabel = billboardFrame.TextLabel
+	local statusLabel = Instance.new("TextLabel")
+	statusLabel.Name = "AutoRollStatus"
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.Size = UDim2.fromScale(1, 0.25)
+	statusLabel.LayoutOrder = -2
+	statusLabel.Font = crateNameLabel.Font
+	statusLabel.TextColor3 = Color3.new(1, 1, 1)
+	statusLabel.TextScaled = true
+	statusLabel.TextStrokeTransparency = 0
+	statusLabel.Text = ""
+	statusLabel.Visible = false
+	statusLabel.Parent = billboardFrame
+	self.janitor:Add(statusLabel, "Destroy")
+	local autoRollEnabled = Charm.atom(BlockServiceClient:getAutoRollState())
+	local isAutoOpenPending = false
+	local statusToken = 0
 
 	local promptEnabled = Charm.computed(function()
 		local blockId = blockInQueue()
@@ -499,10 +525,31 @@ function Plot.setupBlocks(self: Plot)
 		local baseCondition = blockId ~= nil and lapsLeft ~= nil and not (lapsLeft > 0) and not isRollScreenOn
 		local tutorialAllows = isTutorialFinished() or localTutorialStage() >= 7
 
-		return baseCondition and tutorialAllows
+		return baseCondition and tutorialAllows and not autoRollEnabled()
 	end)
 
 	local previousBlockId
+
+	local function updateAutoOpenPrompt()
+		local ownsPass = MonetizationServiceClient:ownsGamepass(Products.autoRollCrate)
+		autoOpenPrompt.ObjectText = "Auto Roll"
+		autoOpenPrompt.Enabled = isTutorialFinished()
+		autoOpenPrompt.ActionText = if ownsPass
+			then (if autoRollEnabled() then "ON" else "OFF")
+			else `OFF ({MonetizationServiceClient:getProductCostString(Products.autoRollCrate)})`
+	end
+
+	local function showCrateStatus(text: string, color: Color3?)
+		statusLabel.Text = text
+		statusLabel.TextColor3 = color or Color3.new(1, 1, 1)
+		statusLabel.Visible = true
+	end
+
+	local function clearCrateStatus()
+		statusLabel.Text = ""
+		statusLabel.Visible = false
+		previousBlockId = nil
+	end
 
 	local function updateUIState(blockId: number?, lapsLeft: number?)
 		if blockId == nil then
@@ -510,7 +557,7 @@ function Plot.setupBlocks(self: Plot)
 
 			-- Name and progress
 
-			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.TextLabel.Text = ""
+			crateNameLabel.Text = ""
 			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.TextLabel.Text = "0/0 Laps"
 			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.Bar.Size = UDim2.fromScale(0, 0)
 
@@ -522,7 +569,7 @@ function Plot.setupBlocks(self: Plot)
 		if blockId ~= previousBlockId then
 			previousBlockId = blockId
 			-- Name
-			self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.TextLabel.Text = blockInfo.blockName
+			crateNameLabel.Text = blockInfo.blockName
 		end
 
 		self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame.Bar.CanvasGroup.TextLabel.Text =
@@ -538,6 +585,26 @@ function Plot.setupBlocks(self: Plot)
 		}
 	end
 
+	local function tryAutoOpen(state: BlockState)
+		if not autoRollEnabled() or isAutoOpenPending or CratesSlice.states.cratesScreenOpen() then
+			return
+		end
+		if state.blockId == nil or state.lapsLeft == nil or state.lapsLeft > 0 then
+			return
+		end
+
+		isAutoOpenPending = true
+		task.spawn(function()
+			local response = BlockServiceClient:openAutoCrate()
+			if response ~= "SUCCESS" then
+				isAutoOpenPending = false
+				task.delay(0.25, function()
+					tryAutoOpen(getBlockState())
+				end)
+			end
+		end)
+	end
+
 	-- Announces a crate once, either when its laps run out or, on the first
 	-- evaluation, because the player joined with it already rollable.
 	--
@@ -547,6 +614,10 @@ function Plot.setupBlocks(self: Plot)
 	-- the previous crate's spent lap count of zero. A freshly queued crate always
 	-- carries laps to run, so nothing legitimate is suppressed.
 	local function notifyWhenRollable(state: BlockState, previousState: BlockState?)
+		if autoRollEnabled() then
+			return
+		end
+
 		if state.blockId == nil or state.lapsLeft == nil or state.lapsLeft > 0 then
 			return
 		end
@@ -565,6 +636,7 @@ function Plot.setupBlocks(self: Plot)
 
 	self:_hideCrateUIOnOtherPlots()
 	self.plotModel.LuckyBlock.Billboard.BillboardGui.Enabled = true
+	updateAutoOpenPrompt()
 
 	self.janitor:Add(Charm.subscribe(promptEnabled, function(enabled: boolean)
 		self.plotModel.LuckyBlock.CrateSpawn.ProximityPrompt.Enabled = enabled
@@ -582,9 +654,74 @@ function Plot.setupBlocks(self: Plot)
 		"Disconnect"
 	)
 
+	self.janitor:Add(
+		autoOpenPrompt.Triggered:Connect(function(player: Player)
+			if player ~= Players.LocalPlayer then
+				return
+			end
+
+			if not MonetizationServiceClient:ownsGamepass(Products.autoRollCrate) then
+				MonetizationServiceClient:promptProduct(Products.autoRollCrate)
+				return
+			end
+
+			local response, enabled = BlockServiceClient:toggleAutoRoll()
+			if response == "SUCCESS" then
+				autoRollEnabled(enabled)
+				updateAutoOpenPrompt()
+				tryAutoOpen(getBlockState())
+			end
+		end),
+		"Disconnect"
+	)
+
+	self.janitor:Add(BlockServiceClient.autoRollStateChanged:Connect(function(enabled: boolean)
+		autoRollEnabled(enabled)
+		updateAutoOpenPrompt()
+		tryAutoOpen(getBlockState())
+	end))
+
+	self.janitor:Add(MonetizationServiceClient:getProductInfoChangedSignal(Products.autoRollCrate):Connect(updateAutoOpenPrompt))
+	self.janitor:Add(Charm.subscribe(isTutorialFinished, updateAutoOpenPrompt))
+
+	self.janitor:Add(BlockServiceClient.crateRollStatusChanged:Connect(function(text: string?, roll: CratesSlice.Roll?)
+		if text then
+			statusToken += 1
+			if text == "ROLLED" and roll then
+				local trail = Trails[roll.trailId]
+				if trail then
+					local token = statusToken
+					showCrateStatus(`Rolled {trail.trailName} Trail [{trail.trailRarity}]`, Rarities[trail.trailRarity])
+					task.delay(Blocks.revealHold, function()
+						if token ~= statusToken then
+							return
+						end
+						clearCrateStatus()
+						updateUIState(blockInQueue(), lapsLeftToAcquire())
+						isAutoOpenPending = false
+						tryAutoOpen(getBlockState())
+					end)
+				end
+			else
+				showCrateStatus(text)
+			end
+		else
+			isAutoOpenPending = false
+			clearCrateStatus()
+			updateUIState(blockInQueue(), lapsLeftToAcquire())
+		end
+	end))
+
 	self.janitor:Add(Charm.listen(getBlockState, function(state, prevState)
 		updateUIState(state.blockId, state.lapsLeft)
 		notifyWhenRollable(state, prevState)
+		tryAutoOpen(state)
+	end))
+
+	self.janitor:Add(Charm.subscribe(CratesSlice.states.cratesScreenOpen, function(isOpen: boolean)
+		if not isOpen then
+			tryAutoOpen(getBlockState())
+		end
 	end))
 end
 

@@ -28,6 +28,7 @@ export type DataSchema = {
 
 	luckyBlockInQueue: number,
 	lapsLeftToAcquire: number?,
+	autoCrateOpen: boolean,
 
 	offlineEarnings: number?,
 	offlineEarningsPaid: boolean?,
@@ -80,6 +81,7 @@ return {
 
 	luckyBlockInQueue = 1,
 	lapsLeftToAcquire = Blocks.getBlock(1).lapsRequirement,
+	autoCrateOpen = false,
 
 	offlineEarnings = nil,
 

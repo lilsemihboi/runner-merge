@@ -73,7 +73,9 @@ return {
 			startRolls({ newData })
 		end,
 
-		beginRollQueue = startRolls,
+		beginRollQueue = function(rolls: { Roll })
+			startRolls(rolls)
+		end,
 		advanceRoll = advanceRoll,
 		closeScreen = closeScreen,
 

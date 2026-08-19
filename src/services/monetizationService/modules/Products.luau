@@ -118,6 +118,12 @@ local products = {
 		isPass = true,
 		giftId = 3610795184,
 	} :: MonetizationProduct,
+
+	autoRollCrate = {
+		id = 1952750474,
+		isPass = true,
+		giftId = 3708891779,
+	} :: MonetizationProduct,
 }
 
 return products :: { [keyof<typeof(products)>]: MonetizationProduct }

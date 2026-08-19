@@ -10,7 +10,10 @@ function UtilitiesService.init(self: UtilitiesService)
 end
 
 function UtilitiesService.displayNotification(_self: UtilitiesService, text: string)
-	NotificationMessage.add({ Text = text })
+	NotificationMessage.add({
+		Text = text,
+		RichText = true,
+	})
 end
 
 type UtilitiesService = typeof(UtilitiesService) & {

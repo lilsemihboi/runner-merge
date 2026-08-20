@@ -497,6 +497,7 @@ end
 function Plot.setupBlocks(self: Plot)
 	local blockInQueue = GetDataSource({ "luckyBlockInQueue" })
 	local lapsLeftToAcquire = GetDataSource({ "lapsLeftToAcquire" })
+
 	local autoOpenPrompt = self.plotModel.LuckyBlock.CrateSpawn.autoOpenCrate
 	local billboardFrame = self.plotModel.LuckyBlock.Billboard.BillboardGui.Frame
 	local crateNameLabel = billboardFrame.TextLabel
@@ -513,9 +514,13 @@ function Plot.setupBlocks(self: Plot)
 	statusLabel.Visible = false
 	statusLabel.Parent = billboardFrame
 	self.janitor:Add(statusLabel, "Destroy")
+
 	local autoRollEnabled = Charm.atom(BlockServiceClient:getAutoRollState())
 	local isAutoOpenPending = false
 	local statusToken = 0
+	local isAutoRollPromptEnabled = Charm.computed(function()
+		return isTutorialFinished() or localTutorialStage() >= 10
+	end)
 
 	local promptEnabled = Charm.computed(function()
 		local blockId = blockInQueue()
@@ -533,7 +538,7 @@ function Plot.setupBlocks(self: Plot)
 	local function updateAutoOpenPrompt()
 		local ownsPass = MonetizationServiceClient:ownsGamepass(Products.autoRollCrate)
 		autoOpenPrompt.ObjectText = "Auto Roll"
-		autoOpenPrompt.Enabled = isTutorialFinished()
+		autoOpenPrompt.Enabled = isAutoRollPromptEnabled()
 		autoOpenPrompt.ActionText = if ownsPass
 			then (if autoRollEnabled() then "ON" else "OFF")
 			else `OFF ({MonetizationServiceClient:getProductCostString(Products.autoRollCrate)})`
@@ -682,7 +687,7 @@ function Plot.setupBlocks(self: Plot)
 	end))
 
 	self.janitor:Add(MonetizationServiceClient:getProductInfoChangedSignal(Products.autoRollCrate):Connect(updateAutoOpenPrompt))
-	self.janitor:Add(Charm.subscribe(isTutorialFinished, updateAutoOpenPrompt))
+	self.janitor:Add(Charm.subscribe(isAutoRollPromptEnabled, updateAutoOpenPrompt))
 
 	self.janitor:Add(BlockServiceClient.crateRollStatusChanged:Connect(function(text: string?, roll: CratesSlice.Roll?)
 		if text then

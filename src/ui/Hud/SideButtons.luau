@@ -98,7 +98,11 @@ const function SideButtonsComponent()
 		rebirthToastShown(isEligible)
 
 		if isEligible then
-			task.defer(GeneralNotificationsServiceClient.displayNotification, GeneralNotificationsServiceClient, "You can rebirth now!")
+			task.defer(GeneralNotificationsServiceClient.displayNotification, GeneralNotificationsServiceClient, "You can rebirth now!", {
+				Prefix = {
+					Image = "rbxassetid://137794920489098",
+				},
+			})
 		end
 	end)
 

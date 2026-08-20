@@ -27,6 +27,18 @@ export type GradientProps = {
 	Transparency: Bindable<NumberSequence>?,
 }
 
+--- Props for the optional prefix ImageLabel child.
+export type PrefixProps = {
+	Image: Bindable<string>?,
+	Size: Bindable<UDim2>?,
+	HorizontalAlignment: Bindable<Enum.HorizontalAlignment>?,
+	VerticalAlignment: Bindable<Enum.VerticalAlignment>?,
+	Padding: Bindable<UDim>?,
+	SizeConstraint: Bindable<Enum.SizeConstraint>?,
+	ImageColor3: Bindable<Color3>?,
+	ImageTransparency: Bindable<number>?,
+}
+
 --- Props for the auto-created drop shadow TextLabel child.
 export type DropShadowProps = {
 	Color: Color3?,
@@ -65,6 +77,7 @@ export type TextLabelProps = {
 	Stroke: StrokeProps?,
 	Gradient: GradientProps?,
 	DropShadow: DropShadowProps?,
+	Prefix: PrefixProps?,
 
 	-- GuiObject base
 	Active: Bindable<boolean>?,
@@ -189,6 +202,34 @@ return function(props: TextLabelProps)
 		table.insert(frameChildren, buildDropShadow(props, props.DropShadow))
 	end
 
+	if props.Prefix then
+		table.insert(
+			frameChildren,
+			create("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = props.Prefix.HorizontalAlignment or Enum.HorizontalAlignment.Center,
+				VerticalAlignment = props.Prefix.VerticalAlignment or Enum.VerticalAlignment.Center,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = props.Prefix.Padding or UDim.new(0, 4),
+			})
+		)
+
+		table.insert(
+			frameChildren,
+			create("ImageLabel", {
+				Name = "Prefix",
+				BackgroundTransparency = 1,
+				Size = props.Prefix.Size or UDim2.fromScale(1, 1),
+				SizeConstraint = props.Prefix.SizeConstraint or Enum.SizeConstraint.RelativeYY,
+				LayoutOrder = 0,
+				ScaleType = Enum.ScaleType.Fit,
+				Image = props.Prefix.Image,
+				ImageColor3 = props.Prefix.ImageColor3,
+				ImageTransparency = props.Prefix.ImageTransparency,
+			})
+		)
+	end
+
 	table.insert(
 		frameChildren,
 		create("TextLabel", {
@@ -214,7 +255,8 @@ return function(props: TextLabelProps)
 			BackgroundTransparency = props.BackgroundTransparency or 1,
 			BackgroundColor3 = props.BackgroundColor3,
 
-			Size = UDim2.fromScale(1, 1),
+			AutomaticSize = if props.Prefix then Enum.AutomaticSize.X else nil,
+			Size = if props.Prefix then UDim2.fromScale(0, 1) else UDim2.fromScale(1, 1),
 			Position = UDim2.fromScale(0.5, 0.5),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			ZIndex = (props.ZIndex or 1) + 1,

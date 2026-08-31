@@ -21,15 +21,24 @@ const TutorialSlice = require(ReplicatedStorage.Shared.UI.Tutorial.TutorialSlice
 type ProductIndex = {
 	title: string,
 	image: string,
+	imagePosition: Vector2?,
+	imageScale: number?,
 } & Button.ButtonProps
+
+local DEFAULT_IMAGE_POSITION = Vector2.new(0.45, 0.45)
+local DEFAULT_IMAGE_SCALE = 0.961
 
 local CUSTOM_KEYS = {
 	"title",
 	"image",
+	"imagePosition",
+	"imageScale",
 }
 
 local function productIndex(props: ProductIndex)
 	local safeProps = RemoveKeys(props, CUSTOM_KEYS)
+	local imageScale = props.imageScale or DEFAULT_IMAGE_SCALE
+	local imagePosition = props.imagePosition or DEFAULT_IMAGE_POSITION
 	return Button({
 		Size = usePx.offset(140, 144),
 		BackgroundTransparency = 1,
@@ -42,20 +51,13 @@ local function productIndex(props: ProductIndex)
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 1),
-			Size = UDim2.fromScale(0.95, 0.35),
+			Size = UDim2.fromScale(0.95, 0.4),
 			TextScaled = true,
 			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Stroke = {
-				Color = Color3.fromRGB(0, 85, 0),
+				Color = Color3.fromRGB(0, 0, 0),
 				Thickness = usePx(5),
-			},
-			Gradient = {
-				Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.fromRGB(103, 255, 8)),
-					ColorSequenceKeypoint.new(1, Color3.fromRGB(179, 255, 0)),
-				}),
-				Rotation = 90,
 			},
 			ZIndex = 5,
 		}),
@@ -91,9 +93,9 @@ local function productIndex(props: ProductIndex)
 		-- Main ImageLabel
 
 		ImageLabel({
-			Size = UDim2.fromScale(0.961, 0.961),
+			Size = UDim2.fromScale(imageScale, imageScale),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.45, 0.45),
+			Position = UDim2.fromScale(imagePosition.X, imagePosition.Y),
 			Image = props.image or nil,
 			ZIndex = 2,
 			Rotation = 5,
@@ -127,7 +129,7 @@ return function()
 	local sidebarPosition = Vide.spring(sidebarPositionTarget, 0.35, 0.8)
 
 	return Frame({
-		Size = usePx.offset(156, 412),
+		Size = usePx.offset(156, 480),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = sidebarPosition,
 		BackgroundTransparency = 1,
@@ -144,17 +146,55 @@ return function()
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
-			Padding = UDim.new(0.2, 0),
+			Padding = UDim.new(0, 32),
+		}),
+
+		productIndex({
+			title = "CRATE",
+			image = "rbxassetid://119203883334161",
+			imagePosition = Vector2.new(0.55, 0.5),
+			imageScale = 0.8,
+			LayoutOrder = 1,
+
+			TextLabel({
+				Text = "FREE",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.678, 0.037),
+				Rotation = 13,
+				Size = UDim2.fromScale(1.464, 0.315),
+				TextScaled = true,
+				ZIndex = 5,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Stroke = {
+					Color = Color3.fromRGB(63, 0, 89),
+					Thickness = usePx(5),
+				},
+				Gradient = {
+					Color = ColorSequence.new({
+						ColorSequenceKeypoint.new(0, Color3.fromRGB(243, 73, 255)),
+						ColorSequenceKeypoint.new(1, Color3.fromRGB(248, 166, 255)),
+					}),
+					Rotation = 54,
+				},
+			}),
+
+			OnClick = function()
+				Menu.setOpenedMenu("Shop")
+			end,
 		}),
 
 		productIndex({
 			title = "GROUP",
 			image = CarIds[4].imageId,
+			imagePosition = Vector2.new(0.5, 0.5),
+			imageScale = 1.05,
+			LayoutOrder = 2,
 
 			Visible = function()
 				return not isGroupRewardClaimed()
 			end,
-			LayoutOrder = 1,
 
 			TextLabel({
 				Text = "FREE",
@@ -192,7 +232,7 @@ return function()
 		productIndex({
 			title = "STARTER PACK",
 			image = "rbxassetid://90845757723339",
-			LayoutOrder = 2,
+			LayoutOrder = 3,
 
 			Visible = function()
 				return not ownsStarterPack()

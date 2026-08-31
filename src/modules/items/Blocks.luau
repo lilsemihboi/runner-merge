@@ -312,6 +312,24 @@ Blocks.blocks = {
 			[17] = 7,
 		},
 	},
+
+	-- Rewarded-ad crate: free for everyone, so it lands mid-tier rather than
+	[13] = {
+		lapsRequirement = 200,
+		blockWeight = 0,
+		blockName = "Heart Crate",
+		loot = {
+			[5] = 22,
+			[6] = 19,
+			[7] = 17,
+			[8] = 11,
+			[9] = 9,
+			[10] = 8,
+			[11] = 7,
+			[12] = 5,
+			[13] = 2,
+		},
+	},
 } :: {
 	[number]: {
 		lapsRequirement: number,

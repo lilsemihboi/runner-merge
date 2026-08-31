@@ -13,12 +13,229 @@ local ShopContentFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.Sho
 local ShopFrame = require(ReplicatedStorage.Shared.UI.Shop.Components.ShopFrame)
 local TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local Vide = require(ReplicatedStorage.Packages.Vide)
+const Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
 const ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCars)
+const FormatPercent = require(ReplicatedStorage.Shared.Modules.Ui.FormatPercent)
+const Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
+const Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 const useStock = require(ReplicatedStorage.Shared.Services.StockService.Hooks.useStock)
+const StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
 
-local function carBundle()
+-- Rarity breakdown geometry, in offer-local design pixels. The offer frame is far wider
+-- than a crate card, so the list stretches across the space right of the crate icon.
+const GRID_LEFT = 260
+const GRID_TOP = 72
+const GRID_WIDTH = 490
+const RARITY_ROW_HEIGHT = 46
+const RARITY_ROW_GAP = 8
+
+const WHITE = Color3.fromRGB(255, 255, 255)
+const HEAVY_FONT = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
+const SUNRAY_IMAGE = "rbxassetid://77656565126814"
+
+--[=[
+	A static sunray behind the crate icon. Same image and look as the crate cards in
+	Crates.luau, but fixed in place rather than animated. No rotation: setting Rotation on
+	gui elements inside a ScrollingFrame glitches in the engine.
+]=]
+const function sunray(x: number, y: number, size: number)
+	return ImageLabel({
+		Name = "Sunray",
+		Image = SUNRAY_IMAGE,
+		Size = usePx.offset(size, size),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = usePx.udim2(0, x, 0, y),
+		ImageColor3 = WHITE,
+		ImageTransparency = 0.2,
+		ZIndex = 0,
+	})
+end
+
+--[=[
+	Rarity tiers in display order, matching the id bands in Blocks.luau from common to
+	rarest.
+]=]
+const RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+
+--[=[
+	Totals each trail's drop chance in a crate per rarity tier, so the breakdown reads as
+	"Rare - 58%" instead of one line per trail.
+]=]
+const function rarityChances(crateId: number): { { name: string, chance: number } }
+	local crate = Blocks.getBlock(crateId)
+	local totals = {}
+
+	if not crate or not crate.loot then
+		return {}
+	end
+
+	for trailId, weight in crate.loot do
+		local rarity = Trails[trailId].trailRarity
+		totals[rarity] = (totals[rarity] or 0) + weight
+	end
+
+	local chances = {}
+	for _, rarity in RARITY_ORDER do
+		local chance = totals[rarity]
+		if chance then
+			table.insert(chances, { name = rarity, chance = chance })
+		end
+	end
+
+	return chances
+end
+
+--[=[
+	One rarity row: the tier name on the left and its combined drop chance on the right,
+	styled like the Index menu buttons with inner and outer strokes.
+]=]
+const function rarityRow(name: string, chance: number, layoutOrder: number)
+	local rarityColor = Rarities[name] or WHITE
+
+	return Frame({
+		LayoutOrder = layoutOrder,
+		Size = usePx.udim2(1, 0, 0, RARITY_ROW_HEIGHT),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0.5,
+		ClipsDescendants = true,
+
+		-- Inner stroke
+		Vide.create("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+			BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+			Color = Color3.fromRGB(255, 255, 255),
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Thickness = usePx(4),
+			Transparency = 0.5,
+		}),
+
+		-- Outer stroke
+		Vide.create("UIStroke", {
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+			BorderStrokePosition = Enum.BorderStrokePosition.Outer,
+			Color = Color3.fromRGB(0, 0, 0),
+			LineJoinMode = Enum.LineJoinMode.Round,
+			Thickness = usePx(4),
+			Transparency = 0.5,
+		}),
+
+		-- Tier name
+		TextLabel({
+			Text = name,
+			Size = usePx.udim2(0.6, 0, 1, 0),
+			Position = usePx.udim2(0.02, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			TextColor3 = rarityColor,
+			TextScaled = true,
+			TextWrapped = false,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			FontFace = HEAVY_FONT,
+			Stroke = { Thickness = usePx(2) },
+			ZIndex = 2,
+		}),
+
+		-- Drop chance
+		TextLabel({
+			Text = FormatPercent(chance),
+			Size = usePx.udim2(0.4, 0, 1, 0),
+			Position = usePx.udim2(0.98, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
+			TextColor3 = WHITE,
+			TextScaled = true,
+			TextWrapped = false,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			FontFace = HEAVY_FONT,
+			Stroke = { Thickness = usePx(2) },
+			ZIndex = 2,
+		}),
+	})
+end
+
+--[=[
+	A static list of every rarity tier the crate can drop, styled like the Index menu buttons.
+]=]
+const function rarityList(crateId: number)
+	local chances = rarityChances(crateId)
+
+	if #chances == 0 then
+		return Frame({ Size = UDim2.fromScale(0, 0) })
+	end
+
+	local rows = {}
+	for index, entry in chances do
+		table.insert(rows, rarityRow(entry.name, entry.chance, index))
+	end
+
+	local listHeight = #chances * RARITY_ROW_HEIGHT + (#chances - 1) * RARITY_ROW_GAP
+
+	return Frame({
+		Name = "RarityList",
+		AnchorPoint = Vector2.new(0, 0),
+		Size = usePx.udim2(0, GRID_WIDTH, 0, listHeight),
+		Position = usePx.udim2(0, GRID_LEFT, 0, GRID_TOP),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+
+		Vide.create("UIListLayout", {
+			FillDirection = Enum.FillDirection.Vertical,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = usePx.udim(0, RARITY_ROW_GAP),
+		}),
+
+		table.unpack(rows),
+	})
+end
+
+const function freeHeartCrate()
 	return ShopFrame.Purple({
+		Size = usePx.offset(1008, 250),
+		LayoutOrder = 0,
+
+		--Title
+		TextLabel({
+			Text = "FREE Heart Crate",
+			Size = UDim2.fromScale(1, 0.2),
+			TextScaled = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
+			Position = usePx.udim2(0, 0, 0, 10),
+			Stroke = { Thickness = usePx(3), Color = Color3.fromRGB(0, 0, 0) },
+			ZIndex = 3,
+		}),
+
+		-- Sunrays behind the crate icon
+		sunray(120, 137.5, 320),
+		sunray(120, 137.5, 230),
+		sunray(120, 137.5, 160),
+		sunray(120, 137.5, 110),
+
+		-- Crate Icon rbxassetid://119203883334161 On left side Center
+
+		ImageLabel({
+			Image = "rbxassetid://119203883334161",
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0, 120, 0.55, 0),
+			Size = usePx.offset(229, 229),
+		}),
+
+		rarityList(13),
+
+		StudButton({
+			Colors = ButtonColors.Blue,
+			Text = "Watch AD",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = usePx.udim2(0.87, 0, 0.78, 0),
+			Size = usePx.offset(200, 70),
+		}),
+	})
+end
+
+local function carBundle()
+	return ShopFrame.Orange({
 		Size = usePx.offset(1008, 250),
 		LayoutOrder = 0,
 
@@ -645,6 +862,7 @@ return function()
 		LayoutOrder = 0,
 		Padding = 5,
 
+		freeHeartCrate(),
 		starterPack(),
 		carBundle(),
 		exclusiveCar(),

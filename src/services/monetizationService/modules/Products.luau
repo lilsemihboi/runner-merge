@@ -90,6 +90,11 @@ local products = {
 		id = 3703775270,
 	} :: MonetizationProduct,
 
+	adHeartCrate = {
+		random = true,
+		id = 3710757101,
+	},
+
 	-- Exclusive Stocked Products
 	exclusiveCar = {
 		id = 3637359531,

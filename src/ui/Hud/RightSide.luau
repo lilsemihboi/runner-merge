@@ -2,6 +2,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+const RewardedAdSlice = require(script.Parent.RewardedAdSlice)
 local Button = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Button)
 local CarIds = require(ReplicatedStorage.Shared.Modules.Items.CarIds)
 local Frame = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.Frame)
@@ -155,6 +156,8 @@ return function()
 			imagePosition = Vector2.new(0.55, 0.5),
 			imageScale = 0.8,
 			LayoutOrder = 1,
+
+			Visible = RewardedAdSlice.canShowAd,
 
 			TextLabel({
 				Text = "FREE",

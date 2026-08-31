@@ -18,6 +18,8 @@ const ExclusiveCars = require(ReplicatedStorage.Shared.Modules.Items.ExclusiveCa
 const FormatPercent = require(ReplicatedStorage.Shared.Modules.Ui.FormatPercent)
 const Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 const Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
+const RewardedAdServiceClient = require(ReplicatedStorage.Shared.Services.RewardedAdService.RewardedAdServiceClient)
+const RewardedAdSlice = require(ReplicatedStorage.Shared.UI.Hud.RewardedAdSlice)
 const useStock = require(ReplicatedStorage.Shared.Services.StockService.Hooks.useStock)
 const StudButton = require(ReplicatedStorage.Shared.UI.App.Components.StudButton)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -190,9 +192,14 @@ const function rarityList(crateId: number)
 end
 
 const function freeHeartCrate()
+	RewardedAdSlice.refresh()
+
 	return ShopFrame.Purple({
 		Size = usePx.offset(1008, 250),
 		LayoutOrder = 0,
+		Visible = function()
+			return RewardedAdSlice.canShowAd()
+		end,
 
 		--Title
 		TextLabel({
@@ -230,6 +237,12 @@ const function freeHeartCrate()
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = usePx.udim2(0.87, 0, 0.78, 0),
 			Size = usePx.offset(200, 70),
+			OnClick = function()
+				local isSuccess, result = RewardedAdServiceClient:playAd()
+				if isSuccess and result == Enum.ShowAdResult.ShowCompleted then
+					RewardedAdSlice.canShowAd(false)
+				end
+			end,
 		}),
 	})
 end

@@ -218,6 +218,7 @@ const CRATE_PRODUCTS: { [string]: { crateId: number, rolls: number } } = {
 	x3crate1 = { crateId = 10, rolls = 3 },
 	x3crate2 = { crateId = 11, rolls = 3 },
 	x3crate3 = { crateId = 12, rolls = 3 },
+	adHeartCrate = { crateId = 13, rolls = 1 },
 }
 
 for productKey, crate in CRATE_PRODUCTS do

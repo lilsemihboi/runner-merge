@@ -276,6 +276,14 @@ tutorialSteps = {
 		instructorTextSource("")
 
 		const lapsSource = GetDataSource({ "lapsLeftToAcquire" })
+		const lapRequirement = 5
+
+		local function updateLapProgress(lapsLeft: number)
+			local completedLaps = math.clamp(lapRequirement - lapsLeft, 0, lapRequirement)
+			instructorTextSource(
+				`Let your cars complete <font color="rgb(255, 220, 80)"><b>{completedLaps}/{lapRequirement} Laps</b></font> to unlock a crate!`
+			)
+		end
 
 		local lapsLeft = lapsSource()
 		if lapsLeft == nil or lapsLeft <= 0 then
@@ -283,7 +291,7 @@ tutorialSteps = {
 			return
 		end
 
-		instructorTextSource("Let your cars complete laps to unlock a Crate!")
+		updateLapProgress(lapsLeft)
 
 		clearNavigators()
 
@@ -291,6 +299,7 @@ tutorialSteps = {
 
 		connection = Charm.subscribe(lapsSource, function(state: number?)
 			if state ~= nil and state > 0 then
+				updateLapProgress(state)
 				return
 			end
 

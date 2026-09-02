@@ -31,7 +31,7 @@ function RewardedAdService.playAd(self: RewardedAdService, player: Player): (boo
 
 	const success, result = pcall(function()
 		local reward = AdService:CreateAdRewardFromDevProductId(Products.adHeartCrate.id)
-		return AdService:ShowRewardedVideoAdAsync(player, reward)
+		return AdService:ShowRewardedVideoAdAsync(player, reward, 636257121902409)
 	end)
 
 	if success and result == Enum.ShowAdResult.ShowCompleted then

@@ -20,4 +20,16 @@ function RewardedAdSlice.refresh()
 	end)
 end
 
+-- Ad availability can change while playing (the session reward gets claimed, the
+-- ad platform runs out), so keep re-checking so the sidebar button and shop
+-- banner stay accurate without the player having to reopen the shop.
+const REFRESH_INTERVAL = 30
+
+task.spawn(function()
+	while true do
+		task.wait(REFRESH_INTERVAL)
+		RewardedAdSlice.refresh()
+	end
+end)
+
 return RewardedAdSlice

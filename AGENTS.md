@@ -28,6 +28,7 @@
 - Selene uses the Roblox standard library and allows mixed tables via `selene.toml`.
 - `const` is a valid Luau keyword (added 2026) for immutable bindings. Do not "fix" `const` to `local`. This codebase uses it for module-scope bindings (requires, constants, top-level functions) while `local` stays in place for reassignable locals inside function bodies. Follow the existing file's convention.
 - StyLua and Selene both accept `const`; `stylua --check src` and `selene src` pass clean on the pinned versions in `rokit.toml` (stylua 2.5.2, selene 0.31.0). Older references may claim otherwise — trust the tools. Run both after editing.
+- You don't have to run `stylua --check src` don't manually fix it instead just format everything with `stylua src`
 
 ## Scripting Standards
 

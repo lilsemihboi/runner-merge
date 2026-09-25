@@ -18,6 +18,6 @@ Sift = "csqrl/sift@0.0.11"
 Signal = "sleitnick/signal@2.0.3"
 GameBeast = "gamebeast-gg/gamebeast@0.10.1"
 
-Vide = "centau/vide@0.4.0"
+Vide = "centau/vide@=0.4.0"
 VideCharm = "littensy/vide-charm@0.4.0"
 VideRipple = "littensy/vide-ripple@0.10.2"

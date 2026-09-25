@@ -14,6 +14,7 @@ local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.Monet
 local Networker = require(ReplicatedStorage.Packages.Networker)
 local ServicePlayerData = require(ReplicatedStorage.Packages.ServicePlayerData)
 local Signal = require(ReplicatedStorage.Packages.Signal)
+const Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
 local StockServiceServer = require(ServerScriptService.Services.StockService.StockServiceServer)
 
 type GiftData = MonetizationServiceUtils.GiftData
@@ -97,12 +98,13 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		-- is granted, so reporting alongside `NotProcessedYet` would inflate
 		-- revenue once per retry for as long as the receipt keeps failing.
 		if result == Enum.ProductPurchaseDecision.PurchaseGranted then
-			AnalyticsServiceServer:sendPurchaseGranted(receiptInfo)
+			if receiptInfo.ProductId ~= Products.adHeartCrate.id then
+				AnalyticsServiceServer:sendPurchaseGranted(receiptInfo)
+			end
 		end
 
 		return result
 	end
-
 	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId: number, _productId: number, _wasPurchased: boolean)
 		local player = Players:GetPlayerByUserId(userId)
 		if player then

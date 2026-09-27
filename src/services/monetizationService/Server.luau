@@ -1,9 +1,12 @@
 --!nonstrict
 
+const HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+const RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+const ServerStorage = game:GetService("ServerStorage")
 
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local AnalyticsServiceServer = require(ServerScriptService.Services.AnalyticsService.AnalyticsServiceServer)
@@ -12,6 +15,7 @@ const SoundServiceServer = require(ServerScriptService.Services.SoundService.Sou
 local Markers = require(ReplicatedStorage.Shared.Services.AnalyticsService.Markers)
 local MonetizationServiceUtils = require(ReplicatedStorage.Shared.Services.MonetizationService.MonetizationServiceUtils)
 local Networker = require(ReplicatedStorage.Packages.Networker)
+const Promise = require(ReplicatedStorage.Packages.Promise)
 local ServicePlayerData = require(ReplicatedStorage.Packages.ServicePlayerData)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 const Products = require(ReplicatedStorage.Shared.Services.MonetizationService.Modules.Products)
@@ -46,6 +50,25 @@ local PURCHASE_COOLDOWNS_KEY = "__purchaseCooldowns"
 local GIFT_RECEIVER_DATA_KEY = "__giftReceiver"
 local GIFT_GLOBAL_CALLBACK_KEY = "gift"
 local PROCESSED_PURCHASES_DATA_KEY = "__processedPurchases"
+
+local getProductInfoAsync = Promise.promisify(function()
+	return MarketplaceService:GetProductInfoAsync(game.PlaceId)
+end)
+
+local function attemptGetPlaceInfo()
+	return getProductInfoAsync():catch(function(_err)
+		return Promise.delay(1):andThen(attemptGetPlaceInfo)
+	end)
+end
+
+local placeInfoPromise = nil
+local function getPlaceInfo()
+	if placeInfoPromise == nil then
+		placeInfoPromise = attemptGetPlaceInfo()
+	end
+
+	return placeInfoPromise
+end
 
 --[[
 	How many recent `PurchaseId`s to remember per player for replay protection.
@@ -85,6 +108,12 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		end
 		GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 		self:awardGamepass(player, gamepassId)
+
+		self:logDiscord({
+			currencySpent = -1,
+			player = player,
+			productId = self:getProductFromId(gamepassId).key,
+		})
 	end)
 
 	MarketplaceService.ProcessReceipt = function(receiptInfo: ReceiptInfo)
@@ -100,6 +129,11 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		if result == Enum.ProductPurchaseDecision.PurchaseGranted then
 			if receiptInfo.ProductId ~= Products.adHeartCrate.id then
 				AnalyticsServiceServer:sendPurchaseGranted(receiptInfo)
+				self:logDiscord({
+					currencySpent = receiptInfo.CurrencySpent,
+					player = player,
+					productId = self:getProductFromId(receiptInfo.ProductId).key,
+				})
 			end
 		end
 
@@ -111,6 +145,49 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 			self.playerData:get(player).giftingTo = nil
 		end
 	end)
+end
+
+function MonetizationServiceServer.logDiscord(_self: MonetizationService, receipt: { currencySpent: number, player: Player, productId: string })
+	getPlaceInfo()
+		:andThen(function(placeInfo)
+			local placeName = placeInfo and placeInfo.Name or "Unknown Game"
+			local placeUrl = string.format("https://www.roblox.com/games/%s", game.PlaceId)
+			local totalRobux = tonumber(receipt.currencySpent) or 0
+
+			local data = {
+				["embeds"] = {
+					{
+						["title"] = if not RunService:IsStudio() then `🟢 New Sale` else "🔴 Studio Sale",
+						["description"] = string.format(
+							"👤 [%s (@%s)](https://www.roblox.com/users/%s/profile) purchased a product.",
+							receipt.player.DisplayName,
+							receipt.player.Name,
+							receipt.player.UserId
+						),
+						["color"] = if not RunService:IsStudio() then tonumber(0x3c0c97) else tonumber(0xC42A3A),
+						["thumbnail"] = {
+							["url"] = "https://tr.rbxcdn.com/180DAY-738bb7a445bcf164da359fb0b0efa923/256/256/Image/Webp/noFilter",
+						},
+						["fields"] = {
+							{ ["name"] = "🎮 Game", ["value"] = string.format("[%s](%s)", placeName, placeUrl), ["inline"] = false },
+							{ ["name"] = "🛒 Product", ["value"] = receipt.productId, ["inline"] = true },
+							{ ["name"] = "💰 Paid", ["value"] = totalRobux .. " R$", ["inline"] = true },
+						},
+						["footer"] = { ["text"] = "Mantle Works" },
+						["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+					},
+				},
+			}
+
+			return HttpService:PostAsync(
+				require(ServerStorage.dotenv).DISCORD_WEBHOOK :: string,
+				HttpService:JSONEncode(data),
+				Enum.HttpContentType.ApplicationJson
+			)
+		end)
+		:catch(function(err)
+			warn("Failed to send Discord purchase log:", err)
+		end)
 end
 
 function MonetizationServiceServer.playerAdded(self: MonetizationService, player: Player): ()

@@ -48,6 +48,11 @@ local function getTrailMultiplier(trailId: number?): number
 	return if trail then trail.trailMultiplier else 1
 end
 
+local function getSpeedFactor(runnerSpeedLevel: number, doubleSpeedOwned: boolean): number
+	local doubleMultiplier = if doubleSpeedOwned then 2 else 1
+	return RunnerUtils.getRunnerSpeedMultiplier(runnerSpeedLevel) * doubleMultiplier
+end
+
 local function getMergeEffectDuration(operations: { RunnerServiceTypes.MergeOperation }): number
 	local completionTimes: { [number]: number } = {}
 	local rootCount = 0
@@ -107,6 +112,8 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		selectedTrail = selectedTrail,
 		trailMultiplier = getTrailMultiplier(selectedTrail),
 		clearGateAwardsOnBroadcast = false,
+		lastRunnerSpeedLevel = nil,
+		lastDoubleSpeedOwned = nil,
 	}
 	self.plots[plotId] = state
 
@@ -303,6 +310,28 @@ end
 function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, clearGateAwards: boolean?)
 	if state.mergeEffectActive then
 		return
+	end
+
+	-- Speed upgrades change travelTime for every runner at once. Keeping the
+	-- same startClock would teleport all cars, since
+	-- progress = ((now - startClock) / travelTime + phase) % 1.
+	-- The speed scaling is uniform across runners, so a single startClock
+	-- rebase preserves every car's position exactly.
+	local profile = ProfileServiceServer.getProfile(state.player)
+	local currentRunnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local currentDoubleSpeedOwned = state.doubleSpeedOwned
+	if state.lastRunnerSpeedLevel == nil or state.lastDoubleSpeedOwned == nil then
+		state.lastRunnerSpeedLevel = currentRunnerSpeedLevel
+		state.lastDoubleSpeedOwned = currentDoubleSpeedOwned
+	elseif currentRunnerSpeedLevel ~= state.lastRunnerSpeedLevel or currentDoubleSpeedOwned ~= state.lastDoubleSpeedOwned then
+		local oldFactor = getSpeedFactor(state.lastRunnerSpeedLevel, state.lastDoubleSpeedOwned)
+		local newFactor = getSpeedFactor(currentRunnerSpeedLevel, currentDoubleSpeedOwned)
+		if oldFactor > 0 and newFactor > 0 and oldFactor ~= newFactor then
+			local now = workspace:GetServerTimeNow()
+			state.startClock = now - (now - state.startClock) * (oldFactor / newFactor)
+		end
+		state.lastRunnerSpeedLevel = currentRunnerSpeedLevel
+		state.lastDoubleSpeedOwned = currentDoubleSpeedOwned
 	end
 
 	-- roster changed -> some runners are gone; their award history is stale
@@ -530,6 +559,8 @@ type PlotState = {
 	selectedTrail: number?,
 	trailMultiplier: number,
 	clearGateAwardsOnBroadcast: boolean,
+	lastRunnerSpeedLevel: number?,
+	lastDoubleSpeedOwned: boolean?,
 }
 
 type RunnerService = typeof(RunnerService) & {

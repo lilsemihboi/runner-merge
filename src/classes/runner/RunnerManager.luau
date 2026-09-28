@@ -7,11 +7,15 @@
 	simulates every car locally inside ONE Heartbeat loop.
 
 	Server -> client (Networker dispatch):
-		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId, selectedTrail)
+		setRunners(plotId, owner, runners, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId, selectedTrail)
 		removePlot(plotId)
 	Client -> server:
 		fetch("requestState") -- late-join sync
-		fire("reportGate", plotId, runnerIndex, gateId) -- owner gate crossings
+		fire("reportGate", plotId, runnerId, gateId) -- owner gate crossings
+
+	Cars are addressed by their stable runner id, never by array slot: the
+	roster is rewritten on every merge, and only the cars actually involved
+	may appear, disappear or change level.
 
 	Task 2: updateReplication() culls other players' plots by bounds. The
 	local player's own plot is ALWAYS simulated; other plots only while the
@@ -110,7 +114,7 @@ function RunnerManager.new(): RunnerManager
 				self:setRunners(
 					snapshot.plotId,
 					snapshot.owner,
-					snapshot.levels,
+					snapshot.runners,
 					snapshot.startClock,
 					snapshot.gateCount,
 					snapshot.runnerSpeedLevel,
@@ -143,12 +147,13 @@ function RunnerManager.stop(self: RunnerManager)
 end
 
 -- Server "start" signal: full roster snapshot for one plot. Reconciles the
--- RunnerClient pool (create / updateLevel / destroy) instead of rebuilding.
+-- RunnerClient pool (create / updateLevel / destroy) instead of rebuilding,
+-- so a car that is still on the roster keeps running where it already was.
 function RunnerManager.setRunners(
 	self: RunnerManager,
 	plotId: number,
 	owner: Player,
-	levels: { number },
+	runners: { RunnerUtils.RunnerEntry },
 	startClock: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
@@ -161,7 +166,7 @@ function RunnerManager.setRunners(
 		state = {
 			plotId = plotId,
 			owner = owner,
-			levels = levels,
+			runners = runners,
 			startClock = startClock,
 			gateCount = gateCount,
 			runnerSpeedLevel = runnerSpeedLevel,
@@ -174,7 +179,7 @@ function RunnerManager.setRunners(
 		self.runners[plotId] = {}
 	else
 		state.owner = owner
-		state.levels = levels
+		state.runners = runners
 		state.startClock = startClock
 		state.carSpeedMultiplier = carSpeedMultiplier
 		state.gateCount = gateCount
@@ -191,41 +196,47 @@ function RunnerManager.setRunners(
 	end
 
 	local isOwner = owner == Players.LocalPlayer
-	local count = #levels
 	local cars = self.runners[plotId]
 	local trailsVisible = self.trailsVisibleAtom() ~= false
 
-	for index, car in cars do
-		if index > count then
+	local rosterIds: { [number]: boolean } = {}
+	for _, entry in ipairs(runners) do
+		rosterIds[entry.id] = true
+	end
+
+	for runnerId, car in cars do
+		if not rosterIds[runnerId] then
 			car:destroy()
-			cars[index] = nil
+			cars[runnerId] = nil
 		end
 	end
 
-	for index = 1, count do
-		local phase = (index - 1) / count
-		local lane = RunnerUtils.getRunnerLane(plotId, index, laneCount)
+	for _, entry in ipairs(runners) do
+		-- Lane and phase both come from the runner's own id/entry, so an
+		-- existing car is reconfigured with the exact values it already has
+		-- and never teleports when the roster size changes.
+		local lane = RunnerUtils.getRunnerLane(plotId, entry.id, laneCount)
 		local path = PathData.get(plotId, lane)
 		if not path or path.length <= 0 then
 			continue
 		end
 
-		local car = cars[index]
+		local car = cars[entry.id]
 
 		if car then
 			car.isOwner = isOwner
-			car:updateLevel(levels[index])
+			car:updateLevel(entry.level)
 			car:setTrailsVisible(trailsVisible)
-			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path, selectedTrail)
+			car:configure(startClock, entry.phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path, selectedTrail)
 			car:setVisible(true)
 		else
-			cars[index] = RunnerClient.new({
+			cars[entry.id] = RunnerClient.new({
 				plotId = plotId,
-				index = index,
-				level = levels[index],
+				runnerId = entry.id,
+				level = entry.level,
 				path = path,
 				startClock = startClock,
-				phase = phase,
+				phase = entry.phase,
 				gateCount = gateCount,
 				runnerSpeedLevel = runnerSpeedLevel,
 				isOwner = isOwner,
@@ -261,18 +272,18 @@ function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, oper
 	if cars then
 		for _, operation in ipairs(operations) do
 			for _, source in { operation.leftSource, operation.rightSource } do
-				local runnerIndex = source.runnerIndex
-				if runnerIndex and not sourceCFrames[runnerIndex] then
-					local runner = cars[runnerIndex]
+				local runnerId = source.runnerId
+				if runnerId and not sourceCFrames[runnerId] then
+					local runner = cars[runnerId]
 					if runner and runner.model then
-						sourceCFrames[runnerIndex] = runner.model:GetPivot()
+						sourceCFrames[runnerId] = runner.model:GetPivot()
 					end
 				end
 			end
 		end
 
-		for runnerIndex in sourceCFrames do
-			local runner = cars[runnerIndex]
+		for runnerId in sourceCFrames do
+			local runner = cars[runnerId]
 			if runner then
 				runner:setVisible(false)
 			end
@@ -297,7 +308,7 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 		self:setRunners(
 			state.plotId,
 			state.owner,
-			state.levels,
+			state.runners,
 			state.startClock,
 			state.gateCount,
 			state.runnerSpeedLevel,
@@ -487,7 +498,7 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			continue
 		end
 
-		for index, car in cars do
+		for _, car in cars do
 			local crossedGates, lapsCompleted = car:update(now)
 			if crossedGates then
 				for _, gateId in crossedGates do
@@ -495,12 +506,12 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 						self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
 					end
 					SoundServiceClient:play("moneyPickup")
-					self.networker:fire("reportGate", plotId, index, gateId)
+					self.networker:fire("reportGate", plotId, car.runnerId, gateId)
 				end
 			end
 
 			if lapsCompleted > 0 then
-				self.networker:fire("reportLap", plotId, index)
+				self.networker:fire("reportLap", plotId, car.runnerId)
 			end
 		end
 	end
@@ -518,7 +529,7 @@ end
 type PlotState = {
 	plotId: number,
 	owner: Player,
-	levels: { number },
+	runners: { RunnerUtils.RunnerEntry },
 	startClock: number,
 	gateCount: number,
 	routeId: number,

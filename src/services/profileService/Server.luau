@@ -122,6 +122,53 @@ function ProfileService.getProfile(player: Player): ProfileServer.Profile
 end
 
 --[=[
+	Converts saves from the pre-entry `runners` schema (one bare level per slot)
+	to `{ id, level, phase }` entries.
+
+	A car's identity and position used to be its array index, so this assigns
+	exactly the values the old scheme would have computed - `id = index` and
+	`phase = (index - 1) / count` - which keeps both the lane hash and the
+	position identical the first time an old save loads. Nothing moves.
+
+	Runs from `onPlayerInit`, before the data is replicated, so the client only
+	ever sees the new shape.
+]=]
+local function migrateRunners(data: any)
+	local runners = data.runners
+	if type(runners) ~= "table" then
+		data.runners = {}
+		return
+	end
+
+	local legacyLevels: { number } = {}
+	local highestId = if typeof(data.nextRunnerId) == "number" then data.nextRunnerId else 0
+
+	for _, runner in ipairs(runners) do
+		if typeof(runner) == "number" then
+			legacyLevels[#legacyLevels + 1] = runner
+		elseif typeof(runner) == "table" and typeof(runner.id) == "number" then
+			highestId = math.max(highestId, runner.id)
+		end
+	end
+
+	if #legacyLevels > 0 then
+		local migrated: { any } = {}
+		for index, runnerLevel in ipairs(legacyLevels) do
+			migrated[index] = {
+				id = index,
+				level = runnerLevel,
+				phase = (index - 1) / #legacyLevels,
+			}
+		end
+
+		data.runners = migrated
+		highestId = math.max(highestId, #migrated)
+	end
+
+	data.nextRunnerId = highestId
+end
+
+--[=[
 	Called by DataService when a player's data is initialized.
 	Reconciles player data with the default template to handle schema evolution.
 	
@@ -155,6 +202,9 @@ function DataService:onPlayerInit(_player: Player, data: DataTemplate.DataSchema
 
 	-- Reconcile player data with the template
 	reconcileData(data, DataTemplate)
+
+	-- Must run after reconcile so a fresh `nextRunnerId` already exists
+	migrateRunners(data)
 end
 
 --[=[

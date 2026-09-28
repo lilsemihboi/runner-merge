@@ -496,7 +496,7 @@ function AnalyticsService._buildProgressionSnapshot(self: AnalyticsService, play
 			return nil
 		end
 
-		const levels = RunnerUtils.sanitizeLevels(runners)
+		const levels = RunnerUtils.levelsOf(RunnerUtils.sanitizeRunners(runners))
 
 		local levelTotal = 0
 		local regularCarCount = 0
@@ -504,7 +504,7 @@ function AnalyticsService._buildProgressionSnapshot(self: AnalyticsService, play
 		local exclusiveCarCount = 0
 
 		for _, level in levels do
-			-- Exclusive cars share the `runners` array but start at id 1000, so
+			-- Exclusive cars share the `runners` array but their level starts at 1000, so
 			-- a single one would drag a player's average from ~12 to ~500. They
 			-- are counted separately instead.
 			--

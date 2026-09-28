@@ -11,7 +11,8 @@
 
 	Determinism contract (must match RunnerClient/RunnerManager exactly):
 		travelTime = path.length / max(1, getRunnerSpeed(level, runnerSpeedLevel))
-		phase      = (index - 1) / #levels
+		lane       = getRunnerLane(plotId, runnerId, laneCount)
+		phase      = entry.phase -- owned by the runner, never derived from the roster
 		progress   = ((GetServerTimeNow() - startClock) / travelTime + phase) % 1
 ]]
 
@@ -209,7 +210,7 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 	return {
 		plotId = state.plotId,
 		owner = state.player,
-		levels = RunnerUtils.sanitizeLevels(profile:getRunners()),
+		runners = RunnerUtils.sanitizeRunners(profile:getRunners()),
 		startClock = state.startClock,
 		gateCount = profile:getActiveGateCount(),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
@@ -221,33 +222,22 @@ end
 
 -- The single source of truth for a runner's deterministic movement, shared by
 -- gate validation and lap accounting so both always agree with the client.
-function RunnerService._getRunnerTiming(
-	_self: RunnerService,
-	state: PlotState,
-	levels: { number },
-	runnerIndex: number,
-	runnerSpeedLevel: number
-): RunnerTiming?
-	local level = levels[runnerIndex]
-	if not level then
-		return nil
-	end
-
+function RunnerService._getRunnerTiming(_self: RunnerService, state: PlotState, entry: RunnerUtils.RunnerEntry, runnerSpeedLevel: number): RunnerTiming?
 	local laneCount = PathData.getLaneCount(state.plotId)
-	local lane = RunnerUtils.getRunnerLane(state.plotId, runnerIndex, laneCount)
+	local lane = RunnerUtils.getRunnerLane(state.plotId, entry.id, laneCount)
 	local path = PathData.get(state.plotId, lane)
 	if not path or path.length <= 0 then
 		return nil
 	end
 
 	local doubleSpeedMultiplier = if state.doubleSpeedOwned then 2 else 1
-	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel) * doubleSpeedMultiplier
+	local speed = RunnerUtils.getRunnerSpeed(entry.level, runnerSpeedLevel) * doubleSpeedMultiplier
 
 	return {
 		path = path,
 		speed = speed,
 		travelTime = path.length / math.max(1, speed),
-		phase = (runnerIndex - 1) / #levels,
+		phase = entry.phase,
 	}
 end
 
@@ -257,20 +247,20 @@ end
 -- a faster travelTime would make the whole session recount as dozens of laps.
 function RunnerService._anchorLapClocks(self: RunnerService, state: PlotState)
 	local profile = ProfileServiceServer.getProfile(state.player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
 	local now = workspace:GetServerTimeNow()
 	local lapClocks: { [number]: number } = {}
 
-	for runnerIndex = 1, #levels do
-		local timing = self:_getRunnerTiming(state, levels, runnerIndex, runnerSpeedLevel)
+	for _, entry in ipairs(entries) do
+		local timing = self:_getRunnerTiming(state, entry, runnerSpeedLevel)
 		if not timing then
 			continue
 		end
 
 		-- keep the fraction of the current lap already run, drop nothing
 		local lapProgress = ((now - state.startClock) / timing.travelTime + timing.phase) % 1
-		lapClocks[runnerIndex] = now - lapProgress * timing.travelTime
+		lapClocks[entry.id] = now - lapProgress * timing.travelTime
 	end
 
 	state.lapClocks = lapClocks
@@ -315,7 +305,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, cle
 		return
 	end
 
-	-- roster changed -> indices/phases are re-assigned; old award history is stale
+	-- roster changed -> some runners are gone; their award history is stale
 	if clearGateAwards ~= false then
 		table.clear(state.gateAwards)
 		self:_anchorLapClocks(state)
@@ -326,7 +316,7 @@ function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, cle
 		"setRunners",
 		snapshot.plotId,
 		snapshot.owner,
-		snapshot.levels,
+		snapshot.runners,
 		snapshot.startClock,
 		snapshot.gateCount,
 		snapshot.runnerSpeedLevel,
@@ -379,8 +369,8 @@ function RunnerService.requestState(self: RunnerService, _player: Player): { Run
 	return snapshots
 end
 
-function RunnerService.reportLap(self: RunnerService, player: Player, plotId: number, runnerIndex: number)
-	if typeof(plotId) ~= "number" or typeof(runnerIndex) ~= "number" or runnerIndex % 1 ~= 0 then
+function RunnerService.reportLap(self: RunnerService, player: Player, plotId: number, runnerId: number)
+	if typeof(plotId) ~= "number" or typeof(runnerId) ~= "number" or runnerId % 1 ~= 0 then
 		return
 	end
 
@@ -389,23 +379,28 @@ function RunnerService.reportLap(self: RunnerService, player: Player, plotId: nu
 		return
 	end
 
-	-- roster is mid-rewrite; indices are meaningless until the next broadcast
+	-- roster is mid-rewrite; ids are meaningless until the next broadcast
 	if state.mergeEffectActive then
 		return
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
-	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
+	local entry = RunnerUtils.findRunner(entries, runnerId)
+	if not entry then
+		return
+	end
+
+	local timing = self:_getRunnerTiming(state, entry, profile:getUpgradeLevel("runnerSpeed"))
 	if not timing or timing.travelTime <= 0 then
 		return
 	end
 
 	local now = workspace:GetServerTimeNow()
-	local lapClock = state.lapClocks[runnerIndex]
+	local lapClock = state.lapClocks[runnerId]
 	if not lapClock then
 		-- first report for this runner: anchor now, credit from here on
-		state.lapClocks[runnerIndex] = now
+		state.lapClocks[runnerId] = now
 		return
 	end
 
@@ -415,7 +410,7 @@ function RunnerService.reportLap(self: RunnerService, player: Player, plotId: nu
 	end
 
 	-- advance by whole laps only, so the leftover fraction carries over
-	state.lapClocks[runnerIndex] = lapClock + lapsCompleted * timing.travelTime
+	state.lapClocks[runnerId] = lapClock + lapsCompleted * timing.travelTime
 
 	self:_spendLaps(player, lapsCompleted)
 end
@@ -432,12 +427,12 @@ end
 -- Authoritative gate validation. Recomputes the runner's deterministic
 -- position and only pays if that gate really was crossed just now, at most
 -- once per lap. Exploiters cannot exceed the legitimate income rate.
-function RunnerService.reportGate(self: RunnerService, player: Player, plotId: number, runnerIndex: number, gateId: number)
-	if typeof(plotId) ~= "number" or typeof(runnerIndex) ~= "number" or typeof(gateId) ~= "number" then
+function RunnerService.reportGate(self: RunnerService, player: Player, plotId: number, runnerId: number, gateId: number)
+	if typeof(plotId) ~= "number" or typeof(runnerId) ~= "number" or typeof(gateId) ~= "number" then
 		return
 	end
 
-	if runnerIndex % 1 ~= 0 or gateId % 1 ~= 0 then
+	if runnerId % 1 ~= 0 or gateId % 1 ~= 0 then
 		return
 	end
 
@@ -447,14 +442,21 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
 
 	local gateCount = profile:getActiveGateCount()
 	if gateId < 1 or gateId > gateCount then
 		return
 	end
 
-	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	-- Addressing by id means a report that arrives during a merge can only
+	-- ever credit the car it belongs to, or nothing at all.
+	local entry = RunnerUtils.findRunner(entries, runnerId)
+	if not entry then
+		return
+	end
+
+	local timing = self:_getRunnerTiming(state, entry, profile:getUpgradeLevel("runnerSpeed"))
 	if not timing then
 		return
 	end
@@ -475,14 +477,14 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 		return
 	end
 
-	local awardKey = `{runnerIndex}_{gateId}`
+	local awardKey = `{runnerId}_{gateId}`
 	local lastAward = state.gateAwards[awardKey]
 	if lastAward and now - lastAward < timing.travelTime * LAP_COOLDOWN_RATIO then
 		return
 	end
 	state.gateAwards[awardKey] = now
 
-	local income = RunnerUtils.getRunnerIncomePerLap(levels[runnerIndex])
+	local income = RunnerUtils.getRunnerIncomePerLap(entry.level)
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
 	local route = profile:getRoute()
 	local vipMultiplier = if state.vipOwned then 1.5 else 1

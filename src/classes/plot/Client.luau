@@ -1309,15 +1309,15 @@ function Plot.setupButtons(self: Plot): ()
 	)
 end
 
-function Plot._hasMergeableRunners(_self: Plot, runners: { number? }?): boolean
+function Plot._hasMergeableRunners(_self: Plot, runners: { any }?): boolean
 	if type(runners) ~= "table" then
 		return false
 	end
 
 	local sortedLevels: { number } = {}
-	for _, runnerLevel in ipairs(runners) do
-		if typeof(runnerLevel) == "number" then
-			sortedLevels[#sortedLevels + 1] = runnerLevel
+	for _, runner in ipairs(runners) do
+		if typeof(runner) == "table" and typeof(runner.level) == "number" then
+			sortedLevels[#sortedLevels + 1] = runner.level
 		end
 	end
 

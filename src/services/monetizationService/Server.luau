@@ -51,6 +51,12 @@ local GIFT_RECEIVER_DATA_KEY = "__giftReceiver"
 local GIFT_GLOBAL_CALLBACK_KEY = "gift"
 local PROCESSED_PURCHASES_DATA_KEY = "__processedPurchases"
 
+const DISCORD_MAX_ATTEMPTS = 6
+const DISCORD_SEND_SPACING = 0.6 -- seconds between sends from this server
+
+local discordQueue: { { body: string, attempts: number } } = {}
+local discordDraining = false
+
 local getProductInfoAsync = Promise.promisify(function()
 	return MarketplaceService:GetProductInfoAsync(game.PlaceId)
 end)
@@ -68,6 +74,93 @@ local function getPlaceInfo()
 	end
 
 	return placeInfoPromise
+end
+
+local function getRetryAfter(response): number
+	local headers = response.Headers or {}
+	local fromHeader = tonumber(headers["retry-after"] or headers["Retry-After"])
+	if fromHeader then
+		return fromHeader
+	end
+
+	local ok, decoded = pcall(HttpService.JSONDecode, HttpService, response.Body)
+	if ok and type(decoded) == "table" and tonumber(decoded.retry_after) then
+		return tonumber(decoded.retry_after) :: number
+	end
+
+	return 2
+end
+
+-- Returns (done, retryAfterSeconds). done = true means drop it from the queue.
+local function postToDiscord(body: string): (boolean, number?)
+	local ok, response = pcall(function()
+		local dotenv = require(ServerStorage.dotenv)
+
+		return HttpService:RequestAsync({
+			Url = dotenv.DISCORD_PROXY_URL :: string,
+			Method = "POST",
+			Headers = {
+				["Content-Type"] = "application/json",
+				["x-proxy-key"] = dotenv.DISCORD_PROXY_KEY :: string,
+			},
+			Body = body,
+		})
+	end)
+
+	if not ok then
+		warn("Discord proxy request failed:", response)
+		return false, 3
+	end
+	if response.Success then
+		return true, nil
+	end
+	if response.StatusCode == 429 or response.StatusCode >= 500 then
+		return false, getRetryAfter(response)
+	end
+
+	-- 403 = wrong token, 400 = bad embed. Retrying won't help.
+	warn("Discord proxy rejected request:", response.StatusCode, response.Body)
+	return true, nil
+end
+
+local function drainDiscordQueue()
+	if discordDraining then
+		return
+	end
+	discordDraining = true
+
+	task.spawn(function()
+		-- pcall so an unexpected error can never leave discordDraining stuck on true
+		local ok, err = pcall(function()
+			while #discordQueue > 0 do
+				local item = discordQueue[1]
+				local done, retryAfter = postToDiscord(item.body)
+
+				if done then
+					table.remove(discordQueue, 1)
+					task.wait(DISCORD_SEND_SPACING)
+				else
+					item.attempts += 1
+					if item.attempts >= DISCORD_MAX_ATTEMPTS then
+						warn("Giving up on Discord purchase log after", item.attempts, "attempts")
+						table.remove(discordQueue, 1)
+					else
+						task.wait((retryAfter or 2) + math.random() * 2)
+					end
+				end
+			end
+		end)
+
+		if not ok then
+			warn("Discord queue crashed:", err)
+		end
+		discordDraining = false
+	end)
+end
+
+local function enqueueDiscord(body: string)
+	table.insert(discordQueue, { body = body, attempts = 0 })
+	drainDiscordQueue()
 end
 
 --[[
@@ -109,10 +202,11 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		GeneralNotificationsServiceServer:sendNotification(player, "Purchase successful. Thank you! 😄")
 		self:awardGamepass(player, gamepassId)
 
+		local passProduct = self:getProductFromId(gamepassId)
 		self:logDiscord({
 			currencySpent = -1,
 			player = player,
-			productId = self:getProductFromId(gamepassId).key,
+			productId = passProduct and passProduct.key or "unknown",
 		})
 	end)
 
@@ -129,10 +223,11 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 		if result == Enum.ProductPurchaseDecision.PurchaseGranted then
 			if receiptInfo.ProductId ~= Products.adHeartCrate.id then
 				AnalyticsServiceServer:sendPurchaseGranted(receiptInfo)
+				local soldProduct = self:getProductFromId(receiptInfo.ProductId)
 				self:logDiscord({
 					currencySpent = receiptInfo.CurrencySpent,
 					player = player,
-					productId = self:getProductFromId(receiptInfo.ProductId).key,
+					productId = soldProduct and soldProduct.key or "unknown",
 				})
 			end
 		end
@@ -147,47 +242,52 @@ function MonetizationServiceServer.init(self: MonetizationService, options: Mone
 	end)
 end
 
-function MonetizationServiceServer.logDiscord(_self: MonetizationService, receipt: { currencySpent: number, player: Player, productId: string })
-	getPlaceInfo()
-		:andThen(function(placeInfo)
-			local placeName = placeInfo and placeInfo.Name or "Unknown Game"
-			local placeUrl = string.format("https://www.roblox.com/games/%s", game.PlaceId)
-			local totalRobux = tonumber(receipt.currencySpent) or 0
+function MonetizationServiceServer.logDiscord(_self: MonetizationService, receipt: { currencySpent: number, player: Player?, productId: string })
+	task.spawn(function()
+		getPlaceInfo()
+			:andThen(function(placeInfo)
+				local placeName = placeInfo and placeInfo.Name or "Unknown Game"
+				local placeUrl = string.format("https://www.roblox.com/games/%s", game.PlaceId)
+				local totalRobux = tonumber(receipt.currencySpent) or 0
+				local isStudio = RunService:IsStudio()
 
-			local data = {
-				["embeds"] = {
-					{
-						["title"] = if not RunService:IsStudio() then `🟢 New Sale` else "🔴 Studio Sale",
-						["description"] = string.format(
-							"👤 [%s (@%s)](https://www.roblox.com/users/%s/profile) purchased a product.",
-							receipt.player.DisplayName,
-							receipt.player.Name,
-							receipt.player.UserId
-						),
-						["color"] = if not RunService:IsStudio() then tonumber(0x3c0c97) else tonumber(0xC42A3A),
-						["thumbnail"] = {
-							["url"] = "https://tr.rbxcdn.com/180DAY-738bb7a445bcf164da359fb0b0efa923/256/256/Image/Webp/noFilter",
+				-- The buyer can leave before the receipt is granted
+				local buyerText = "👤 A player purchased a product."
+				if receipt.player then
+					buyerText = string.format(
+						"👤 [%s (@%s)](https://www.roblox.com/users/%d/profile) purchased a product.",
+						receipt.player.DisplayName,
+						receipt.player.Name,
+						receipt.player.UserId
+					)
+				end
+
+				local data = {
+					["embeds"] = {
+						{
+							["title"] = if isStudio then "🔴 Studio Sale" else "🟢 New Sale",
+							["description"] = buyerText,
+							["color"] = if isStudio then 0xC42A3A else 0x3c0c97,
+							["thumbnail"] = {
+								["url"] = "https://tr.rbxcdn.com/180DAY-738bb7a445bcf164da359fb0b0efa923/256/256/Image/Webp/noFilter",
+							},
+							["fields"] = {
+								{ ["name"] = "🎮 Game", ["value"] = string.format("[%s](%s)", placeName, placeUrl), ["inline"] = false },
+								{ ["name"] = "🛒 Product", ["value"] = tostring(receipt.productId), ["inline"] = true },
+								{ ["name"] = "💰 Paid", ["value"] = totalRobux .. " R$", ["inline"] = true },
+							},
+							["footer"] = { ["text"] = "Mantle Works" },
+							["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
 						},
-						["fields"] = {
-							{ ["name"] = "🎮 Game", ["value"] = string.format("[%s](%s)", placeName, placeUrl), ["inline"] = false },
-							{ ["name"] = "🛒 Product", ["value"] = receipt.productId, ["inline"] = true },
-							{ ["name"] = "💰 Paid", ["value"] = totalRobux .. " R$", ["inline"] = true },
-						},
-						["footer"] = { ["text"] = "Mantle Works" },
-						["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
 					},
-				},
-			}
+				}
 
-			return HttpService:PostAsync(
-				require(ServerStorage.dotenv).DISCORD_WEBHOOK :: string,
-				HttpService:JSONEncode(data),
-				Enum.HttpContentType.ApplicationJson
-			)
-		end)
-		:catch(function(err)
-			warn("Failed to send Discord purchase log:", err)
-		end)
+				enqueueDiscord(HttpService:JSONEncode(data))
+			end)
+			:catch(function(err)
+				warn("Failed to send Discord purchase log:", err)
+			end)
+	end)
 end
 
 function MonetizationServiceServer.playerAdded(self: MonetizationService, player: Player): ()

@@ -28,6 +28,7 @@ local Products = require(ReplicatedStorage.Shared.Services.MonetizationService.M
 local Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 local Ripple = require(ReplicatedStorage.Packages.Ripple)
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local SoundServiceClient = require(ReplicatedStorage.Shared.Services.SoundService.SoundServiceClient)
 local StockSlice = require(ReplicatedStorage.Shared.Services.StockService.StockSlice)
@@ -292,7 +293,15 @@ function Plot.setupUpgradeBoard(self: Plot)
 				upgradeFrame.nextLevel.Text = "MAX LEVEL"
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = "MAX"
 			else
-				upgradeFrame.nextLevel.Text = `{rawLevel} → {nextLevel}`
+				local currentMultiplier = if upgradeId == "runnerSpeed"
+					then RunnerUtils.getRunnerSpeedMultiplier(rawLevel)
+					else RunnerUtils.getCashBonusMultiplier(rawLevel)
+				local nextMultiplier = if upgradeId == "runnerSpeed"
+					then RunnerUtils.getRunnerSpeedMultiplier(nextLevel)
+					else RunnerUtils.getCashBonusMultiplier(nextLevel)
+				local currentBonus = math.round((currentMultiplier - 1) * 100)
+				local nextBonus = math.round((nextMultiplier - 1) * 100)
+				upgradeFrame.nextLevel.Text = `+{currentBonus}% → +{nextBonus}%`
 				local cost = UpgradeUtils.calculateUpgradeCost(upgradeId, nextLevel, rebirths())
 				upgradeFrame.UpgradeButton.BTN_Surface.TXT_ButtonLabel.Text = cost == 0 and "FREE" or FormatCurrency(cost, true)
 			end

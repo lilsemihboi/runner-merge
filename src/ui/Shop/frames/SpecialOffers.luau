@@ -250,7 +250,7 @@ end
 local function carBundle()
 	return ShopFrame.Orange({
 		Size = usePx.offset(1008, 250),
-		LayoutOrder = 0,
+		LayoutOrder = 3,
 
 		--Title
 		TextLabel({
@@ -327,7 +327,7 @@ local function carBundle()
 				}),
 
 				TextLabel({
-					Text = `Level 14`,
+					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(14))}/gate`,
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
@@ -336,6 +336,13 @@ local function carBundle()
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
 				}),
 			}),
 
@@ -380,7 +387,7 @@ local function carBundle()
 				}),
 
 				TextLabel({
-					Text = `Level 15`,
+					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(15))}/gate`,
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
@@ -389,6 +396,13 @@ local function carBundle()
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
 				}),
 			}),
 
@@ -433,7 +447,7 @@ local function carBundle()
 				}),
 
 				TextLabel({
-					Text = `Level 16`,
+					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(16))}/gate`,
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
@@ -442,6 +456,13 @@ local function carBundle()
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 					TextScaled = true,
+					Gradient = {
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(226, 255, 192)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 255, 0)),
+						}),
+						Rotation = 90,
+					},
 				}),
 			}),
 		}),
@@ -480,7 +501,7 @@ local function exclusiveCar()
 
 	return ShopFrame.Gold({
 		Size = usePx.offset(1008, 250),
-		LayoutOrder = 1,
+		LayoutOrder = 2,
 
 		--Title
 		TextLabel({
@@ -539,7 +560,7 @@ local function exclusiveCar()
 
 				TextLabel({
 					Text = carInfo.name,
-					Size = UDim2.fromScale(1, 0.25),
+					Size = UDim2.fromScale(1.2, 0.25),
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					Position = UDim2.fromScale(0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5),
@@ -547,6 +568,9 @@ local function exclusiveCar()
 					TextScaled = true,
 					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
+					Vide.create("UITextSizeConstraint", {
+						MaxTextSize = usePx(32),
+					}),
 				}),
 
 				ImageLabel({
@@ -558,7 +582,7 @@ local function exclusiveCar()
 				}),
 
 				TextLabel({
-					Text = `${Abbreviate(carInfo.incomePerLap)}/lap`,
+					Text = `${Abbreviate(carInfo.incomePerLap)}/gate`,
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
@@ -626,8 +650,8 @@ local function starterPack()
 	end)
 
 	return ShopFrame.Blue({
-		Size = usePx.offset(1008, 230),
-		LayoutOrder = 0,
+		Size = usePx.offset(1008, 250),
+		LayoutOrder = 1,
 		Visible = function()
 			return not owns()
 		end,
@@ -669,8 +693,8 @@ local function starterPack()
 		-- Frame Content
 		Frame({
 			Size = usePx.offset(700, 160),
-			Position = UDim2.fromScale(0.005, 0.98),
-			AnchorPoint = Vector2.new(0, 1),
+			Position = usePx.udim2(0, 380, 0, 150),
+			AnchorPoint = Vector2.new(0.5, 0.5),
 			BackgroundTransparency = 1,
 
 			Vide.create("UIListLayout", {
@@ -682,20 +706,23 @@ local function starterPack()
 
 			-- Level 6 Car
 			ShopFrame.Orange({
-				Size = UDim2.fromScale(0.80, 0.80),
+				Size = UDim2.fromScale(0.9, 0.9),
 				SizeConstraint = Enum.SizeConstraint.RelativeYY,
 				LayoutOrder = 1,
 
 				TextLabel({
 					Text = `{CarIds[6].name:upper()}`,
-					Size = UDim2.fromScale(1.1, 0.25),
+					Size = UDim2.fromScale(1.2, 0.25),
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					Position = UDim2.fromScale(0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextSize = usePx(20),
+					TextScaled = true,
 					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
+					Vide.create("UITextSizeConstraint", {
+						MaxTextSize = usePx(32),
+					}),
 				}),
 
 				-- Car Image
@@ -709,7 +736,7 @@ local function starterPack()
 
 				-- Car Bonus
 				TextLabel({
-					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(6))}/lap`,
+					Text = `${Abbreviate(RunnerUtils.getRunnerIncomePerLap(6))}/gate`,
 					Size = UDim2.fromScale(1.1, 0.25),
 					Position = UDim2.fromScale(0.5, 1.1),
 					AnchorPoint = Vector2.new(0.5, 1),
@@ -744,20 +771,23 @@ local function starterPack()
 			}),
 
 			ShopFrame.Green({
-				Size = UDim2.fromScale(0.80, 0.80),
+				Size = UDim2.fromScale(0.9, 0.9),
 				SizeConstraint = Enum.SizeConstraint.RelativeYY,
 				LayoutOrder = 3,
 
 				TextLabel({
 					Text = `MONEY`,
-					Size = UDim2.fromScale(1.1, 0.25),
+					Size = UDim2.fromScale(1.2, 0.25),
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					Position = UDim2.fromScale(0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextSize = usePx(20),
+					TextScaled = true,
 					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
+					Vide.create("UITextSizeConstraint", {
+						MaxTextSize = usePx(32),
+					}),
 				}),
 
 				ImageLabel({
@@ -804,20 +834,23 @@ local function starterPack()
 			}),
 
 			ShopFrame.Green({
-				Size = UDim2.fromScale(0.80, 0.80),
+				Size = UDim2.fromScale(0.9, 0.9),
 				SizeConstraint = Enum.SizeConstraint.RelativeYY,
 				LayoutOrder = 5,
 
 				TextLabel({
 					Text = `MONEY BONUS`,
-					Size = UDim2.fromScale(1.1, 0.25),
+					Size = UDim2.fromScale(1.2, 0.25),
 					FontFace = Font.new("rbxassetid://11702779517", Enum.FontWeight.Heavy, Enum.FontStyle.Normal),
 					Position = UDim2.fromScale(0.5, 0),
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					TextColor3 = Color3.fromRGB(255, 255, 255),
-					TextSize = usePx(20),
+					TextScaled = true,
 					Stroke = { Thickness = usePx(2) },
 					ZIndex = 99,
+					Vide.create("UITextSizeConstraint", {
+						MaxTextSize = usePx(32),
+					}),
 				}),
 
 				ImageLabel({
@@ -877,7 +910,7 @@ return function()
 
 		freeHeartCrate(),
 		starterPack(),
-		carBundle(),
 		exclusiveCar(),
+		carBundle(),
 	})
 end

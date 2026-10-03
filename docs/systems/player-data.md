@@ -46,7 +46,7 @@ Paths are either a string for top-level fields or an array for nested fields. Ke
 | `isGroupRewardClaimed` | `false` | `Plot.giveGroupReward` |
 | `rebirths` | `0` | `Profile.giveRebirth` |
 | `runnerPurchases` | `0` | `Profile.giveRunner` (+amount); price index for batch pricing |
-| `runners` | `{}` | One `{ id, level, phase }` entry per owned car; `Profile.giveRunner`/`giveExclusiveRunner` append, merges rewrite. Migrated on load from the old bare-level array (`id` = position in the compacted array, `phase = (position − 1) / count`) |
+| `runners` | `{}` | One `{ id, level, phase }` entry per owned car; `Profile.giveRunner`/`giveExclusiveRunner` append, merges rewrite. Migrated on load from the old bare-level array (`id` = position in the compacted array, `phase = (position − 1) / count`; ids offset above existing entries in a mixed save) |
 | `nextRunnerId` | `0` | Monotonic id counter (`Profile.allocateRunnerId`); ids are never reused |
 | `runnerSpawnLevel` | `1` | `Profile.giveSpawnLevel` (even rebirths ≤ 80) |
 | `index` | `{}` | `index[tostring(level)] = true` on first unlock (regular and exclusive ids) |

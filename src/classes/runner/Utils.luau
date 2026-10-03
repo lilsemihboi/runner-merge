@@ -89,10 +89,13 @@ end
 -- Saves written before the entry schema (one bare level per slot) are also
 -- accepted: a number maps to exactly what the old scheme computed (its position
 -- in the compacted array, and `phase = (position - 1) / count`), so an
--- unmigrated array still renders identically instead of disappearing.
+-- unmigrated array still renders identically instead of disappearing. In a
+-- mixed array (only reachable if the game is rolled back and a car is bought
+-- on the old code) legacy ids are offset above every entry id, so the new car
+-- survives the next migration instead of colliding with an existing id.
 -- Duplicate ids are dropped deterministically (first occurrence wins) so a
--- corrupt mixed save can never collapse two cars into one on the client while
--- the server keeps both.
+-- corrupt save can never collapse two cars into one on the client while the
+-- server keeps both.
 function RunnerUtils.sanitizeRunners(runners: { any }?): { RunnerEntry }
 	local entries: { RunnerEntry } = {}
 	if type(runners) ~= "table" then
@@ -100,9 +103,12 @@ function RunnerUtils.sanitizeRunners(runners: { any }?): { RunnerEntry }
 	end
 
 	local legacyCount = 0
+	local maxModernId = 0
 	for _, runner in ipairs(runners) do
 		if typeof(runner) == "number" then
 			legacyCount += 1
+		elseif typeof(runner) == "table" and typeof(runner.id) == "number" then
+			maxModernId = math.max(maxModernId, runner.id)
 		end
 	end
 
@@ -115,7 +121,7 @@ function RunnerUtils.sanitizeRunners(runners: { any }?): { RunnerEntry }
 		if typeof(runner) == "number" then
 			legacyIndex += 1
 			entry = {
-				id = legacyIndex,
+				id = maxModernId + legacyIndex,
 				level = runner,
 				phase = (legacyIndex - 1) / legacyCount,
 			}

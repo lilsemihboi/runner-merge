@@ -66,7 +66,7 @@ Any change to movement/validation touches these together:
 | `src/classes/runner/PathData.luau` | Catmull-Rom path + gate distances (shared) |
 | `src/classes/runner/MergeEffects.luau` | Cosmetic merge animation; sources addressed by runner id; durations must match `RunnerService` constants |
 | `src/services/runnerService/Types.luau` | Snapshot/delta/merge operation types |
-| `src/modules/game/DataTemplate.luau` + `src/services/profileService/Server.luau` | `{ id, level, phase }` schema + `nextRunnerId`; legacy-save migration assigns `id` = position in the compacted array, `phase = (position − 1) / count` (old save loads with zero movement) |
+| `src/modules/game/DataTemplate.luau` + `src/services/profileService/Server.luau` | `{ id, level, phase }` schema + `nextRunnerId`; legacy-save migration assigns `id` = position in the compacted array, `phase = (position − 1) / count` (old save loads with zero movement; ids in a mixed save are offset above existing entries) |
 
 Checklist for a movement change: update `RunnerUtils`; make sure `RunnerClient.getDistance` and `RunnerService._getRunnerTiming` still agree; verify both use the entry's own `id`/`phase`; verify send-time anchoring (`_rebaseStartClock` + `_reanchorChangedLevels`) still matches the client's `configure` swap; re-test late join (`requestState`), gap recovery (`requestPlot`) and route change (`resetForRouteChange`).
 

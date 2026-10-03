@@ -9,7 +9,6 @@ package-lock.json
 *.lock.*
 .DS_Store
 node_modules/
-docs/
 __pycache__/
 *.py[cod]
 .venv/

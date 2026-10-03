@@ -24,14 +24,14 @@ Prices are **never** defined in code — they come from the Roblox place configu
 | `x2Cash` | 1906304732 | Game pass | Gate income ×2 |
 | `autoRollCrate` | 1952750474 | Game pass | Enables crate auto-roll |
 
-`MonetizationProduct` shape (`Utils.luau`): `id`, `key` (backfilled at init), `giftId?`, `isPass?`, `oneTimePurchase?`, `purchaseCooldown?` (seconds), `random?`, `disabled?`, `stock?`, `callback?` (server only). `random = true` products are hidden when `ArePaidRandomItemsRestricted` blocks paid random items.
+`MonetizationProduct` shape (`Utils.luau`): `id`, `key` (backfilled at init), `giftId?`, `isPass?`, `oneTimePurchase?`, `purchaseCooldown?` (seconds), `random?`, `disabled?`, `stock?`, `callback?` (server only). `random = true` products display `Locked` (and refuse prompts) when `ArePaidRandomItemsRestricted` blocks paid random items.
 
 ## Game pass flow
 
 `PromptGamePassPurchaseFinished` → guard (purchased, awarding enabled, not already owned) → notification → `awardGamepass`: writes `__gamepasses[tostring(id)] = true`, runs the pass callback if any, fires `gamePassAwarded`. Discord is logged once.
 
 - Ownership reads use profile data (`ownsGamepass` = `__gamepasses`), not the Roblox API. `ownsGamepassAsync` is used for join recovery and gift delivery.
-- Reactive ownership: `MonetizationServiceServer:getPassOwnshipChanged(player, product)` — note the misspelling — returns a `DataService` change signal. Used by `runnerService` (VIP/x2), `titleService` (VIP title), `plot/Server` (VIP extra gates), `blockService` (autoRollCrate).
+- Reactive ownership: `MonetizationServiceServer:getPassOwnshipChanged(player, product)` — note the misspelling — returns a `DataService` change signal. Used by `runnerService` (x2Speed/x2Cash/VIP) and `titleService` (VIP title). `plot/Server` checks `ownsGamepass` at upgrade time; `blockService` reacts via `gamePassAwarded` plus live `ownsGamepass` checks.
 
 ## Developer product receipts
 
@@ -58,7 +58,7 @@ Callbacks live in `modules/ProductServerCallbacks.luau` (required for side effec
 
 - Server `RewardedAdService`: `playAd` creates an `AdService:CreateAdRewardFromDevProductId(Products.adHeartCrate.id)` and shows the video (ad unit id `636257121902409`). One claim per server session (`playersClaimedRewardThisSession`).
 - The reward arrives as a normal receipt for `adHeartCrate` → crate 13.
-- Client `playAd`, `canClaimAdReward` (used by `RewardedAdSlice`), `canShowAd` (ad availability check). `RewardedAdSlice` refreshes every 30 s; the HUD "CRATE / FREE" button and `SpecialOffers` Hearts card consume it.
+- Client `playAd`, `canShowAd` (ad availability check; internally uses `canClaimAdReward`). `RewardedAdSlice` refreshes every 30 s; the HUD "CRATE / FREE" button and `SpecialOffers` Hearts card consume it.
 
 ## Offline earnings
 

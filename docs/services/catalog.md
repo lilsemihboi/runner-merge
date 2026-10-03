@@ -17,7 +17,7 @@ Every service under `src/services/`, its Networker contract, and the player data
 | `monetizationService` | `Server`, `Client`, `Utils`, `Modules/Products`, `Modules/ProductServerCallbacks`, `Hooks/useProduct`, `Hooks/useGamepass` | `MonetizationService` | `MonetizationService` | fetch `promptGift` | fire `_receivedGift` | `__gamepasses`, `__oneTimePurchases`, `__purchaseCooldowns`, `__giftReceiver`, `__processedPurchases` (dynamic); ServicePlayerData `giftingTo` | Stock, Analytics, Sound, GeneralNotifications, BlockService callbacks; Discord proxy |
 | `notificationService` | `Server`, `Client` | `NotificationService` | `NotificationService` | — | fire `serverNotification` | — | Used by code callbacks |
 | `offlineEarningsService` | `Server`, `Client`, `Utils`, `OfflineEarningsSlice` | **`OfflineEarnings`** | **`OfflineEarnings`** | fetch `requestBegin`, `requestClaim` | — | `offlineEarnings*`, `stats.lastLogoutTime`, multipliers | Monetization (double product), Plot, Profile |
-| `plotService` | `Server`, `Client`, `Types` | `PlotService` | `PlotService` | — | fire `initPlot`, `destroyPlot` | ServicePlayerData `plot` | Creates `PlotServer` per player |
+| `plotService` | `Server`, `Client`, `Types` | `PlotService` | `PlotService` | — | fire `initPlot` | ServicePlayerData `plot` | Creates `PlotServer` per player; `PlotServiceClient.destroyPlot` exists but is never fired |
 | `profileService` | `Server` | — (no Networker) | — | — | — | reconciler + `stats`, leaderstats | Server-only data layer |
 | `rebirthService` | `Server`, `Client`, `Utils` | `RebirthService` | `RebirthService` | fetch `rebirth` | — | `cash`, `upgrades.*`, `extraGates`, `rebirths`, `cashMultiplier`, `runnerSpawnLevel` | ConfigService A/B flag; route watcher reacts to rebirths |
 | `rewardedAdService` | `Server`, `Client` | `RewardedAdService` | `RewardedAdService` | fetch `playAd`, `hasClaimedRewardThisSession` | — | — | AdService + `adHeartCrate` product; one claim per session |
@@ -27,6 +27,7 @@ Every service under `src/services/`, its Networker contract, and the player data
 | `soundService` | `Server`, `Client`, `CarEngineInitializer` | **`SFXService`** | **`SFXService`** | — | fire/fireAll `play` | — | Name differs from folder; client refuses to restart looped sounds |
 | `stockService` | `Server`, `Client`, `Utils`, `StockSlice`, `Hooks/useStock` | `StockService` | `StockService` | fetch `getStocks` | fireAll `stockChanged` | — | DataStore `(prefix)Stock_v1` key `GlobalStock`; consumed by monetization prompts |
 | `titleService` | `Server`, `Client`, `Utils` | — (no Networker) | — | — | `player:SetAttribute("TitleId", …)` | — | VIP/group titles |
+| `tutorialService` | `Server`, `Client` | `TutorialService` | `TutorialService` | fire `saveStage`, `finishTutorial` | — | writes `tutorial.step` / `tutorial.finished` via `ProfileServer` | Emits `tutorialStarted`/`tutorialStep`/`tutorialFinished`; client (`TutorialRoot`) drives step detection |
 
 ## Class networkers
 

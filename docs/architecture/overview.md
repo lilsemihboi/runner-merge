@@ -13,7 +13,7 @@ Merge Cars is a merge-runner tycoon. The design has three load-bearing ideas:
 | Server | `src/library/Server.server.luau` | `ServerScriptService.Server` | Initializes `DataService`, then every service; service modules are required explicitly |
 | Client | `src/library/Client.client.luau` | `StarterPlayer.StarterPlayerScripts.Client` | Initializes client halves, starts `RunnerManager`, mounts the UI |
 
-Both entrypoints are `--!nonstrict`; every other module is strict via `.luaurc` (`{"languageMode": "strict"}`).
+`.luaurc` sets `strict` by default, but the two entrypoints and many gameplay/UI modules opt out with `--!nonstrict`. Match the file you are editing; prefer strict for new modules.
 
 `src/library/` is excluded from the Rojo tree generator and mapped explicitly. Adding a file under `src/services/<name>/` does **not** wire it into the game — you must require and initialize it in the entrypoints. See [`guides/adding-a-service.md`](../guides/adding-a-service.md).
 
@@ -67,7 +67,7 @@ end
 - **Client side:** `Networker.client.new(id, module)`; call `networker:fetch(name, ...)` for a return value or `networker:fire(name, ...)` for fire-and-forget.
 - **Server → client:** `networker:fire(player, name, ...)` or `fireAll(name, ...)` calls the client method with the same name. `networker:set(player, key, value)` writes a field on the client module (no method call) — used for e.g. `vipMultiplier` on `RunnerManager`.
 - The id string must match exactly on both sides. It is **not** derived from the folder name: `soundService` uses `"SFXService"`, `generalNotificationsService` uses `"UtilitiesService"`, `offlineEarningsService` uses `"OfflineEarnings"`. See [`services/catalog.md`](../services/catalog.md).
-- `Networker` remotes live under `ReplicatedStorage.Packages.Networker._remotes/<id>`.
+- `Networker` creates its remotes at runtime under the package instance (`…/networker/_remotes/<id>`); never reference or reparent them directly.
 
 Service-local rules:
 
@@ -133,7 +133,7 @@ Renaming or moving any of these breaks code silently; grep before changing.
 
 ## Configuration & environment
 
-- `.luaurc`: strict Luau default. The two `src/library` entrypoints opt out with `--!nonstrict`.
+- `.luaurc`: strict Luau default; the entrypoints and many modules opt out with `--!nonstrict` (match the file).
 - `DataService` profile store: `__test__` in Studio, `__production__` live. `StockService` uses `__test__Stock_v1` / `__production__Stock_v1`.
 - `ServerStorage.dotenv` provides environment secrets (not in the repo): `GAMEBEAST_API_KEY` (analytics), `DISCORD_PROXY_URL` + `DISCORD_PROXY_KEY` (purchase logging proxy).
 - Studio differences: Roblox analytics funnel events are skipped outside live servers; `SafeTeleport` no-ops in Studio; advertised ad eligibility varies.

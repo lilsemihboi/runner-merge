@@ -28,7 +28,7 @@ Rarity bands come from `src/modules/items/Rarities.luau`; trail data from `Trail
 
 Auto-roll (gamepass `autoRollCrate` + `autoCrateOpen` flag): `PlotClient` triggers `openAutoCrate` when the crate becomes rollable; the server re-checks the stored flag and live gamepass ownership. Manual rolls release the in-flight lock immediately; auto-rolls hold it for `rollTime + revealHold` to prevent spam. Toggling state fires `updateAutoRollState`; `BlockServiceClient.autoRollStateChanged` / `crateRollStatusChanged` are local signals used by the plot UI.
 
-Announcements: `Epic`, `Legendary`, `Mythic`, `Secret` drops (and auto-rolls beating the selected trail) fire `fireAll("announceDrop")`; clients post a `TextChannels.RBXGeneral` system message. The channel must exist — there is no guard.
+Announcements: `Epic`/`Legendary`/`Mythic`/`Secret` drops fire `fireAll("announceDrop")`; clients post a `TextChannels.RBXGeneral` system message (the channel must exist — there is no guard). Auto-rolls that beat the selected trail instead send the roller a private GeneralNotifications message (`_notifyAutoDrop`).
 
 ## Purchased crates
 

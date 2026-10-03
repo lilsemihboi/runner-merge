@@ -32,6 +32,7 @@ Detailed developer documentation lives in [`docs/`](docs/README.md). This file i
 - **The server is authoritative.** Validate every client argument; never grant items/cash from client signals. Purchase callbacks that grant must be idempotent (Roblox retries receipts). See [`docs/reference/gotchas.md`](docs/reference/gotchas.md).
 - **Marker and funnel names are frozen dashboard schema** (`Markers.luau`, `OnboardingFunnel.luau`). Add new names; don't rename shipped ones.
 - **Secrets don't live in Git.** `ServerStorage.dotenv` (`GAMEBEAST_API_KEY`, `DISCORD_PROXY_*`) is provisioned in the place.
+- **A push is the final product.** Don't commit or push while a task is still in progress; finish and verify the work first, and only then push. A push is not a checkpoint — this applies to docs/AGENTS changes too.
 
 ## Common Commands
 
@@ -136,6 +137,7 @@ More: [`docs/reference/gotchas.md`](docs/reference/gotchas.md).
 5. `stylua src`, `selene src`.
 6. Verify in Studio (data uses the `__test__` store; some features are disabled in Studio — e.g. Roblox funnel analytics, teleports).
 7. Update the system doc + catalog. Update this file only when a global rule changes.
+8. Commit and push only when the task is finished and verified — a push is the final product, not a checkpoint.
 
 ## Key Documentation
 

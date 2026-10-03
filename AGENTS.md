@@ -37,6 +37,7 @@ Detailed developer documentation lives in [`docs/`](docs/README.md). This file i
 
 | Task | Command |
 |------|---------|
+| Install toolchain (Rojo/StyLua/Selene/Wally/Asphalt) | `rokit install` (fresh machine) |
 | Install JS tooling | `npm install` |
 | Install Wally packages + types + sourcemap | `npm run wally-install` (needed on fresh checkout) |
 | Regenerate Rojo tree | `npm run build:rojo` |
@@ -121,14 +122,14 @@ client intent (fetch/fire)
 - Don't rename persisted keys or marker/funnel names.
 - Don't change income/upgrade formulas in one place only (server, client, offline, simulator).
 - Don't close the open menu from an overlay — hide it (`Menu.hideOpenMenu`).
-- Don't add tests/CI expectations: there are none; `stylua`, `selene`, and Studio verification are the process.
+- Don't expect a test suite or CI: neither exists; `stylua`, `selene`, and Studio verification are the process.
 - Check your branch: this docs set and the live place describe `main`; feature branches can lag behind.
 
 More: [`docs/reference/gotchas.md`](docs/reference/gotchas.md).
 
 ## Development Workflow
 
-1. Confirm branch (`main`) and run `npm install` + `npm run wally-install` on a fresh checkout.
+1. Confirm branch (`main`); on a fresh machine run `rokit install`, then `npm install` and `npm run wally-install`.
 2. Read the owning system doc; find the service contract in [`docs/services/catalog.md`](docs/services/catalog.md).
 3. Implement, respecting entrypoint ordering, determinism, and server authority.
 4. New/renamed files → `npm run build:rojo`. New `assets/**` → `asphalt`.

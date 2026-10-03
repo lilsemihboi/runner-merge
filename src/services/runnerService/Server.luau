@@ -10,9 +10,19 @@
 		   clock, and pays incomePerLap per validated gate crossing.
 
 	Determinism contract (must match RunnerClient/RunnerManager exactly):
-		travelTime = path.length / max(1, getRunnerSpeed(level, runnerSpeedLevel))
-		phase      = (index - 1) / #levels
+		travelTime = path.length / max(1, getRunnerSpeed(level, runnerSpeedLevel) * carSpeedMultiplier)
+		lane       = getRunnerLane(plotId, runnerId, laneCount)
+		phase      = entry.phase -- owned by the runner, never derived from the roster
 		progress   = ((GetServerTimeNow() - startClock) / travelTime + phase) % 1
+
+	Network traffic:
+		- Full snapshots (`setRunners`) go out on first registration, route
+		  change, late-join (`requestState`/`requestPlot`) and oversized diffs.
+		- Every small change (purchase, merge, bump, upgrade, trail) goes out as
+		  a delta (`applyRunnerDelta`) diffed against what clients already hold:
+		  only the cars that actually changed are serialized.
+		- Deltas are revision-chained (`baseRev` -> `rev`); a client that detects
+		  a gap asks for a fresh full snapshot instead of silently drifting.
 ]]
 
 local RunnerService = {}
@@ -41,6 +51,11 @@ local MERGE_INPUT_DURATION = 0.28
 local MERGE_RESULT_DURATION = 0.42
 local MERGE_ROOT_STAGGER = 0.12
 local MERGE_EFFECT_TRAIL_DURATION = 0.2
+
+-- Above this fraction of the roster changing, a full snapshot is smaller (and
+-- far simpler to reason about) than a delta touching the same cars.
+local FULL_SYNC_RATIO = 0.5
+local FULL_SYNC_MIN_CHANGES = 4
 
 local function getTrailMultiplier(trailId: number?): number
 	local trail = if trailId then Trails[trailId] else nil
@@ -81,8 +96,104 @@ function RunnerService.init(self: RunnerService)
 	self.networker = Networker.server.new("RunnerService", self, {
 		self.reportGate,
 		self.requestState,
+		self.requestPlot,
 		self.reportLap,
 	})
+end
+
+--[=[
+	Rebases `startClock` so a uniform speed-factor change (runnerSpeed upgrade,
+	x2 Speed gamepass) does not move any car.
+
+	progress = (now - startClock) / travelTime + phase, and travelTime scales
+	with 1/factor, so keeping `(now - startClock) * factor` constant is exactly
+	what keeps every car at its current position.
+
+	The rebase is computed at send time, against the clock clients actually
+	hold, not when the upgrade was purchased: broadcasts can be delayed for
+	seconds by a merge effect, and clients keep running on the old factor until
+	the message arrives. Rebasing from `lastSentScalars.startClock` makes the
+	switch continuous at the moment of delivery.
+]=]
+function RunnerService._rebaseStartClock(_self: RunnerService, state: PlotState)
+	local lastSentScalars = state.lastSentScalars
+	if lastSentScalars == nil then
+		return
+	end
+
+	local profile = ProfileServiceServer.getProfile(state.player)
+	local newFactor = RunnerUtils.getRunnerSpeedMultiplier(profile:getUpgradeLevel("runnerSpeed")) * (if state.doubleSpeedOwned then 2 else 1)
+	local oldFactor = RunnerUtils.getRunnerSpeedMultiplier(lastSentScalars.runnerSpeedLevel) * lastSentScalars.carSpeedMultiplier
+	if oldFactor <= 0 or newFactor <= 0 or oldFactor == newFactor then
+		return
+	end
+
+	local now = workspace:GetServerTimeNow()
+	state.startClock = now - (now - lastSentScalars.startClock) * (oldFactor / newFactor)
+end
+
+--[=[
+	Re-anchors the phase of every car whose level changed since the last
+	message, at send time.
+
+	Clients keep the old trajectory (and therefore the old speed) until the
+	message arrives, so the phase must be computed right before sending:
+	`phase' = (progressOld - (now - startClock) / travelTimeNew) % 1`. This is
+	what makes a merge result (and a whole rebirth bump) continue from where it
+	stood instead of jumping ahead by the speed difference, even when a merge
+	effect delayed the broadcast for seconds.
+
+	The re-anchored phase is written back to the profile so gate validation,
+	lap accounting and offline earnings all read the value the client renders.
+]=]
+function RunnerService._reanchorChangedLevels(_self: RunnerService, state: PlotState)
+	local lastSentRunners = state.lastSentRunners
+	if lastSentRunners == nil then
+		return
+	end
+
+	local laneCount = PathData.getLaneCount(state.plotId)
+	if laneCount <= 0 then
+		return
+	end
+
+	local profile = ProfileServiceServer.getProfile(state.player)
+	local rawRunners = profile:getRunners()
+	if type(rawRunners) ~= "table" then
+		return
+	end
+
+	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
+	local doubleMultiplier = if state.doubleSpeedOwned then 2 else 1
+	local now = workspace:GetServerTimeNow()
+
+	for index, raw in ipairs(rawRunners) do
+		if typeof(raw) ~= "table" or typeof(raw.id) ~= "number" or typeof(raw.level) ~= "number" or typeof(raw.phase) ~= "number" then
+			continue
+		end
+
+		local previous = lastSentRunners[raw.id]
+		if not previous or previous.level == raw.level then
+			continue
+		end
+
+		local path = PathData.get(state.plotId, RunnerUtils.getRunnerLane(state.plotId, raw.id, laneCount))
+		if not path or path.length <= 0 then
+			continue
+		end
+
+		local oldTravelTime = path.length / math.max(1, RunnerUtils.getRunnerSpeed(previous.level, runnerSpeedLevel) * doubleMultiplier)
+		local newTravelTime = path.length / math.max(1, RunnerUtils.getRunnerSpeed(raw.level, runnerSpeedLevel) * doubleMultiplier)
+		if oldTravelTime <= 0 or newTravelTime <= 0 then
+			continue
+		end
+
+		local progress = ((now - state.startClock) / oldTravelTime + previous.phase % 1) % 1
+		local reanchoredPhase = (progress - (now - state.startClock) / newTravelTime) % 1
+		if reanchoredPhase ~= raw.phase % 1 then
+			DataService:set(state.player, { "runners", index, "phase" }, reanchoredPhase)
+		end
+	end
 end
 
 function RunnerService.registerPlot(self: RunnerService, player: Player, plotId: number)
@@ -106,6 +217,9 @@ function RunnerService.registerPlot(self: RunnerService, player: Player, plotId:
 		selectedTrail = selectedTrail,
 		trailMultiplier = getTrailMultiplier(selectedTrail),
 		clearGateAwardsOnBroadcast = false,
+		rev = 0,
+		lastSentRunners = nil,
+		lastSentScalars = nil,
 	}
 	self.plots[plotId] = state
 
@@ -209,46 +323,68 @@ function RunnerService._snapshot(_self: RunnerService, state: PlotState): Runner
 	return {
 		plotId = state.plotId,
 		owner = state.player,
-		levels = RunnerUtils.sanitizeLevels(profile:getRunners()),
+		runners = RunnerUtils.sanitizeRunners(profile:getRunners()),
 		startClock = state.startClock,
 		gateCount = profile:getActiveGateCount(),
 		runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed"),
 		carSpeedMultiplier = state.doubleSpeedOwned and 2 or 1,
 		routeId = profile:getRoute(),
 		selectedTrail = state.selectedTrail,
+		rev = state.rev,
 	}
 end
 
 -- The single source of truth for a runner's deterministic movement, shared by
 -- gate validation and lap accounting so both always agree with the client.
+-- `doubleMultiplier` and `startClock` default to the plot's current state; gate
+-- validation overrides them with the client's last-sent view.
 function RunnerService._getRunnerTiming(
 	_self: RunnerService,
 	state: PlotState,
-	levels: { number },
-	runnerIndex: number,
-	runnerSpeedLevel: number
+	entry: RunnerUtils.RunnerEntry,
+	runnerSpeedLevel: number,
+	doubleMultiplier: number?,
+	startClock: number?
 ): RunnerTiming?
-	local level = levels[runnerIndex]
-	if not level then
-		return nil
-	end
-
 	local laneCount = PathData.getLaneCount(state.plotId)
-	local lane = RunnerUtils.getRunnerLane(state.plotId, runnerIndex, laneCount)
+	local lane = RunnerUtils.getRunnerLane(state.plotId, entry.id, laneCount)
 	local path = PathData.get(state.plotId, lane)
 	if not path or path.length <= 0 then
 		return nil
 	end
 
-	local doubleSpeedMultiplier = if state.doubleSpeedOwned then 2 else 1
-	local speed = RunnerUtils.getRunnerSpeed(level, runnerSpeedLevel) * doubleSpeedMultiplier
+	local doubleSpeedMultiplier = doubleMultiplier or (if state.doubleSpeedOwned then 2 else 1)
+	local speed = RunnerUtils.getRunnerSpeed(entry.level, runnerSpeedLevel) * doubleSpeedMultiplier
 
 	return {
 		path = path,
 		speed = speed,
 		travelTime = path.length / math.max(1, speed),
-		phase = (runnerIndex - 1) / #levels,
+		phase = entry.phase,
+		level = entry.level,
+		startClock = startClock or state.startClock,
 	}
+end
+
+--[=[
+	Resolves the deterministic parameters the client is currently simulating:
+	the last message's scalars and roster when available, live data otherwise.
+
+	While a broadcast is pending (one deferred frame, or seconds during a merge
+	effect) the data already holds the new speeds/levels but no client has seen
+	them yet. Gate validation must use this view - not live data - or every
+	crossing during the window is rejected.
+]=]
+function RunnerService._getClientViewTiming(self: RunnerService, state: PlotState, runnerId: number, liveEntry: RunnerUtils.RunnerEntry): RunnerTiming?
+	local scalars = state.lastSentScalars
+	local previous = if state.lastSentRunners then state.lastSentRunners[runnerId] else nil
+
+	local entry = if previous then { id = runnerId, level = previous.level, phase = previous.phase } else liveEntry
+	local runnerSpeedLevel = if scalars then scalars.runnerSpeedLevel else ProfileServiceServer.getProfile(state.player):getUpgradeLevel("runnerSpeed")
+	local doubleMultiplier = if scalars then scalars.carSpeedMultiplier else nil
+	local startClock = if scalars then scalars.startClock else nil
+
+	return self:_getRunnerTiming(state, entry, runnerSpeedLevel, doubleMultiplier, startClock)
 end
 
 -- Anchors every runner to the lap boundary it has most recently passed.
@@ -257,20 +393,20 @@ end
 -- a faster travelTime would make the whole session recount as dozens of laps.
 function RunnerService._anchorLapClocks(self: RunnerService, state: PlotState)
 	local profile = ProfileServiceServer.getProfile(state.player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
 	local runnerSpeedLevel = profile:getUpgradeLevel("runnerSpeed")
 	local now = workspace:GetServerTimeNow()
 	local lapClocks: { [number]: number } = {}
 
-	for runnerIndex = 1, #levels do
-		local timing = self:_getRunnerTiming(state, levels, runnerIndex, runnerSpeedLevel)
+	for _, entry in ipairs(entries) do
+		local timing = self:_getRunnerTiming(state, entry, runnerSpeedLevel)
 		if not timing then
 			continue
 		end
 
 		-- keep the fraction of the current lap already run, drop nothing
 		local lapProgress = ((now - state.startClock) / timing.travelTime + timing.phase) % 1
-		lapClocks[runnerIndex] = now - lapProgress * timing.travelTime
+		lapClocks[entry.id] = now - lapProgress * timing.travelTime
 	end
 
 	state.lapClocks = lapClocks
@@ -306,34 +442,143 @@ function RunnerService.resetForRouteChange(self: RunnerService, player: Player)
 			continue
 		end
 		state.startClock = workspace:GetServerTimeNow()
+		-- The path itself changed; every car resets, so force a full snapshot.
+		state.lastSentRunners = nil
+		state.lastSentScalars = nil
 		self:_broadcastPlot(state)
 	end
 end
 
+--[=[
+	Broadcasts the smallest message that brings every client to the current
+	plot state: nothing when nothing changed, a delta when only some cars or
+	scalars changed, and a full snapshot on first registration, route change,
+	or when the diff covers most of the roster.
+]=]
 function RunnerService._broadcastPlot(self: RunnerService, state: PlotState, clearGateAwards: boolean?)
 	if state.mergeEffectActive then
 		return
 	end
 
-	-- roster changed -> indices/phases are re-assigned; old award history is stale
+	-- Both re-anchors run at send time, against what clients currently hold
+	-- (`lastSent*`), so trajectories switch without a jump at delivery.
+	self:_rebaseStartClock(state)
+	self:_reanchorChangedLevels(state)
+
+	-- roster changed -> stale award history must not leak into the new ids
 	if clearGateAwards ~= false then
 		table.clear(state.gateAwards)
 		self:_anchorLapClocks(state)
 	end
 
 	local snapshot = self:_snapshot(state)
-	self.networker:fireAll(
-		"setRunners",
-		snapshot.plotId,
-		snapshot.owner,
-		snapshot.levels,
-		snapshot.startClock,
-		snapshot.gateCount,
-		snapshot.runnerSpeedLevel,
-		snapshot.carSpeedMultiplier,
-		snapshot.routeId,
-		snapshot.selectedTrail
-	)
+	local baseRev = state.rev
+	local rev = baseRev + 1
+	local lastSentRunners = state.lastSentRunners
+	local lastSentScalars = state.lastSentScalars
+
+	local removedIds: { number } = {}
+	local upserts: { RunnerUtils.RunnerEntry } = {}
+	local scalars: RunnerServiceTypes.RunnerPlotScalars = {}
+
+	local needsFullSync = lastSentRunners == nil or lastSentScalars == nil
+	if not needsFullSync then
+		local currentById: { [number]: RunnerUtils.RunnerEntry } = {}
+		for _, entry in ipairs(snapshot.runners) do
+			currentById[entry.id] = entry
+		end
+
+		for runnerId in lastSentRunners do
+			if not currentById[runnerId] then
+				removedIds[#removedIds + 1] = runnerId
+			end
+		end
+
+		for _, entry in ipairs(snapshot.runners) do
+			local previous = lastSentRunners[entry.id]
+			if not previous or previous.level ~= entry.level or previous.phase ~= entry.phase then
+				upserts[#upserts + 1] = entry
+			end
+		end
+
+		if snapshot.startClock ~= lastSentScalars.startClock then
+			scalars.startClock = snapshot.startClock
+		end
+		if snapshot.runnerSpeedLevel ~= lastSentScalars.runnerSpeedLevel then
+			scalars.runnerSpeedLevel = snapshot.runnerSpeedLevel
+		end
+		if snapshot.carSpeedMultiplier ~= lastSentScalars.carSpeedMultiplier then
+			scalars.carSpeedMultiplier = snapshot.carSpeedMultiplier
+		end
+		if snapshot.gateCount ~= lastSentScalars.gateCount then
+			scalars.gateCount = snapshot.gateCount
+		end
+		if snapshot.routeId ~= lastSentScalars.routeId then
+			scalars.routeId = snapshot.routeId
+		end
+		if snapshot.selectedTrail ~= lastSentScalars.selectedTrail then
+			-- The trail can be set to nil (toggle off); flag the change so the
+			-- client does not read a missing key as "unchanged".
+			scalars.selectedTrailChanged = true
+			scalars.selectedTrail = snapshot.selectedTrail
+		end
+
+		local changedCount = #removedIds + #upserts
+		if changedCount == 0 and next(scalars) == nil then
+			return
+		end
+
+		if #snapshot.runners > 0 then
+			local threshold = math.max(FULL_SYNC_MIN_CHANGES, math.ceil(#snapshot.runners * FULL_SYNC_RATIO))
+			if changedCount >= threshold then
+				needsFullSync = true
+			end
+		end
+	end
+
+	state.rev = rev
+
+	local nextLastSent: { [number]: { level: number, phase: number } }
+	if needsFullSync then
+		nextLastSent = {}
+		for _, entry in ipairs(snapshot.runners) do
+			nextLastSent[entry.id] = { level = entry.level, phase = entry.phase }
+		end
+
+		self.networker:fireAll(
+			"setRunners",
+			snapshot.plotId,
+			snapshot.owner,
+			snapshot.runners,
+			snapshot.startClock,
+			snapshot.gateCount,
+			snapshot.runnerSpeedLevel,
+			snapshot.carSpeedMultiplier,
+			snapshot.routeId,
+			snapshot.selectedTrail,
+			rev
+		)
+	else
+		nextLastSent = lastSentRunners or {}
+		for _, runnerId in removedIds do
+			nextLastSent[runnerId] = nil
+		end
+		for _, entry in upserts do
+			nextLastSent[entry.id] = { level = entry.level, phase = entry.phase }
+		end
+
+		self.networker:fireAll("applyRunnerDelta", state.plotId, baseRev, rev, removedIds, upserts, scalars)
+	end
+
+	state.lastSentRunners = nextLastSent
+	state.lastSentScalars = {
+		startClock = snapshot.startClock,
+		runnerSpeedLevel = snapshot.runnerSpeedLevel,
+		carSpeedMultiplier = snapshot.carSpeedMultiplier,
+		gateCount = snapshot.gateCount,
+		routeId = snapshot.routeId,
+		selectedTrail = snapshot.selectedTrail,
+	}
 end
 
 function RunnerService.beginMergeEffect(self: RunnerService, plotId: number)
@@ -357,9 +602,12 @@ function RunnerService.playMergeEffect(self: RunnerService, plotId: number, oper
 	end
 
 	local effectId = state.mergeEffectId
-	self.networker:fireAll("playMergeEffect", plotId, operations)
+	local duration = getMergeEffectDuration(operations)
+	-- The duration travels with the message: the client keeps the source cars
+	-- hidden for exactly as long as the effect runs.
+	self.networker:fireAll("playMergeEffect", plotId, operations, duration)
 
-	task.delay(getMergeEffectDuration(operations), function()
+	task.delay(duration, function()
 		if self.plots[plotId] ~= state or state.mergeEffectId ~= effectId then
 			return
 		end
@@ -379,8 +627,27 @@ function RunnerService.requestState(self: RunnerService, _player: Player): { Run
 	return snapshots
 end
 
-function RunnerService.reportLap(self: RunnerService, player: Player, plotId: number, runnerIndex: number)
-	if typeof(plotId) ~= "number" or typeof(runnerIndex) ~= "number" or runnerIndex % 1 ~= 0 then
+--[=[
+	Answers a client that detected a revision gap with a fresh full snapshot of
+	one plot. Like `requestState` this is unthrottled: it is the recovery path
+	for a lost delta, and a full snapshot is the same payload `requestState`
+	already returns for every plot at once.
+]=]
+function RunnerService.requestPlot(self: RunnerService, _player: Player, plotId: number): RunnerServiceTypes.RunnerPlotSnapshot?
+	if typeof(plotId) ~= "number" or plotId % 1 ~= 0 then
+		return nil
+	end
+
+	local state = self.plots[plotId]
+	if not state then
+		return nil
+	end
+
+	return self:_snapshot(state)
+end
+
+function RunnerService.reportLap(self: RunnerService, player: Player, plotId: number, runnerId: number)
+	if typeof(plotId) ~= "number" or typeof(runnerId) ~= "number" or runnerId % 1 ~= 0 then
 		return
 	end
 
@@ -389,23 +656,28 @@ function RunnerService.reportLap(self: RunnerService, player: Player, plotId: nu
 		return
 	end
 
-	-- roster is mid-rewrite; indices are meaningless until the next broadcast
+	-- roster is mid-rewrite; ids are meaningless until the next broadcast
 	if state.mergeEffectActive then
 		return
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
-	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
+	local entry = RunnerUtils.findRunner(entries, runnerId)
+	if not entry then
+		return
+	end
+
+	local timing = self:_getRunnerTiming(state, entry, profile:getUpgradeLevel("runnerSpeed"))
 	if not timing or timing.travelTime <= 0 then
 		return
 	end
 
 	local now = workspace:GetServerTimeNow()
-	local lapClock = state.lapClocks[runnerIndex]
+	local lapClock = state.lapClocks[runnerId]
 	if not lapClock then
 		-- first report for this runner: anchor now, credit from here on
-		state.lapClocks[runnerIndex] = now
+		state.lapClocks[runnerId] = now
 		return
 	end
 
@@ -415,7 +687,7 @@ function RunnerService.reportLap(self: RunnerService, player: Player, plotId: nu
 	end
 
 	-- advance by whole laps only, so the leftover fraction carries over
-	state.lapClocks[runnerIndex] = lapClock + lapsCompleted * timing.travelTime
+	state.lapClocks[runnerId] = lapClock + lapsCompleted * timing.travelTime
 
 	self:_spendLaps(player, lapsCompleted)
 end
@@ -432,12 +704,12 @@ end
 -- Authoritative gate validation. Recomputes the runner's deterministic
 -- position and only pays if that gate really was crossed just now, at most
 -- once per lap. Exploiters cannot exceed the legitimate income rate.
-function RunnerService.reportGate(self: RunnerService, player: Player, plotId: number, runnerIndex: number, gateId: number)
-	if typeof(plotId) ~= "number" or typeof(runnerIndex) ~= "number" or typeof(gateId) ~= "number" then
+function RunnerService.reportGate(self: RunnerService, player: Player, plotId: number, runnerId: number, gateId: number)
+	if typeof(plotId) ~= "number" or typeof(runnerId) ~= "number" or typeof(gateId) ~= "number" then
 		return
 	end
 
-	if runnerIndex % 1 ~= 0 or gateId % 1 ~= 0 then
+	if runnerId % 1 ~= 0 or gateId % 1 ~= 0 then
 		return
 	end
 
@@ -447,14 +719,24 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 	end
 
 	local profile = ProfileServiceServer.getProfile(player)
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
 
 	local gateCount = profile:getActiveGateCount()
 	if gateId < 1 or gateId > gateCount then
 		return
 	end
 
-	local timing = self:_getRunnerTiming(state, levels, runnerIndex, profile:getUpgradeLevel("runnerSpeed"))
+	-- Addressing by id means a report can only ever credit the car it belongs
+	-- to, even if it arrives while a merge rewrites the roster.
+	local entry = RunnerUtils.findRunner(entries, runnerId)
+	if not entry then
+		return
+	end
+
+	-- Validate against the trajectory the client is actually running: while a
+	-- message is pending, the data may already hold new speeds/levels that no
+	-- client has seen yet.
+	local timing = self:_getClientViewTiming(state, runnerId, entry)
 	if not timing then
 		return
 	end
@@ -466,7 +748,7 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 	end
 
 	local now = workspace:GetServerTimeNow()
-	local progress = ((now - state.startClock) / timing.travelTime + timing.phase) % 1
+	local progress = ((now - timing.startClock) / timing.travelTime + timing.phase) % 1
 	local distance = progress * path.length
 
 	-- distance travelled since passing the gate must be small (just crossed)
@@ -475,14 +757,14 @@ function RunnerService.reportGate(self: RunnerService, player: Player, plotId: n
 		return
 	end
 
-	local awardKey = `{runnerIndex}_{gateId}`
+	local awardKey = `{runnerId}_{gateId}`
 	local lastAward = state.gateAwards[awardKey]
 	if lastAward and now - lastAward < timing.travelTime * LAP_COOLDOWN_RATIO then
 		return
 	end
 	state.gateAwards[awardKey] = now
 
-	local income = RunnerUtils.getRunnerIncomePerLap(levels[runnerIndex])
+	local income = RunnerUtils.getRunnerIncomePerLap(timing.level)
 	local cashBonusLevel = profile:getUpgradeLevel("cashBonus")
 	local route = profile:getRoute()
 	local vipMultiplier = if state.vipOwned then 1.5 else 1
@@ -510,6 +792,8 @@ type RunnerTiming = {
 	speed: number,
 	travelTime: number,
 	phase: number,
+	level: number,
+	startClock: number,
 }
 
 type PlotState = {
@@ -528,6 +812,9 @@ type PlotState = {
 	selectedTrail: number?,
 	trailMultiplier: number,
 	clearGateAwardsOnBroadcast: boolean,
+	rev: number,
+	lastSentRunners: { [number]: { level: number, phase: number } }?,
+	lastSentScalars: RunnerServiceTypes.RunnerPlotScalars?,
 }
 
 type RunnerService = typeof(RunnerService) & {

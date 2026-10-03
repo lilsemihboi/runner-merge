@@ -26,8 +26,10 @@ A central checklist of traps. Each item links to the owning doc for detail.
 
 ## Runner determinism
 
-- Movement is recomputed on both sides from `startClock`, sanitized roster, speed, and path. Any change must keep `RunnerUtils`, `RunnerClient`, `RunnerManager`, `RunnerService`, and `PathData` in agreement — see [`runner-simulation.md`](../systems/runner-simulation.md).
-- `sanitizeLevels` must run identically on both sides; roster order defines phase.
+- Movement is recomputed on both sides from `startClock`, sanitized roster entries, speed, and path. Any change must keep `RunnerUtils`, `RunnerClient`, `RunnerManager`, `RunnerService`, and `PathData` in agreement — see [`runner-simulation.md`](../systems/runner-simulation.md).
+- `sanitizeRunners` must run identically on both sides. Each car's lane comes from its stable `id` and its position from its own `phase` — never from array order or roster size.
+- A runner's `id` is never reused and never changes on merge (the left input survives): a report or award keyed by an old id can only credit the car it belongs to, or nothing.
+- Changing any speed (uniform upgrade/pass, or one car's level) must ship the re-anchored `startClock`/`phase` in the same message as the new speed. Anchors are computed at send time (`_rebaseStartClock`, `_reanchorChangedLevels`) because broadcasts can be delayed by a merge effect — anchoring when the data changes would still jump when the message lands.
 - Don't add server per-frame work; the server intentionally has no `Heartbeat`.
 - Merge effects pause broadcasts and lap reporting; keep effect durations in sync between `MergeEffects.luau` and `RunnerService`.
 
@@ -74,6 +76,7 @@ A central checklist of traps. Each item links to the owning doc for detail.
 - Use `usePx` for sizes; read player data through `GetDataSource`.
 - Roots mount by name; `*.story.luau` is excluded from mounting.
 - `CratesSlice` uses Charm atoms (consume with `VideCharm`), unlike most slices which use Vide sources.
+- Charm deep-freezes atom values **in Studio only** to catch state mutation. `GetDataSource` therefore passes deep copies — never hand Charm a table that DataService still owns, or nested writes like `DataService:set({ "runners", index, "phase" })` fail with "attempt to modify a readonly table" in Studio.
 
 ## Content (place-managed)
 

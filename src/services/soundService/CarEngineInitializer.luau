@@ -12,7 +12,7 @@ return function()
 	const runnersSource = GetDataSource("runners")
 	local isEngineRunning = false
 
-	const function sync(runners: { number })
+	const function sync(runners: { any })
 		const hasCar = #runners > 0
 
 		-- Merges rewrite the array without changing whether a car exists, so only act on transitions.

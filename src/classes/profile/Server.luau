@@ -20,6 +20,7 @@ local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local DataService = require(ReplicatedStorage.Packages.DataService).server
 local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService.RouteServiceUtils)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 
 function Profile._waitForData(self: Profile): boolean
 	return DataService:waitForData(self.player) ~= nil
@@ -73,12 +74,12 @@ function Profile.getRebirths(self: Profile): number
 end
 
 --[=[
-	Retrieves the list of runner IDs owned by the player.
-	Runners are entities/characters that the player controls.
+	Retrieves the list of runners owned by the player.
+	Each entry carries its own stable id, level and position along the track.
 	
-	@return { number? } -- Array of runner numbers (may contain nil values)
+	@return { RunnerUtils.RunnerEntry? } -- Array of runner entries (may contain nil values)
 ]=]
-function Profile.getRunners(self: Profile): { number? }
+function Profile.getRunners(self: Profile): { RunnerUtils.RunnerEntry? }
 	return DataService:get(self.player, "runners")
 end
 
@@ -313,8 +314,40 @@ function Profile.getSelectedTrail(self: Profile): number?
 end
 
 --[=[
+	Claims the next runner id for this player.
+
+	Ids are never reused, so a car keeps the same identity (and therefore the
+	same lane) across purchases, merges and array rewrites.
+
+	@return number -- The freshly allocated runner id
+]=]
+function Profile.allocateRunnerId(self: Profile): number
+	return DataService:update(self.player, { "nextRunnerId" }, function(current)
+		return (current :: number) + 1
+	end)
+end
+
+--[=[
+	Builds the data entry for a brand-new runner: a fresh id plus its own
+	position, taken from the widest gap so no existing runner has to move.
+
+	@param runnerLevel number -- Runner Level
+	@return RunnerUtils.RunnerEntry -- The entry ready to be inserted
+]=]
+function Profile.createRunnerEntry(self: Profile, runnerLevel: number): RunnerUtils.RunnerEntry
+	local entries = RunnerUtils.sanitizeRunners(self:getRunners())
+
+	return {
+		id = self:allocateRunnerId(),
+		level = runnerLevel,
+		phase = RunnerUtils.nextPhase(entries),
+	}
+end
+
+--[=[
 	Adds a runner to the player's collection.
-	Assigns a new runner ID to the player's runners array.
+	Each new runner gets its own id and its own slot on the track, so existing
+	runners keep running exactly where they already were.
 	
 	@param runnerLevel number -- Runner Level
 	@param amount number -- Amount of runners
@@ -336,7 +369,7 @@ function Profile.giveRunner(self: Profile, runnerLevel: number, amount: number?)
 	end
 
 	for _ = 1, amount :: number, 1 do
-		DataService:arrayInsert(self.player, "runners", runnerLevel)
+		DataService:arrayInsert(self.player, "runners", self:createRunnerEntry(runnerLevel))
 	end
 
 	AnalyticsServiceServer:sendPlayerMarker(self.player, Markers.runnerPurchased, {
@@ -377,7 +410,7 @@ function Profile.giveExclusiveRunner(self: Profile, carId: number): boolean
 		DataService:set(self.player, { "index", tostring(carId) }, true)
 	end
 
-	DataService:arrayInsert(self.player, "runners", carId)
+	DataService:arrayInsert(self.player, "runners", self:createRunnerEntry(carId))
 
 	return true
 end

@@ -13,8 +13,8 @@ sequenceDiagram
 
     RM->>RC: update(now) every Heartbeat
     RC-->>RM: crossedGates, lapsCompleted
-    RM->>RS: fire("reportGate", plotId, runnerIndex, gateId)
-    RM->>RS: fire("reportLap", plotId, runnerIndex) (when laps > 0)
+    RM->>RS: fire("reportGate", plotId, runnerId, gateId)
+    RM->>RS: fire("reportLap", plotId, runnerId) (when laps > 0)
     RS->>RS: recompute deterministic progress, validate timing + cooldown
     RS->>P: giveCash(income)
 ```
@@ -22,8 +22,8 @@ sequenceDiagram
 1. `RunnerManager.update` (`src/classes/runner/RunnerManager.luau`) runs on one client `Heartbeat`. It calls `car:update(now)` for every car on every **active** plot.
 2. `RunnerClient.update` (`src/classes/runner/Client.luau`) moves the model and returns gate ids crossed since the previous frame and laps completed (owner plots only).
 3. For each gate the client fires `reportGate`; for each completed lap it fires `reportLap`. Display effects (floating `+$` billboard, `moneyPickup` sound) are client-local and purely cosmetic.
-4. `RunnerService.reportGate` (`src/services/runnerService/Server.luau`) recomputes the runner's position from `workspace:GetServerTimeNow()` and pays only if the crossing is inside `GATE_TOLERANCE_SECONDS = 2` and the `(runner, gate)` pair has not paid within `LAP_COOLDOWN_RATIO = 0.85` of a lap.
-5. `reportLap` anchors lap accounting per runner and decrements `lapsLeftToAcquire` by whole laps only.
+4. `RunnerService.reportGate` (`src/services/runnerService/Server.luau`) recomputes the runner's position from `workspace:GetServerTimeNow()` and pays only if the crossing is inside `GATE_TOLERANCE_SECONDS = 2` and the `(runnerId, gateId)` pair has not paid within `LAP_COOLDOWN_RATIO = 0.85` of a lap.
+5. `reportLap` anchors lap accounting per runner id and decrements `lapsLeftToAcquire` by whole laps only.
 
 Server payout formula (single source of truth — keep client displays in sync):
 
@@ -54,21 +54,21 @@ sequenceDiagram
     participant RC as RunnerManager (client)
 
     PC->>PS: fire("merge")
-    PS->>PS: pair equal levels, cascade
+    PS->>PS: pair equal levels, cascade; left input keeps its id, phase re-anchored
     PS->>DS: rewrite runners array + index levels
     PS->>RS: beginMergeEffect(plotId)
     PS->>RS: playMergeEffect(plotId, operations)
     RS->>RC: fireAll("playMergeEffect", plotId, operations)
     Note over RS,RC: broadcasts paused until effect duration ends
-    RS->>RC: fireAll("setRunners", …) after the effect
-    RC->>RC: server roster replaces local car pool
+    RS->>RC: fireAll("applyRunnerDelta", …) after the effect
+    RC->>RC: remove consumed ids / upsert result entries
 ```
 
 - Merge logic lives in `Plot.merge` (`src/classes/plot/Server.luau`): equal levels pair into `level + 1`, repeatedly until stable. Exclusive cars (ids ≥ 1000) never merge.
 - Auto-merge triggers when a `runners` array insert brings the count to **20** (`Plot._watchRunners`).
 - Merge rewrites the whole `runners` array via `DataService:arrayRemove`/`arrayInsert`. `_isApplyingRunnerMerge` suppresses the auto-merge watcher while this happens.
-- `RunnerServiceServer:beginMergeEffect` pauses snapshot broadcasts; `playMergeEffect` broadcasts the operation list and resumes with a fresh `setRunners` after the computed animation duration.
-- The client hears the same broadcast and runs `MergeEffects.play`; the server roster broadcast then reconciles the car pool. Analytics `runnerMerged` is sent once per cascade.
+- `RunnerServiceServer:beginMergeEffect` pauses snapshot broadcasts; `playMergeEffect` broadcasts the operation list and resumes after the computed animation duration. The resume message is a diff (consumed ids removed, result entries upserted), not a full roster.
+- The client hears the same broadcast and runs `MergeEffects.play` (sources resolved by `runnerId`); the delta then reconciles the car pool. Analytics `runnerMerged` is sent once per cascade.
 
 ## Laps → crate → trail
 

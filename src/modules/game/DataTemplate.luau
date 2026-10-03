@@ -4,6 +4,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Blocks = require(ReplicatedStorage.Shared.Modules.Items.Blocks)
+-- Type-only: the runners array holds one entry per owned car.
+local _RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 
 export type DataSchema = {
 	cash: number,
@@ -18,8 +20,9 @@ export type DataSchema = {
 	rebirths: number,
 
 	runnerPurchases: number,
-	runners: { number },
+	runners: { _RunnerUtils.RunnerEntry },
 	runnerSpawnLevel: number,
+	nextRunnerId: number,
 
 	index: { number },
 	inventory: { number },
@@ -73,6 +76,7 @@ return {
 	runnerPurchases = 0,
 	runners = {},
 	runnerSpawnLevel = 1,
+	nextRunnerId = 0,
 
 	index = {},
 	inventory = {},

@@ -22,7 +22,7 @@ Every service under `src/services/`, its Networker contract, and the player data
 | `rebirthService` | `Server`, `Client`, `Utils` | `RebirthService` | `RebirthService` | fetch `rebirth` | — | `cash`, `upgrades.*`, `extraGates`, `rebirths`, `cashMultiplier`, `runnerSpawnLevel` | ConfigService A/B flag; route watcher reacts to rebirths |
 | `rewardedAdService` | `Server`, `Client` | `RewardedAdService` | `RewardedAdService` | fetch `playAd`, `hasClaimedRewardThisSession` | — | — | AdService + `adHeartCrate` product; one claim per session |
 | `routeService` | `Server`, `Client`, `Utils`, `GetBestRoute` | `RouteService` | `RouteService` | fetch `selectRoute` | — | `selectedRoute`, `rebirths` signal | Plot (runway/gates), RunnerService reset |
-| `runnerService` | `Server`, `Types` (client half: `classes/runner/RunnerManager`) | `RunnerService` | `RunnerService` (registered by `RunnerManager`) | fetch `requestState`; fire `reportGate`, `reportLap` | fireAll `setRunners`, `removePlot`, `playMergeEffect`; set `vipMultiplier`, `doubleCashMultiplier` | reads runners/gates/route/trail/multipliers; writes `lapsLeftToAcquire` | Friend, Monetization, Profile; determinism contract |
+| `runnerService` | `Server`, `Types` (client half: `classes/runner/RunnerManager`) | `RunnerService` | `RunnerService` (registered by `RunnerManager`) | fetch `requestState`, `requestPlot`; fire `reportGate`, `reportLap` | fireAll `setRunners`, `applyRunnerDelta`, `removePlot`, `playMergeEffect`; set `vipMultiplier`, `doubleCashMultiplier` | reads runners/gates/route/trail/multipliers; writes `lapsLeftToAcquire` | Friend, Monetization, Profile; determinism contract; diff-based broadcasts with revision-chained deltas |
 | `settingsService` | `Server`, `Client`, `Utils`, `SettingsInitializer`, `Hooks/useSetting` | `SettingsService` | `SettingsService` | fire `set` | — | `settings.*` (sounds/music 0–100, trails/moneyIndicator boolean) | Validators in Utils |
 | `soundService` | `Server`, `Client`, `CarEngineInitializer` | **`SFXService`** | **`SFXService`** | — | fire/fireAll `play` | — | Name differs from folder; client refuses to restart looped sounds |
 | `stockService` | `Server`, `Client`, `Utils`, `StockSlice`, `Hooks/useStock` | `StockService` | `StockService` | fetch `getStocks` | fireAll `stockChanged` | — | DataStore `(prefix)Stock_v1` key `GlobalStock`; consumed by monetization prompts |
@@ -35,7 +35,7 @@ Every service under `src/services/`, its Networker contract, and the player data
 | --- | --- | --- | --- |
 | `src/classes/plot/Server.luau` | `plot_{player.UserId}` | `merge`, `upgrade`, `addRunner`, `teleportToBase`, `giveGroupReward`, `upgradeGatesWithPass` | `addRecipient(player)`; every method asserts ownership; `addRunner` bans invalid amounts |
 | `src/classes/plot/Client.luau` | `plot_{player.UserId}` | same (fetch/fire) | Destroyed with the plot |
-| `src/classes/runner/RunnerManager.luau` | `RunnerService` | `requestState`, `reportGate`, `reportLap` | Client half of `runnerService` |
+| `src/classes/runner/RunnerManager.luau` | `RunnerService` | `requestState`, `requestPlot`, `reportGate`, `reportLap` | Client half of `runnerService` |
 
 No other class creates a Networker; `GateServer`, `ProfileServer`, `RunnerClient`, `PathData`, `MergeEffects`, `RunnerUtils` are plain modules.
 
@@ -64,7 +64,7 @@ Persisted but written dynamically — never rename:
 
 - **Name mismatches:** `soundService → "SFXService"`, `generalNotificationsService → "UtilitiesService"`, `offlineEarningsService → "OfflineEarnings"`.
 - **Per-player fan-out:** `plot_{UserId}` (owner only), `monetizationService._receivedGift`, `generalNotificationsService.displayNotification`, `notificationService.serverNotification`, `plotService.initPlot`.
-- **Broadcast:** `runnerService.setRunners/removePlot/playMergeEffect`, `stockService.stockChanged`, `leaderboardService.leaderboardUpdated`, `blockService.announceDrop`.
+- **Broadcast:** `runnerService.setRunners/applyRunnerDelta/removePlot/playMergeEffect`, `stockService.stockChanged`, `leaderboardService.leaderboardUpdated`, `blockService.announceDrop`.
 - **Non-standard transport:** `titleService` uses a player attribute; `profileService` has no networking at all.
 - **Input hardening:** `runnerService` and `plotService`/`Plot` validate everything; `analyticsService` throttles; `settingsService` asserts valid paths; `leaderboardService` asserts DataStore success.
 

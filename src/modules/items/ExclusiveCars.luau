@@ -4,12 +4,12 @@ local _Rarities = require(ReplicatedStorage.Shared.Modules.Items.Rarities)
 
 --[=[
 	Exclusive cars are premium runners that cannot be obtained by merging and
-	cannot themselves be merged. They live in a reserved id band so that the
-	`runners` data array stays a plain `{ number }`, which keeps the
-	client/server deterministic phase contract in `RunnerUtils.sanitizeLevels`
+	cannot themselves be merged. Their level lives in a reserved high band, so
+	an exclusive can never collide with a merged regular car's level, which
+	keeps the client/server determinism contract in `RunnerUtils.sanitizeRunners`
 	intact.
 
-	Ids must be >= `ID_BASE`. Regular cars occupy 1..40 and grow upward over
+	Levels must be >= `ID_BASE`. Regular cars occupy 1..40 and grow upward over
 	time, so the gap between 40 and `ID_BASE` is deliberate headroom.
 
 	`incomePerLap` and `speed` are required rather than derived. Exclusive ids are

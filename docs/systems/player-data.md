@@ -46,7 +46,8 @@ Paths are either a string for top-level fields or an array for nested fields. Ke
 | `isGroupRewardClaimed` | `false` | `Plot.giveGroupReward` |
 | `rebirths` | `0` | `Profile.giveRebirth` |
 | `runnerPurchases` | `0` | `Profile.giveRunner` (+amount); price index for batch pricing |
-| `runners` | `{}` | `Profile.giveRunner`/`giveExclusiveRunner`; rewritten by merges |
+| `runners` | `{}` | One `{ id, level, phase }` entry per owned car; `Profile.giveRunner`/`giveExclusiveRunner` append, merges rewrite. Migrated on load from the old bare-level array (`id` = position in the compacted array, `phase = (position − 1) / count`; ids offset above existing entries in a mixed save) |
+| `nextRunnerId` | `0` | Monotonic id counter (`Profile.allocateRunnerId`); ids are never reused |
 | `runnerSpawnLevel` | `1` | `Profile.giveSpawnLevel` (even rebirths ≤ 80) |
 | `index` | `{}` | `index[tostring(level)] = true` on first unlock (regular and exclusive ids) |
 | `inventory` | `{}` | `Profile.giveTrail` (array; duplicates are copies) |
@@ -80,7 +81,7 @@ Mutators: `giveCash`, `addSpin`, `resetCash`, `resetUpgrades`, `giveRebirth`, `s
 Notes:
 
 - `giveCash` updates `stats.totalCashEarned` only for positive amounts.
-- `giveRunner` increments `runnerPurchases`, marks `index`, and inserts spawn-level runners; `giveExclusiveRunner` deliberately does **not** touch `runnerPurchases`.
+- `giveRunner` increments `runnerPurchases`, marks `index`, and inserts spawn-level entries (`createRunnerEntry`: fresh `nextRunnerId`, phase at the widest gap); `giveExclusiveRunner` deliberately does **not** touch `runnerPurchases`.
 - `setCrateInQueue` writes `lapsLeftToAcquire` **before** `luckyBlockInQueue` so the client never briefly pairs a new crate with the old spent lap count.
 - `getActiveGateCount` only counts extra gates once cash gates are maxed; see [`economy.md`](economy.md).
 - New mutators should follow the same shape: validate → `DataService` write → keep derived state (multipliers, index) consistent.

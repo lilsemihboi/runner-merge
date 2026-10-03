@@ -76,6 +76,7 @@ A central checklist of traps. Each item links to the owning doc for detail.
 - Use `usePx` for sizes; read player data through `GetDataSource`.
 - Roots mount by name; `*.story.luau` is excluded from mounting.
 - `CratesSlice` uses Charm atoms (consume with `VideCharm`), unlike most slices which use Vide sources.
+- Charm deep-freezes atom values **in Studio only** to catch state mutation. `GetDataSource` therefore passes deep copies — never hand Charm a table that DataService still owns, or nested writes like `DataService:set({ "runners", index, "phase" })` fail with "attempt to modify a readonly table" in Studio.
 
 ## Content (place-managed)
 

@@ -7,11 +7,18 @@
 	simulates every car locally inside ONE Heartbeat loop.
 
 	Server -> client (Networker dispatch):
-		setRunners(plotId, owner, levels, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId, selectedTrail)
+		setRunners(plotId, owner, runners, startClock, gateCount, runnerSpeedLevel, carSpeedMultiplier, routeId, selectedTrail, rev)
+		applyRunnerDelta(plotId, baseRev, rev, removedIds, upserts, scalars)
 		removePlot(plotId)
 	Client -> server:
 		fetch("requestState") -- late-join sync
-		fire("reportGate", plotId, runnerIndex, gateId) -- owner gate crossings
+		fetch("requestPlot", plotId) -- recovery when a delta revision gap is detected
+		fire("reportGate", plotId, runnerId, gateId) -- owner gate crossings
+		fire("reportLap", plotId, runnerId)
+
+	Cars are addressed by their stable runner id, never by array slot: the
+	roster is rewritten on every merge, and only the cars actually involved
+	may appear, disappear or change level.
 
 	Task 2: updateReplication() culls other players' plots by bounds. The
 	local player's own plot is ALWAYS simulated; other plots only while the
@@ -45,11 +52,26 @@ local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 
 local BOUNDS_CHECK_INTERVAL = 0.2
 local PATH_RETRY_INTERVAL = 1
+local RESYNC_RETRY_INTERVAL = 1
 local INCOME_INDICATOR_TWEEN_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
 
 local function getTrailMultiplier(trailId: number?): number
 	local trail = if trailId then Trails[trailId] else nil
 	return if trail then trail.trailMultiplier else 1
+end
+
+-- One received entry, normalized into a fresh table so later roster writes
+-- can never mutate a value some car already uses.
+local function toRunnerEntry(entry: any): RunnerUtils.RunnerEntry?
+	if typeof(entry) ~= "table" or typeof(entry.id) ~= "number" or typeof(entry.level) ~= "number" or typeof(entry.phase) ~= "number" then
+		return nil
+	end
+
+	return { id = entry.id, level = entry.level, phase = entry.phase % 1 }
+end
+
+local function normalizeRev(value: any): number?
+	return if typeof(value) == "number" and value % 1 == 0 then value else nil
 end
 
 function RunnerManager.new(): RunnerManager
@@ -58,6 +80,9 @@ function RunnerManager.new(): RunnerManager
 	local self = setmetatable({
 		runners = {},
 		plots = {},
+		resyncInFlight = {},
+		plotGeneration = {},
+		pendingRev = {},
 		boundsCooldown = 0,
 		multiplier = 1,
 		janitor = Janitor.new(),
@@ -99,25 +124,47 @@ function RunnerManager.new(): RunnerManager
 	end))
 
 	task.spawn(function()
+		-- A fetch response travels on a different channel than live broadcasts,
+		-- so remember which plot registrations were already removed when the
+		-- request left; a response for one of them is stale even if it arrives
+		-- after the removal and must not resurrect the plot.
+		local generationAtRequest = table.clone(self.plotGeneration)
+
 		local snapshots: { RunnerServiceTypes.RunnerPlotSnapshot } = self.networker:fetch("requestState")
 		if typeof(snapshots) ~= "table" then
 			return
 		end
 
 		for _, snapshot in snapshots do
-			-- live broadcasts may already have arrived while fetching; they win
-			if not self.plots[snapshot.plotId] then
-				self:setRunners(
-					snapshot.plotId,
-					snapshot.owner,
-					snapshot.levels,
-					snapshot.startClock,
-					snapshot.gateCount,
-					snapshot.runnerSpeedLevel,
-					snapshot.carSpeedMultiplier,
-					snapshot.routeId,
-					snapshot.selectedTrail
-				)
+			if (generationAtRequest[snapshot.plotId] or 0) ~= (self.plotGeneration[snapshot.plotId] or 0) then
+				continue
+			end
+
+			-- live broadcasts may already have arrived while fetching; the
+			-- revision decides which state is newer, in either direction
+			local state = self.plots[snapshot.plotId]
+			if state and typeof(snapshot.rev) == "number" and snapshot.rev <= state.rev then
+				continue
+			end
+
+			self:setRunners(
+				snapshot.plotId,
+				snapshot.owner,
+				snapshot.runners,
+				snapshot.startClock,
+				snapshot.gateCount,
+				snapshot.runnerSpeedLevel,
+				snapshot.carSpeedMultiplier,
+				snapshot.routeId,
+				snapshot.selectedTrail,
+				snapshot.rev
+			)
+
+			-- A delta received while this request was in flight may be newer
+			-- than the snapshot; ask again while we are still behind it.
+			local current = self.plots[snapshot.plotId]
+			if current and current.rev < (self.pendingRev[snapshot.plotId] or 0) then
+				self:_requestPlotResync(snapshot.plotId)
 			end
 		end
 	end)
@@ -143,25 +190,33 @@ function RunnerManager.stop(self: RunnerManager)
 end
 
 -- Server "start" signal: full roster snapshot for one plot. Reconciles the
--- RunnerClient pool (create / updateLevel / destroy) instead of rebuilding.
+-- RunnerClient pool by id (create / updateLevel / configure / destroy)
+-- instead of rebuilding it, so a car that is still on the roster keeps
+-- running exactly where it already was.
 function RunnerManager.setRunners(
 	self: RunnerManager,
 	plotId: number,
 	owner: Player,
-	levels: { number },
+	runners: { RunnerUtils.RunnerEntry },
 	startClock: number,
 	gateCount: number,
 	runnerSpeedLevel: number,
 	carSpeedMultiplier: number,
 	routeId: number,
-	selectedTrail: number?
+	selectedTrail: number?,
+	rev: number
 ): ()
 	local state = self.plots[plotId]
+	if state and typeof(rev) == "number" and rev <= state.rev then
+		-- an older snapshot must never overwrite a newer applied delta
+		return
+	end
+
 	if not state then
 		state = {
 			plotId = plotId,
 			owner = owner,
-			levels = levels,
+			runners = {},
 			startClock = startClock,
 			gateCount = gateCount,
 			runnerSpeedLevel = runnerSpeedLevel,
@@ -169,73 +224,204 @@ function RunnerManager.setRunners(
 			active = owner == Players.LocalPlayer,
 			routeId = routeId,
 			selectedTrail = selectedTrail,
+			rev = 0,
 		}
 		self.plots[plotId] = state
 		self.runners[plotId] = {}
 	else
 		state.owner = owner
-		state.levels = levels
 		state.startClock = startClock
-		state.carSpeedMultiplier = carSpeedMultiplier
 		state.gateCount = gateCount
 		state.runnerSpeedLevel = runnerSpeedLevel
+		state.carSpeedMultiplier = carSpeedMultiplier
 		state.routeId = routeId
 		state.selectedTrail = selectedTrail
+		table.clear(state.runners)
 	end
 
-	local laneCount = PathData.getLaneCount(plotId)
-	if laneCount <= 0 then
-		-- plot geometrisi henüz replicate olmamış olabilir
-		self:_schedulePathRetry(state)
+	if typeof(runners) == "table" then
+		for _, entry in ipairs(runners) do
+			local normalized = toRunnerEntry(entry)
+			if normalized then
+				state.runners[normalized.id] = normalized
+			end
+		end
+	end
+
+	-- A full snapshot is authoritative: whatever it contains may be shown.
+	state.mergeHidden = nil
+	state.mergeHiddenUntil = nil
+
+	self:_reconcileCars(state)
+
+	-- Advance the revision only once the roster has actually been applied: if
+	-- anything above errors, the next delta's `baseRev` will not match and the
+	-- client recovers with a fresh snapshot instead of silently staying stale.
+	local newRev = normalizeRev(rev)
+	if newRev then
+		state.rev = newRev
+	end
+	if newRev and newRev > (self.pendingRev[plotId] or 0) then
+		self.pendingRev[plotId] = newRev
+	end
+end
+
+--[=[
+	Server "diff" signal: only the cars/scalars that changed since `baseRev`.
+
+	Revisions are chained, so a client whose state is not at `baseRev` knows it
+	missed a message and asks for a full snapshot instead of silently drifting
+	forever.
+]=]
+function RunnerManager.applyRunnerDelta(
+	self: RunnerManager,
+	plotId: number,
+	baseRev: number,
+	rev: number,
+	removedIds: { number },
+	upserts: { RunnerUtils.RunnerEntry },
+	scalars: RunnerServiceTypes.RunnerPlotScalars?
+): ()
+	local normalizedBase = normalizeRev(baseRev)
+	local normalizedRev = normalizeRev(rev)
+	if typeof(plotId) ~= "number" or normalizedBase == nil or normalizedRev == nil then
+		return
+	end
+	baseRev = normalizedBase
+	rev = normalizedRev
+
+	-- Remember the highest revision ever seen for this plot: a full snapshot
+	-- generated before this delta must not satisfy a gap it did not cover.
+	if rev > (self.pendingRev[plotId] or 0) then
+		self.pendingRev[plotId] = rev
+	end
+
+	local state = self.plots[plotId]
+	if not state then
+		self:_requestPlotResync(plotId)
 		return
 	end
 
-	local isOwner = owner == Players.LocalPlayer
-	local count = #levels
-	local cars = self.runners[plotId]
-	local trailsVisible = self.trailsVisibleAtom() ~= false
+	if rev <= state.rev then
+		return
+	end
 
-	for index, car in cars do
-		if index > count then
-			car:destroy()
-			cars[index] = nil
+	if baseRev ~= state.rev then
+		self:_requestPlotResync(plotId)
+		return
+	end
+
+	-- A delta is only ever sent while no merge effect is active server-side:
+	-- it is the authoritative "effect is over" signal, so hidden sources can
+	-- always be shown again.
+	state.mergeHidden = nil
+	state.mergeHiddenUntil = nil
+
+	if typeof(removedIds) == "table" then
+		for _, runnerId in removedIds do
+			if typeof(runnerId) == "number" then
+				state.runners[runnerId] = nil
+			end
 		end
 	end
 
-	for index = 1, count do
-		local phase = (index - 1) / count
-		local lane = RunnerUtils.getRunnerLane(plotId, index, laneCount)
-		local path = PathData.get(plotId, lane)
-		if not path or path.length <= 0 then
-			continue
-		end
-
-		local car = cars[index]
-
-		if car then
-			car.isOwner = isOwner
-			car:updateLevel(levels[index])
-			car:setTrailsVisible(trailsVisible)
-			car:configure(startClock, phase, gateCount, runnerSpeedLevel, carSpeedMultiplier, path, selectedTrail)
-			car:setVisible(true)
-		else
-			cars[index] = RunnerClient.new({
-				plotId = plotId,
-				index = index,
-				level = levels[index],
-				path = path,
-				startClock = startClock,
-				phase = phase,
-				gateCount = gateCount,
-				runnerSpeedLevel = runnerSpeedLevel,
-				isOwner = isOwner,
-				active = state.active,
-				carSpeedMultiplier = carSpeedMultiplier,
-				selectedTrail = selectedTrail,
-				trailsVisible = trailsVisible,
-			})
+	if typeof(upserts) == "table" then
+		for _, entry in upserts do
+			local normalized = toRunnerEntry(entry)
+			if normalized then
+				state.runners[normalized.id] = normalized
+			end
 		end
 	end
+
+	if typeof(scalars) == "table" then
+		if typeof(scalars.startClock) == "number" then
+			state.startClock = scalars.startClock
+		end
+		if typeof(scalars.runnerSpeedLevel) == "number" then
+			state.runnerSpeedLevel = scalars.runnerSpeedLevel
+		end
+		if typeof(scalars.carSpeedMultiplier) == "number" then
+			state.carSpeedMultiplier = scalars.carSpeedMultiplier
+		end
+		if typeof(scalars.gateCount) == "number" then
+			state.gateCount = scalars.gateCount
+		end
+		if typeof(scalars.routeId) == "number" then
+			state.routeId = scalars.routeId
+		end
+		if scalars.selectedTrailChanged == true then
+			state.selectedTrail = scalars.selectedTrail
+		end
+	end
+
+	self:_reconcileCars(state)
+
+	-- Advance only after a successful apply; a mid-apply error leaves the old
+	-- revision so the next message is detected as a gap and triggers a resync.
+	state.rev = rev
+end
+
+--[=[
+	Asks the server for a fresh full snapshot of one plot. Used when a delta
+	arrives for an unknown plot or when a revision gap is detected, so a single
+	missed message can never permanently desync a client.
+]=]
+function RunnerManager._requestPlotResync(self: RunnerManager, plotId: number): ()
+	if self.resyncInFlight[plotId] then
+		return
+	end
+	self.resyncInFlight[plotId] = true
+
+	local generation = self.plotGeneration[plotId] or 0
+
+	task.spawn(function()
+		local ok, snapshot = pcall(function()
+			return self.networker:fetch("requestPlot", plotId)
+		end)
+
+		self.resyncInFlight[plotId] = nil
+
+		-- the plot may have been removed while the response was in flight
+		if (self.plotGeneration[plotId] or 0) ~= generation then
+			return
+		end
+
+		if ok and typeof(snapshot) == "table" then
+			self:setRunners(
+				snapshot.plotId,
+				snapshot.owner,
+				snapshot.runners,
+				snapshot.startClock,
+				snapshot.gateCount,
+				snapshot.runnerSpeedLevel,
+				snapshot.carSpeedMultiplier,
+				snapshot.routeId,
+				snapshot.selectedTrail,
+				snapshot.rev
+			)
+
+			-- A delta seen while this fetch was in flight may be newer than the
+			-- snapshot the server generated for us; ask again while we are
+			-- still behind the newest revision we know about.
+			local current = self.plots[plotId]
+			if current and current.rev < (self.pendingRev[plotId] or 0) then
+				self:_requestPlotResync(plotId)
+			end
+			return
+		end
+
+		local state = self.plots[plotId]
+		if not state then
+			return
+		end
+
+		task.delay(RESYNC_RETRY_INTERVAL, function()
+			if self.plots[plotId] == state and (self.plotGeneration[plotId] or 0) == generation then
+				self:_requestPlotResync(plotId)
+			end
+		end)
+	end)
 end
 
 function RunnerManager.removePlot(self: RunnerManager, plotId: number): ()
@@ -248,9 +434,92 @@ function RunnerManager.removePlot(self: RunnerManager, plotId: number): ()
 
 	self.runners[plotId] = nil
 	self.plots[plotId] = nil
+	self.resyncInFlight[plotId] = nil
+	self.pendingRev[plotId] = nil
+	self.plotGeneration[plotId] = (self.plotGeneration[plotId] or 0) + 1
 end
 
-function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, operations: { RunnerServiceTypes.MergeOperation }): ()
+-- Creates / updates / destroys cars so the pool matches `state.runners`
+-- exactly. Lane, phase and level all come from the car's own entry, so a
+-- reconcile that changes nothing never moves anything.
+function RunnerManager._reconcileCars(self: RunnerManager, state: PlotState): ()
+	local plotId = state.plotId
+	local laneCount = PathData.getLaneCount(plotId)
+	if laneCount <= 0 then
+		-- plot geometrisi henüz replicate olmamış olabilir
+		self:_schedulePathRetry(state)
+		return
+	end
+
+	local isOwner = state.owner == Players.LocalPlayer
+	local cars = self.runners[plotId]
+	if not cars then
+		cars = {}
+		self.runners[plotId] = cars
+	end
+
+	local trailsVisible = self.trailsVisibleAtom() ~= false
+	local hidden = state.mergeHidden
+	if hidden and workspace:GetServerTimeNow() >= (state.mergeHiddenUntil or 0) then
+		-- The effect is over even if no message arrived (e.g. the effect ran
+		-- while this plot was out of bounds): show the cars again.
+		state.mergeHidden = nil
+		state.mergeHiddenUntil = nil
+		hidden = nil
+	end
+
+	for runnerId, car in cars do
+		if not state.runners[runnerId] then
+			car:destroy()
+			cars[runnerId] = nil
+		end
+	end
+
+	for runnerId, entry in state.runners do
+		local lane = RunnerUtils.getRunnerLane(plotId, runnerId, laneCount)
+		local path = PathData.get(plotId, lane)
+		if not path or path.length <= 0 then
+			continue
+		end
+
+		local shouldShow = hidden == nil or hidden[runnerId] ~= true
+		local car = cars[runnerId]
+
+		if car then
+			car.isOwner = isOwner
+			car:setTrailsVisible(trailsVisible)
+			-- configure before updateLevel: the new phase/clock are applied
+			-- first, so a level change creates its replacement model at the
+			-- final position instead of the pre-change one.
+			car:configure(state.startClock, entry.phase, state.gateCount, state.runnerSpeedLevel, state.carSpeedMultiplier, path, state.selectedTrail)
+			car:updateLevel(entry.level)
+			car:setVisible(shouldShow)
+		else
+			local newCar = RunnerClient.new({
+				plotId = plotId,
+				runnerId = runnerId,
+				level = entry.level,
+				path = path,
+				startClock = state.startClock,
+				phase = entry.phase,
+				gateCount = state.gateCount,
+				runnerSpeedLevel = state.runnerSpeedLevel,
+				isOwner = isOwner,
+				active = state.active,
+				carSpeedMultiplier = state.carSpeedMultiplier,
+				selectedTrail = state.selectedTrail,
+				trailsVisible = trailsVisible,
+			})
+			cars[runnerId] = newCar
+
+			if not shouldShow then
+				newCar:setVisible(false)
+			end
+		end
+	end
+end
+
+function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, operations: { RunnerServiceTypes.MergeOperation }, duration: number?): ()
 	local state = self.plots[plotId]
 	if not state or not state.active or #operations == 0 then
 		return
@@ -261,22 +530,37 @@ function RunnerManager.playMergeEffect(self: RunnerManager, plotId: number, oper
 	if cars then
 		for _, operation in ipairs(operations) do
 			for _, source in { operation.leftSource, operation.rightSource } do
-				local runnerIndex = source.runnerIndex
-				if runnerIndex and not sourceCFrames[runnerIndex] then
-					local runner = cars[runnerIndex]
+				local runnerId = source.runnerId
+				if runnerId and not sourceCFrames[runnerId] then
+					local runner = cars[runnerId]
 					if runner and runner.model then
-						sourceCFrames[runnerIndex] = runner.model:GetPivot()
+						sourceCFrames[runnerId] = runner.model:GetPivot()
 					end
 				end
 			end
 		end
 
-		for runnerIndex in sourceCFrames do
-			local runner = cars[runnerIndex]
+		for runnerId in sourceCFrames do
+			local runner = cars[runnerId]
 			if runner then
 				runner:setVisible(false)
 			end
 		end
+	end
+
+	-- While the effect runs, reconciles must not re-show the source cars (a
+	-- resync snapshot or a path retry can land mid-animation). Expiry is
+	-- timestamp-based and authoritative messages (delta/snapshot) also clear
+	-- it, so a car can never stay hidden because a timer raced a message.
+	state.mergeHidden = state.mergeHidden or {}
+	for runnerId in sourceCFrames do
+		state.mergeHidden[runnerId] = true
+	end
+
+	local effectDuration = if typeof(duration) == "number" and duration > 0 then duration else 0
+	local hiddenUntil = workspace:GetServerTimeNow() + effectDuration
+	if hiddenUntil > (state.mergeHiddenUntil or 0) then
+		state.mergeHiddenUntil = hiddenUntil
 	end
 
 	MergeEffects.play(plotId, operations, sourceCFrames)
@@ -294,17 +578,7 @@ function RunnerManager._schedulePathRetry(self: RunnerManager, state: PlotState)
 			return
 		end
 
-		self:setRunners(
-			state.plotId,
-			state.owner,
-			state.levels,
-			state.startClock,
-			state.gateCount,
-			state.runnerSpeedLevel,
-			state.carSpeedMultiplier,
-			state.routeId,
-			state.selectedTrail
-		)
+		self:_reconcileCars(state)
 	end)
 end
 
@@ -487,7 +761,7 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 			continue
 		end
 
-		for index, car in cars do
+		for _, car in cars do
 			local crossedGates, lapsCompleted = car:update(now)
 			if crossedGates then
 				for _, gateId in crossedGates do
@@ -495,12 +769,12 @@ function RunnerManager.update(self: RunnerManager, dt: number): ()
 						self:_showIncomeIndicator(plotId, gateId, car.incomePerLap, state.routeId)
 					end
 					SoundServiceClient:play("moneyPickup")
-					self.networker:fire("reportGate", plotId, index, gateId)
+					self.networker:fire("reportGate", plotId, car.runnerId, gateId)
 				end
 			end
 
 			if lapsCompleted > 0 then
-				self.networker:fire("reportLap", plotId, index)
+				self.networker:fire("reportLap", plotId, car.runnerId)
 			end
 		end
 	end
@@ -518,7 +792,7 @@ end
 type PlotState = {
 	plotId: number,
 	owner: Player,
-	levels: { number },
+	runners: { [number]: RunnerUtils.RunnerEntry },
 	startClock: number,
 	gateCount: number,
 	routeId: number,
@@ -526,6 +800,9 @@ type PlotState = {
 	active: boolean,
 	carSpeedMultiplier: number,
 	selectedTrail: number?,
+	rev: number,
+	mergeHidden: { [number]: boolean }?,
+	mergeHiddenUntil: number?,
 	boundsCf: CFrame?,
 	boundsSize: Vector3?,
 	pathRetryScheduled: boolean?,
@@ -535,6 +812,9 @@ export type RunnerManager = typeof(setmetatable(
 	{} :: {
 		runners: { [number]: { [number]: RunnerClient.Runner } },
 		plots: { [number]: PlotState },
+		resyncInFlight: { [number]: boolean },
+		plotGeneration: { [number]: number },
+		pendingRev: { [number]: number },
 		networker: Networker.Client,
 		updateConn: RBXScriptConnection?,
 		boundsCooldown: number,

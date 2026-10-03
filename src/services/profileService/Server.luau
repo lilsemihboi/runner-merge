@@ -14,6 +14,7 @@ local DataService = require(ReplicatedStorage.Packages.DataService).server
 local Abbreviate = require(ReplicatedStorage.Shared.Modules.Ui.Abbreviate)
 local DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
 local ProfileServer = require(ServerScriptService.Classes.Profile.ProfileServer)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local profiles: { [Player]: ProfileServer.Profile } = {} -- Maps players to their profile instances
@@ -122,6 +123,31 @@ function ProfileService.getProfile(player: Player): ProfileServer.Profile
 end
 
 --[=[
+	Converts saves from the pre-entry `runners` schema (one bare level per slot)
+	to `{ id, level, phase }` entries and repairs any malformed entries.
+
+	A car's identity and position used to be its position in the sanitized
+	roster, so `sanitizeRunners` assigns exactly the values the old scheme would
+	have computed - `id = position` and `phase = (position - 1) / count` - which
+	keeps both the lane hash and the position identical the first time an old
+	save loads. Nothing moves.
+
+	Runs from `onPlayerInit`, before the data is replicated, so the client only
+	ever sees the new shape.
+]=]
+local function migrateRunners(data: any)
+	local entries = RunnerUtils.sanitizeRunners(data.runners)
+
+	local highestId = if typeof(data.nextRunnerId) == "number" then data.nextRunnerId else 0
+	for _, entry in ipairs(entries) do
+		highestId = math.max(highestId, entry.id)
+	end
+
+	data.runners = entries
+	data.nextRunnerId = highestId
+end
+
+--[=[
 	Called by DataService when a player's data is initialized.
 	Reconciles player data with the default template to handle schema evolution.
 	
@@ -155,6 +181,9 @@ function DataService:onPlayerInit(_player: Player, data: DataTemplate.DataSchema
 
 	-- Reconcile player data with the template
 	reconcileData(data, DataTemplate)
+
+	-- Must run after reconcile so a fresh `nextRunnerId` already exists
+	migrateRunners(data)
 end
 
 --[=[

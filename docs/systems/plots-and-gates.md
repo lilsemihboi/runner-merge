@@ -51,11 +51,11 @@ Setup work:
 
 `Plot.merge`:
 
-1. Collect numeric levels with their original `runnerIndex` (sources).
-2. Sort ascending; repeatedly pair equal levels into `level + 1` until stable. Each pairing becomes a `MergeOperation` with `leftSource`/`rightSource`, supporting cascades (a result can feed the next merge).
+1. Sanitize the roster into `{ id, level, phase }` entries; sources address cars by `runnerId`, never by array slot.
+2. Sort ascending; repeatedly pair equal levels into `level + 1` until stable. Each pairing becomes a `MergeOperation` with `leftSource`/`rightSource`, supporting cascades (a result can feed the next merge). The left input's `id` survives and its phase is re-anchored at broadcast time so the faster car continues from where it stood.
 3. Exclusive cars are skipped (`ExclusiveCars.isExclusive`), including duplicates.
 4. Rewrite the `runners` array; register newly reached levels in `index`.
-5. `RunnerServiceServer:beginMergeEffect` → `playMergeEffect`; the effect duration is computed from the operation DAG and broadcasts resume after it.
+5. `RunnerServiceServer:beginMergeEffect` → `playMergeEffect`; the effect duration is computed from the operation DAG and broadcasts resume after it with a delta carrying the removals/upserts.
 
 ### Runner purchases (server logic)
 

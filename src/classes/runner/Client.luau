@@ -8,6 +8,10 @@
 		progress = ((now - startClock) / travelTime + phase) % 1
 	so every client (and the server, when validating gates) computes the
 	exact same position without any replication traffic.
+
+	`phase` comes from the car's own runner entry rather than from its slot in
+	the roster, so a purchase or a merge never repositions a car that is still
+	on the roster.
 ]]
 
 local Runner = {}
@@ -33,7 +37,7 @@ end
 function Runner.new(config: RunnerConfig): Runner
 	local self = setmetatable({
 		plotId = config.plotId,
-		index = config.index,
+		runnerId = config.runnerId,
 		level = config.level,
 		carSpeedMultiplier = config.carSpeedMultiplier,
 		runnerSpeedLevel = config.runnerSpeedLevel,
@@ -335,7 +339,7 @@ end
 
 export type RunnerConfig = {
 	plotId: number,
-	index: number,
+	runnerId: number,
 	level: number,
 	path: PathData.Path,
 	startClock: number,
@@ -352,7 +356,7 @@ export type RunnerConfig = {
 export type Runner = typeof(setmetatable(
 	{} :: {
 		plotId: number,
-		index: number,
+		runnerId: number,
 		level: number,
 		runnerSpeedLevel: number,
 		speed: number,

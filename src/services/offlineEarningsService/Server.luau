@@ -125,9 +125,9 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 		return 0
 	end
 
-	local levels = RunnerUtils.sanitizeLevels(profile:getRunners())
+	local entries = RunnerUtils.sanitizeRunners(profile:getRunners())
 	local gateDistances = getActiveGateDistances(path, profile:getActiveGateCount())
-	if #levels == 0 or #gateDistances == 0 then
+	if #entries == 0 or #gateDistances == 0 then
 		return 0
 	end
 
@@ -139,13 +139,14 @@ function OfflineEarnings.calculateOfflineEarnings(_self: OfflineEarnings, player
 	local vipMultiplier = if MonetizationServiceServer:ownsGamepass(player, Products.vip) == true then 1.5 else 1
 	local earnings = 0
 	local routeMultiplier = RouteServiceUtils[playerRoute].cashMultiplier
-	for index, runnerLevel in levels do
-		local speed = RunnerUtils.getRunnerSpeed(runnerLevel, runnerSpeedLevel)
-		local phase = (index - 1) / #levels
-		local startDistance = phase * path.length
+	for _, entry in ipairs(entries) do
+		local speed = RunnerUtils.getRunnerSpeed(entry.level, runnerSpeedLevel)
+		-- Each runner owns its starting point, so a purchase or merge never
+		-- retroactively re-prices the distance already run while offline.
+		local startDistance = entry.phase * path.length
 		local distanceTravelled = speed * eligibleOfflineSeconds
 		local gateCrossings = countGateCrossings(gateDistances, path.length, startDistance, distanceTravelled)
-		local incomePerGate = math.max(1, math.round(RunnerUtils.getRunnerIncomePerLap(runnerLevel) * cashBonusMultiplier))
+		local incomePerGate = math.max(1, math.round(RunnerUtils.getRunnerIncomePerLap(entry.level) * cashBonusMultiplier))
 
 		earnings += gateCrossings * incomePerGate
 	end

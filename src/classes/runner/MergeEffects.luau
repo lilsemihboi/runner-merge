@@ -205,7 +205,7 @@ local function resolveInput(
 		return resultModels[source.resultId]
 	end
 
-	local sourceCFrame = if source.runnerIndex then sourceCFrames[source.runnerIndex] else nil
+	local sourceCFrame = if source.runnerId then sourceCFrames[source.runnerId] else nil
 	return createGhost(container, sourceLevel, sourceCFrame or fallbackCFrame * CFrame.new(fallbackOffset, 0, 0))
 end
 

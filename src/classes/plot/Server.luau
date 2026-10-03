@@ -23,6 +23,7 @@ local RouteServiceUtils = require(ReplicatedStorage.Shared.Services.RouteService
 local RunnerServiceServer = require(ServerScriptService.Services.RunnerService.RunnerServiceServer)
 
 local RunnerServiceTypes = require(ReplicatedStorage.Shared.Services.RunnerService.RunnerServiceTypes)
+local RunnerUtils = require(ReplicatedStorage.Shared.Classes.Runner.RunnerUtils)
 local Runners = require(ReplicatedStorage.Shared.Modules.Items.Runners)
 local UpgradeUtils = require(ReplicatedStorage.Shared.Modules.Items.UpgradeUtils)
 local _DataTemplate = require(ReplicatedStorage.Shared.Modules.Game.DataTemplate)
@@ -443,20 +444,26 @@ function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
 	self:merge(self.player)
 
 	local runnerLevels = self.profile:getRunners()
+	local entries = RunnerUtils.sanitizeRunners(runnerLevels)
 	local changedAny = false
 
-	local newLevels: { number } = {}
-	for _, runnerLevel in ipairs(runnerLevels) do
-		if typeof(runnerLevel) == "number" then
-			-- Exclusives sit in a reserved high id band, so they are already
-			-- above any minLevel today. The guard keeps a future low-band
-			-- exclusive from being silently flattened away on rebirth.
-			if runnerLevel < minLevel and not ExclusiveCars.isExclusive(runnerLevel) then
-				changedAny = true
-				newLevels[#newLevels + 1] = minLevel
-			else
-				newLevels[#newLevels + 1] = runnerLevel
-			end
+	-- Only the level changes: ids and phases carry over untouched. The phase is
+	-- re-anchored server-side at broadcast time (`_reanchorChangedLevels`) so a
+	-- whole roster can be bumped up without any car moving.
+	local newEntries: { RunnerUtils.RunnerEntry } = {}
+	for _, entry in ipairs(entries) do
+		-- Exclusives sit in a reserved high id band, so they are already
+		-- above any minLevel today. The guard keeps a future low-band
+		-- exclusive from being silently flattened away on rebirth.
+		if entry.level < minLevel and not ExclusiveCars.isExclusive(entry.level) then
+			changedAny = true
+			newEntries[#newEntries + 1] = {
+				id = entry.id,
+				level = minLevel,
+				phase = entry.phase,
+			}
+		else
+			newEntries[#newEntries + 1] = entry
 		end
 	end
 
@@ -470,8 +477,8 @@ function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
 		DataService:arrayRemove(self.player, { "runners" }, index)
 	end
 
-	for index, runnerLevel in ipairs(newLevels) do
-		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
+	for index, entry in ipairs(newEntries) do
+		DataService:arrayInsert(self.player, { "runners" }, entry, index)
 	end
 
 	self._isApplyingRunnerMerge = false
@@ -481,7 +488,9 @@ function Plot._bumpLowLevelRunners(self: Plot, minLevel: number)
 end
 
 type MergeCandidate = {
+	id: number,
 	level: number,
+	phase: number,
 	source: RunnerServiceTypes.MergeSource,
 }
 
@@ -491,15 +500,15 @@ function Plot.merge(self: Plot, player: Player)
 	local runnerLevels = self.profile:getRunners()
 	local sortedLevels: { MergeCandidate } = {}
 
-	for _, runnerLevel in ipairs(runnerLevels) do
-		if typeof(runnerLevel) == "number" then
-			sortedLevels[#sortedLevels + 1] = {
-				level = runnerLevel,
-				source = {
-					runnerIndex = #sortedLevels + 1,
-				},
-			}
-		end
+	for _, entry in ipairs(RunnerUtils.sanitizeRunners(runnerLevels)) do
+		sortedLevels[#sortedLevels + 1] = {
+			id = entry.id,
+			level = entry.level,
+			phase = entry.phase,
+			source = {
+				runnerId = entry.id,
+			},
+		}
 	end
 
 	if #sortedLevels < 2 then
@@ -530,7 +539,13 @@ function Plot.merge(self: Plot, player: Player)
 				local newLevel = currentRunner.level + 1
 				local operationId = #mergeOperations + 1
 				mergedLevels[#mergedLevels + 1] = {
+					-- The result keeps the left input's identity (same id means
+					-- same lane) and reuses its phase; the server re-anchors it
+					-- at broadcast time so the faster car continues from where
+					-- its input stood instead of jumping ahead.
+					id = currentRunner.id,
 					level = newLevel,
+					phase = currentRunner.phase,
 					source = {
 						resultId = operationId,
 					},
@@ -561,9 +576,13 @@ function Plot.merge(self: Plot, player: Player)
 		return "NO_MATCHING_RUNNERS"
 	end
 
-	local mergedRunnerLevels = {}
+	local mergedRunners: { RunnerUtils.RunnerEntry } = {}
 	for _, runner in ipairs(sortedLevels) do
-		mergedRunnerLevels[#mergedRunnerLevels + 1] = runner.level
+		mergedRunners[#mergedRunners + 1] = {
+			id = runner.id,
+			level = runner.level,
+			phase = runner.phase,
+		}
 	end
 
 	RunnerServiceServer:beginMergeEffect(self.plotId)
@@ -573,8 +592,8 @@ function Plot.merge(self: Plot, player: Player)
 		DataService:arrayRemove(self.player, { "runners" }, index)
 	end
 
-	for index, runnerLevel in ipairs(mergedRunnerLevels) do
-		DataService:arrayInsert(self.player, { "runners" }, runnerLevel, index)
+	for index, entry in ipairs(mergedRunners) do
+		DataService:arrayInsert(self.player, { "runners" }, entry, index)
 	end
 
 	-- Register any newly-reached levels in the index
@@ -601,7 +620,7 @@ function Plot.merge(self: Plot, player: Player)
 		mergeCount = #mergeOperations,
 		highestResultLevel = highestResultLevel,
 		runnerCountBefore = #runnerLevels,
-		runnerCountAfter = #mergedRunnerLevels,
+		runnerCountAfter = #mergedRunners,
 	})
 
 	return "SUCCESS"

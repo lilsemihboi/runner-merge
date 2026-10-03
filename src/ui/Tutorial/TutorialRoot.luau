@@ -227,15 +227,18 @@ tutorialSteps = {
 
 		const runnersSource = GetDataSource("runners")
 
-		local hasHigherRunner = false
-		for _, level in runnersSource() do
-			if level > 1 then
-				hasHigherRunner = true
-				break
+		-- Runners hold one entry per car; only its level matters here.
+		local function hasHigherLevelRunner(runners: { any }): boolean
+			for _, entry in runners do
+				if typeof(entry) == "table" and typeof(entry.level) == "number" and entry.level > 1 then
+					return true
+				end
 			end
+
+			return false
 		end
 
-		if hasHigherRunner then
+		if hasHigherLevelRunner(runnersSource()) then
 			advanceTo(6)
 			return
 		end
@@ -248,16 +251,8 @@ tutorialSteps = {
 
 		local connection: (() -> ())?
 
-		connection = Charm.subscribe(runnersSource, function(state: {})
-			local hasHigher = false
-			for _, level in state do
-				if level > 1 then
-					hasHigher = true
-					break
-				end
-			end
-
-			if not hasHigher then
+		connection = Charm.subscribe(runnersSource, function(state: { any })
+			if not hasHigherLevelRunner(state) then
 				return
 			end
 

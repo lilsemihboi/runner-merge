@@ -121,7 +121,7 @@ python -m tools.run_balance --output balance/balance-13-08-26/balance_results
 - `balance/balance-13-08-26/` is a dated snapshot; its `balance_results/routes.json` predates the current route multipliers (report says 1.75–2.50 for routes 4–7, code says 2.09–3.82). Treat the report as historical.
 
 > [!WARNING]
-> The simulator re-implements the economy and is already out of sync with the runtime in several places (upgrade base costs/growth, rebirth growth, route requirements, runner price growth). Re-derive formulas from the Luau files before trusting new results, and update both copies when balance changes.
+> The simulator mirrors the runtime formulas as of 2026-10-04 (upgrade base costs/growth + rebirth scaling, rebirth growth 1.45, route requirements 0/1/2/3/5/7/9, runner growth 1.06). Re-derive formulas from the Luau files before trusting new results, and update both copies when balance changes.
 
 ## Gotchas
 

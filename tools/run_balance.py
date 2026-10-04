@@ -33,7 +33,7 @@ from tools.economy_config import (
 	PlayerType,
 	default_config,
 )
-from tools.economy_simulator import EconomySimulator, SimulationResult, run_population
+from tools.economy_simulator import EconomySimulator, SimulationResult, run_population, upgrade_cost
 
 
 def parse_args() -> argparse.Namespace:
@@ -143,7 +143,7 @@ def _plot_upgrade_payback(path: Path, config: EconomyConfig) -> None:
 	baseline_rate = 1_000.0
 	for upgrade in ("runner_speed", "cash_bonus"):
 		for level in range(1, 11):
-			cost = __import__("economy_simulator").upgrade_cost(upgrade, level)
+			cost = upgrade_cost(upgrade, level)
 			additional = baseline_rate * 0.1 / (1 + 0.1 * (level - 1))
 			rows.append({"label": f"{upgrade}_{level}", "minutes": cost / additional / 60})
 	_plot_bars(path, rows, "label", "minutes", "Upgrade payback at $1,000/sec baseline", "Minutes")

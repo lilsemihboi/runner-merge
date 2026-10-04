@@ -75,7 +75,7 @@ def car_speed(car_id: int, speed_upgrade: int = 0) -> float:
 
 
 @lru_cache(maxsize=None)
-def _base_runner_price(purchase_number: int, growth: float = 1.08) -> int:
+def _base_runner_price(purchase_number: int, growth: float = 1.06) -> int:
 	prices = (0, 1, 3, 10, 15, 25, 35, 50, 70, 95, 130, 175, 235, 315, 420)
 	purchase_number = max(1, math.floor(purchase_number))
 	if purchase_number <= len(prices):
@@ -85,11 +85,11 @@ def _base_runner_price(purchase_number: int, growth: float = 1.08) -> int:
 	return max(formula, previous + 5)
 
 
-def runner_price(purchase_number: int, scale: float = 1.0, growth: float = 1.08) -> int:
+def runner_price(purchase_number: int, scale: float = 1.0, growth: float = 1.06) -> int:
 	return round_luau(_base_runner_price(purchase_number, growth) * scale)
 
 
-def upgrade_cost(upgrade: str, next_level: int, scale: float = 1.0) -> int:
+def upgrade_cost(upgrade: str, next_level: int, scale: float = 1.0, rebirths: int = 0) -> int:
 	if upgrade == "gates":
 		if next_level == 1:
 			base = 0
@@ -98,15 +98,17 @@ def upgrade_cost(upgrade: str, next_level: int, scale: float = 1.0) -> int:
 		else:
 			base = round_to_tens(5000 * (2.5 ** (next_level - 3)))
 	elif upgrade == "runner_speed":
-		base = round_to_tens(100 * (1.85 ** next_level))
+		rebirth_scale = 0.5 * (1.4 ** max(0, math.floor(rebirths)))
+		base = round_to_tens(300 * (1.95 ** next_level) * rebirth_scale)
 	elif upgrade == "cash_bonus":
-		base = round_to_tens(500 * (2.0 ** next_level))
+		rebirth_scale = 0.5 * (1.4 ** max(0, math.floor(rebirths)))
+		base = round_to_tens(500 * (2.0 ** next_level) * rebirth_scale)
 	else:
 		raise ValueError(f"Unknown upgrade: {upgrade}")
 	return round_luau(base * scale)
 
 
-def rebirth_cost(next_rebirth: int, scale: float = 1.0, growth: float = 10.0) -> int:
+def rebirth_cost(next_rebirth: int, scale: float = 1.0, growth: float = 1.45) -> int:
 	route_prices = (1_000, 10_000, 100_000, 500_000, 2_000_000, 10_000_000)
 	base = route_prices[next_rebirth - 1] if next_rebirth <= len(route_prices) else route_prices[-1] * (growth ** (next_rebirth - len(route_prices)))
 	return round_luau(base * scale)
@@ -432,12 +434,12 @@ class EconomySimulator:
 			actions.append(Action("gates", cost, benefit, cost / max(benefit, 1e-9)))
 
 		if state.runner_speed < MAX_UPGRADE_LEVEL:
-			cost = upgrade_cost("runner_speed", state.runner_speed + 1, self.config.scales.upgrade_costs)
+			cost = upgrade_cost("runner_speed", state.runner_speed + 1, self.config.scales.upgrade_costs, state.rebirths)
 			benefit = current_rate * (0.1 / (1 + 0.1 * state.runner_speed))
 			actions.append(Action("runner_speed", cost, benefit, cost / max(benefit, 1e-9)))
 
 		if state.cash_bonus < MAX_UPGRADE_LEVEL:
-			cost = upgrade_cost("cash_bonus", state.cash_bonus + 1, self.config.scales.upgrade_costs)
+			cost = upgrade_cost("cash_bonus", state.cash_bonus + 1, self.config.scales.upgrade_costs, state.rebirths)
 			benefit = current_rate * (0.1 / (1 + 0.1 * state.cash_bonus))
 			actions.append(Action("cash_bonus", cost, benefit, cost / max(benefit, 1e-9)))
 

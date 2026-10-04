@@ -219,7 +219,11 @@ return function(props: TextLabelProps)
 			create("ImageLabel", {
 				Name = "Prefix",
 				BackgroundTransparency = 1,
-				Size = props.Prefix.Size or UDim2.fromScale(1, 1),
+				-- NOTE: TextScaled glyphs only fill ~70-75% of the label height
+				-- (line height padding), so a full-height (1, 1) icon looks
+				-- oversized next to scaled text. Default to 0.75 to match the
+				-- rendered text height. Callers can still override via Prefix.Size.
+				Size = props.Prefix.Size or UDim2.fromScale(0.75, 0.75),
 				SizeConstraint = props.Prefix.SizeConstraint or Enum.SizeConstraint.RelativeYY,
 				LayoutOrder = 0,
 				ScaleType = Enum.ScaleType.Fit,

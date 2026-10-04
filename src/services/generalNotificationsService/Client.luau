@@ -9,6 +9,7 @@ local NotificationMessage = require(ReplicatedStorage.Shared.Modules.Ui.Componen
 type NotificationProps = {
 	Prefix: {
 		Image: string,
+		Size: UDim2?,
 	}?,
 }
 

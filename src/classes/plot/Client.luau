@@ -528,7 +528,7 @@ function Plot.setupBlocks(self: Plot)
 	local isAutoOpenPending = false
 	local statusToken = 0
 	local isAutoRollPromptEnabled = Charm.computed(function()
-		return isTutorialFinished() or localTutorialStage() >= 10
+		return (isTutorialFinished() or localTutorialStage() >= 10) and not CratesSlice.states.cratesScreenOpen()
 	end)
 
 	local promptEnabled = Charm.computed(function()

@@ -11,6 +11,7 @@ local SideButton = require(ReplicatedStorage.Shared.UI.App.Components.SideButton
 local Trails = require(ReplicatedStorage.Shared.Modules.Items.Trails)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 const VideCharm = require(ReplicatedStorage.Packages.VideCharm)
+const TextLabel = require(ReplicatedStorage.Shared.Modules.Ui.Primitives.TextLabel)
 local getVideDataSource = require(ReplicatedStorage.Shared.UI.App.Hooks.getVideDataSource)
 local useOrder = require(ReplicatedStorage.Shared.UI.App.Hooks.useOrder)
 local usePx = require(ReplicatedStorage.Shared.UI.App.Hooks.usePx)
@@ -40,8 +41,14 @@ const function SideButtonsComponent()
 	local canRebirth = Vide.derive(function()
 		return (cash() or 0) >= RebirthServiceUtils.calculateCashRequirement((rebirths()) + 1)
 	end)
+	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
+	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
+	const canShowRebirthPedestal = Vide.derive(function()
+		return canRebirth() and isTutorialFinished() == true and Menu.openedMenu() == nil and HudSlice.showEverything() == true
+	end)
 
 	local previousInventory: { number }? = nil
+
 	Vide.effect(function()
 		local currentInventory = inventory() or {}
 		if previousInventory == nil then
@@ -85,9 +92,6 @@ const function SideButtonsComponent()
 		end
 	end)
 
-	const isTutorialFinished = VideCharm.useAtom(TutorialSlice.states.isTutorialFinished)
-	const localTutorialStage = VideCharm.useAtom(TutorialSlice.states.localTutorialStage)
-
 	Vide.effect(function()
 		local isEligible = canRebirth()
 		local toastWasShown = Vide.untrack(rebirthToastShown)
@@ -117,7 +121,49 @@ const function SideButtonsComponent()
 	end)
 	local sidebarPosition = Vide.spring(sidebarPositionTarget, 0.35, 0.8)
 
-	return Frame({
+	local hintXOffset = usePx(145 + 10)
+	local hintYOffset = usePx(1.5 * (145 + 30))
+	local rebirthHintPosition = Vide.derive(function()
+		local base = sidebarPosition()
+		return UDim2.new(base.X.Scale, base.X.Offset + hintXOffset(), base.Y.Scale, base.Y.Offset + hintYOffset())
+	end)
+
+	local rebirthHint = Frame({
+		Size = usePx.offset(420, 90),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = rebirthHintPosition,
+		BackgroundColor3 = Color3.new(),
+		BackgroundTransparency = 0.25,
+		Visible = canShowRebirthPedestal,
+
+		Vide.create("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.33, 0.65),
+				NumberSequenceKeypoint.new(0.77, 0.65),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}),
+
+		TextLabel({
+			Text = `You should <font color="rgb(255,10,10)">Rebirth</font> to progress further!`,
+			RichText = true,
+			Size = UDim2.fromScale(0.85, 0.85),
+			Font = Enum.Font.BuilderSansExtraBold,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextScaled = true,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextWrapped = false,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Stroke = {
+				Thickness = usePx(2.6),
+			},
+		}),
+	})
+
+	local sidebar = Frame({
 		Size = usePx.offset(145, 750),
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = sidebarPosition,
@@ -191,6 +237,16 @@ const function SideButtonsComponent()
 				end,
 			})
 		),
+	})
+
+	-- Sibling container: hint is NOT parented to the rebirth button, it only
+	-- tracks the calculated position next to it.
+	return Frame({
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+
+		rebirthHint,
+		sidebar,
 	})
 end
 
